@@ -1,0 +1,251 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Star, Wifi, Car, Utensils, Dumbbell, Waves } from 'lucide-react';
+import Header from '@/components/Layout/Header';
+import Footer from '@/components/Layout/Footer';
+import ChatBot from '@/components/Chatbot/ChatBot';
+
+export default function Home() {
+  const [reservationData, setReservationData] = useState(null);
+
+  const features = [
+    {
+      icon: Wifi,
+      title: 'Free Wi-Fi',
+      description: 'High-speed internet throughout the hotel',
+    },
+    {
+      icon: Car,
+      title: 'Free Parking',
+      description: 'Complimentary valet parking service',
+    },
+    {
+      icon: Utensils,
+      title: 'Fine Dining',
+      description: 'Award-winning restaurant with local cuisine',
+    },
+    {
+      icon: Dumbbell,
+      title: 'Fitness Center',
+      description: '24/7 access to modern gym equipment',
+    },
+    {
+      icon: Waves,
+      title: 'Pool & Spa',
+      description: 'Relaxing pool and full-service spa',
+    },
+  ];
+
+  const rooms = [
+    {
+      name: 'Standard Room',
+      price: '$150',
+      image: 'https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg',
+      features: ['Queen bed', 'City view', 'Free Wi-Fi', 'Mini bar'],
+    },
+    {
+      name: 'Deluxe Room',
+      price: '$250',
+      image: 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
+      features: ['King bed', 'Ocean view', 'Balcony', 'Premium amenities'],
+    },
+    {
+      name: 'Presidential Suite',
+      price: '$800',
+      image: 'https://images.pexels.com/photos/1743231/pexels-photo-1743231.jpeg',
+      features: ['Master bedroom', 'Living area', 'Private terrace', 'Butler service'],
+    },
+  ];
+
+  const testimonials = [
+    {
+      name: 'Sarah Johnson',
+      rating: 5,
+      comment: 'Absolutely amazing experience! The service was impeccable and the room was luxurious.',
+    },
+    {
+      name: 'Michael Chen',
+      rating: 5,
+      comment: 'Perfect location and outstanding amenities. Will definitely come back!',
+    },
+    {
+      name: 'Emma Williams',
+      rating: 5,
+      comment: 'The spa services were incredible and the staff went above and beyond.',
+    },
+  ];
+
+  const handleReservationRequest = (data: any) => {
+    setReservationData(data);
+  };
+
+  return (
+    <>
+      <Header />
+      <main>
+        {/* Hero Section */}
+       <section className="relative h-screen isolate overflow-hidden">
+  {/* Background video */}
+  <video
+    className="absolute inset-0 w-full h-full object-cover"
+    src="/hotel.mp4"
+    autoPlay
+    loop
+    muted
+    playsInline
+    aria-hidden="true"
+    // poster="/fallback-hero.jpg" // optional: add a poster image if you have one
+  />
+
+  {/* Dark overlay (≈ rgba(0,0,0,0.4)) */}
+  <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+
+  {/* Content */}
+  <div className="relative z-10 flex h-full items-center justify-center">
+    <div className="text-center text-white max-w-4xl px-4">
+      <h1 className="text-5xl md:text-7xl font-bold mb-6">
+        Welcome to <span className="text-yellow-400">Mutiara Hotel</span>
+      </h1>
+      <p className="text-xl font-sans md:text-2xl mb-8 text-gray-200">
+        Experience unparalleled luxury and comfort in the heart of paradise
+      </p>
+      <div className="space-x-4">
+        <Button size="lg" className="bg-transparent hover:bg-white text-yellow-200 px-8 py-3">
+          Book Now
+        </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          className="border-white text-black hover:bg-black hover:text-white text-lg px-8 py-3"
+        >
+          Explore Rooms
+        </Button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+        {/* Features Section */}
+        <section className="py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">World-Class Amenities</h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Discover the finest amenities designed to make your stay unforgettable
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {features.map((feature, index) => (
+                <Card key={index} className="text-center p-6 hover:shadow-lg transition-shadow border-yellow-100">
+                  <CardContent className="pt-6">
+                    <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <feature.icon className="w-8 h-8 text-yellow-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                    <p className="text-gray-600">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Rooms Section */}
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Luxury Accommodations</h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Choose from our selection of beautifully appointed rooms and suites
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {rooms.map((room, index) => (
+                <Card key={index} className="overflow-hidden hover:shadow-xl transition-shadow">
+                  <div className="relative h-64">
+                    <img
+                      src={room.image}
+                      alt={room.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-4 right-4 bg-yellow-600 text-white px-3 py-1 rounded-full font-semibold">
+                      {room.price}/night
+                    </div>
+                  </div>
+                  <CardContent className="p-6">
+                    <h3 className="text-2xl font-semibold text-gray-900 mb-3">{room.name}</h3>
+                    <ul className="space-y-2 mb-6">
+                      {room.features.map((feature, featureIndex) => (
+                        <li key={featureIndex} className="text-gray-600 flex items-center">
+                          <span className="w-2 h-2 bg-yellow-400 rounded-full mr-3"></span>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button className="w-full bg-yellow-600 hover:bg-yellow-700">
+                      Reserve Now
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Testimonials Section */}
+        <section className="py-20 bg-gray-900 text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold mb-4">What Our Guests Say</h2>
+              <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                Read reviews from our satisfied guests who experienced luxury at its finest
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {testimonials.map((testimonial, index) => (
+                <Card key={index} className="bg-gray-800 border-gray-700">
+                  <CardContent className="p-6">
+                    <div className="flex mb-4">
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                      ))}
+                    </div>
+                    <p className="text-gray-300 mb-4 italic">"{testimonial.comment}"</p>
+                    <p className="font-semibold text-yellow-400">{testimonial.name}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-20 bg-yellow-600 text-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-4xl font-bold mb-4">Ready to Experience Luxury?</h2>
+            <p className="text-xl mb-8 opacity-90">
+              Book your stay now and discover what makes LuxuryStay the premier destination
+            </p>
+            <div className="space-x-4">
+              <Button size="lg" className="bg-white text-yellow-600 hover:bg-gray-100 text-lg px-8 py-3">
+                Book Your Stay
+              </Button>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-yellow-600 text-lg px-8 py-3">
+                Contact Us
+              </Button>
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+      <ChatBot onReservationRequest={handleReservationRequest} />
+    </>
+  );
+}
