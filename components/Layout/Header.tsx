@@ -25,58 +25,56 @@ export default function Header() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
-useEffect(() => {
-  // jalankan hanya di client
-  if (typeof window === 'undefined') return;
+  useEffect(() => {
+    // jalankan hanya di client
+    if (typeof window === 'undefined') return;
 
-  const loadUser = () => {
-    try {
-      const token = localStorage.getItem('token');
-      const raw = localStorage.getItem('user');
+    const loadUser = () => {
+      try {
+        const token = localStorage.getItem('token');
+        const raw = localStorage.getItem('user');
 
-      if (!token || !raw) return; // belum login / data belum ada
+        if (!token || !raw) return; // belum login / data belum ada
 
-      // Tolak string "undefined" / "null"
-      if (raw === 'undefined' || raw === 'null') {
+        // Tolak string "undefined" / "null"
+        if (raw === 'undefined' || raw === 'null') {
+          localStorage.removeItem('user');
+          return;
+        }
+
+        const parsed = JSON.parse(raw);
+
+        // Validasi minimal bentuk objek user
+        const isValid =
+          parsed &&
+          typeof parsed === 'object' &&
+          typeof parsed.id === 'number' &&
+          typeof parsed.email === 'string' &&
+          typeof parsed.name === 'string' &&
+          (parsed.role === 'user' || parsed.role === 'admin');
+
+        if (isValid) {
+          setUser(parsed as User);
+        } else {
+          // kalau struktur tidak sesuai, bersihkan agar tidak error lagi
+          localStorage.removeItem('user');
+        }
+      } catch (err) {
+        // JSON corrupt → bersihkan supaya tidak crash
+        console.error('Invalid user JSON in localStorage:', err);
         localStorage.removeItem('user');
-        return;
       }
+    };
 
-      const parsed = JSON.parse(raw);
+    loadUser();
 
-      // Validasi minimal bentuk objek user
-      const isValid =
-        parsed &&
-        typeof parsed === 'object' &&
-        typeof parsed.id === 'number' &&
-        typeof parsed.email === 'string' &&
-        typeof parsed.name === 'string' &&
-        (parsed.role === 'user' || parsed.role === 'admin');
-
-      if (isValid) {
-        setUser(parsed as User);
-      } else {
-        // kalau struktur tidak sesuai, bersihkan agar tidak error lagi
-        localStorage.removeItem('user');
-      }
-    } catch (err) {
-      // JSON corrupt → bersihkan supaya tidak crash
-      console.error('Invalid user JSON in localStorage:', err);
-      localStorage.removeItem('user');
-    }
-  };
-
-  loadUser();
-
-  // Sinkron saat tab lain mengubah localStorage
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === 'user' || e.key === 'token') loadUser();
-  };
-  window.addEventListener('storage', onStorage);
-  return () => window.removeEventListener('storage', onStorage);
-}, 
-[]);
-
+    // Sinkron saat tab lain mengubah localStorage
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'user' || e.key === 'token') loadUser();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -99,26 +97,18 @@ useEffect(() => {
 
   return (
     <>
-      {/* Floating header */}
+      {/* Floating header dengan background sangat transparan */}
       <header
-        className="
-          fixed top-3 sm:top-5 left-0 right-0 z-50
-          pointer-events-none
-        "
+        className="fixed top-3 sm:top-5 left-0 right-0 z-50 pointer-events-none"
         role="navigation"
         aria-label="Site"
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <div
-            className="
-              pointer-events-auto relative overflow-visible
-              rounded-2xl border border-amber-200/60
-              bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60
-              shadow-xl
-            "
+            className="pointer-events-auto relative overflow-visible rounded-2xl border border-white/20 bg-black/30 backdrop-blur-xl supports-[backdrop-filter]:bg-black/20 shadow-lg shadow-black/10 hover:bg-black/40 transition-all duration-300"
           >
             {/* GRID: 1fr auto 1fr */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 py-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 py-6">
               {/* Left: Desktop nav + mobile burger */}
               <div className="flex items-center">
                 <nav className="hidden md:flex w-full justify-start items-center gap-10">
@@ -126,7 +116,7 @@ useEffect(() => {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="text-gray-700 hover:text-yellow-600 font-sans transition-colors"
+                      className="text-white/90 hover:text-yellow-300 font-sans transition-colors duration-200 hover:scale-105 text-lg"
                     >
                       {item.name}
                     </Link>
@@ -139,7 +129,7 @@ useEffect(() => {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsMenuOpen(true)}
-                    className="border-yellow-300 hover:border-yellow-400"
+                    className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white"
                     aria-label="Open menu"
                   >
                     <Menu size={20} />
@@ -147,19 +137,19 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Center: LOGO saja */}
-              <div className="justify-self-center">
+              {/* Center: LOGO SANGAT BESAR */}
+              <div className="justify-self-center my-[-2.9em] mb-[-3.4em]">
                 <Link
                   href="/"
                   aria-label="Mutiara Balige Hotel"
-                  className="inline-flex items-center"
+                  className="inline-flex items-center hover:scale-105 transition-transform duration-200"
                 >
                   <Image
                     src="/logo.png"
                     alt="Mutiara Balige"
-                    width={160}
-                    height={48}
-                    className="h-10 w-auto sm:h-12 md:h-14"
+                    width={320} // Diperbesar dari 260
+                    height={100} // Diperbesar dari 80
+                    className="h-20 w-auto sm:h-24 md:h-28 brightness-110 contrast-110" // Diperbesar dari h-16 sm:h-20 md:h-24
                     priority
                   />
                 </Link>
@@ -172,7 +162,7 @@ useEffect(() => {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="text-gray-700 hover:text-yellow-600 font-sans transition-colors"
+                      className="text-white/90 hover:text-yellow-300 font-sans transition-colors duration-200 hover:scale-105 text-lg"
                     >
                       {item.name}
                     </Link>
@@ -184,27 +174,30 @@ useEffect(() => {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="flex items-center space-x-2 border-yellow-300 hover:border-yellow-400"
+                        className="flex items-center space-x-2 border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white backdrop-blur-sm text-base"
                       >
-                        <User size={16} />
+                        <User size={18} />
                         <span>{user.name}</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem asChild>
+                    <DropdownMenuContent 
+                      align="end" 
+                      className="w-56 bg-black/80 backdrop-blur-xl border-white/20 text-white text-base"
+                    >
+                      <DropdownMenuItem asChild className="hover:bg-white/10 focus:bg-white/10 py-3">
                         <Link
                           href={user.role === 'admin' ? '/admin' : '/dashboard'}
-                          className="flex items-center"
+                          className="flex items-center text-white/90"
                         >
-                          <Settings size={16} className="mr-2" />
+                          <Settings size={18} className="mr-3" />
                           {user.role === 'admin' ? 'Admin Panel' : 'Dashboard'}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={handleLogout}
-                        className="flex items-center text-red-600"
+                        className="flex items-center text-red-300 hover:text-red-200 hover:bg-white/10 focus:bg-white/10 py-3"
                       >
-                        <LogOut size={16} className="mr-2" />
+                        <LogOut size={18} className="mr-3" />
                         Logout
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -214,11 +207,11 @@ useEffect(() => {
                     <Button
                       variant="outline"
                       asChild
-                      className="border-yellow-300 hover:border-yellow-400"
+                      className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white backdrop-blur-sm text-base px-6 py-2"
                     >
                       <Link href="/auth/signin">Sign In</Link>
                     </Button>
-                    <Button asChild className="bg-yellow-600 hover:bg-yellow-700">
+                    <Button asChild className="bg-yellow-500/90 hover:bg-yellow-500 text-white backdrop-blur-sm text-base px-6 py-2">
                       <Link href="/auth/signup">Sign Up</Link>
                     </Button>
                   </>
@@ -238,20 +231,21 @@ useEffect(() => {
         aria-hidden={!isMenuOpen}
       />
       <aside
-        className={`fixed left-0 top-0 z-[61] h-dvh w-72 bg-white shadow-2xl md:hidden
-        transform transition-transform duration-300 ease-out
-        ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed left-0 top-0 z-[61] h-dvh w-72 bg-black/95 backdrop-blur-xl shadow-2xl md:hidden transform transition-transform duration-300 ease-out ${
+          isMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
         role="dialog"
         aria-modal="true"
         aria-label="Mobile navigation"
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <span className="font-semibold">Menu</span>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/20">
+          <span className="font-semibold text-white/90">Menu</span>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsMenuOpen(false)}
             aria-label="Close menu"
+            className="text-white/90 hover:bg-white/10"
           >
             <X size={20} />
           </Button>
@@ -262,17 +256,21 @@ useEffect(() => {
             <Link
               key={item.name}
               href={item.href}
-              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 font-medium"
+              className="block px-3 py-2 rounded-md text-white/90 hover:bg-white/10 hover:text-yellow-300 font-medium transition-colors duration-200"
               onClick={() => setIsMenuOpen(false)}
             >
               {item.name}
             </Link>
           ))}
 
-          <div className="border-t mt-3 pt-3 space-y-2">
+          <div className="border-t border-white/20 mt-3 pt-3 space-y-2">
             {user ? (
               <>
-                <Button variant="outline" asChild className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  asChild 
+                  className="w-full justify-start bg-transparent text-white/90 border-white/30 hover:bg-white/10 hover:text-white"
+                >
                   <Link
                     href={user.role === 'admin' ? '/admin' : '/dashboard'}
                     onClick={() => setIsMenuOpen(false)}
@@ -285,19 +283,23 @@ useEffect(() => {
                     handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="w-full bg-red-600 hover:bg-red-700"
+                  className="w-full bg-red-500/90 hover:bg-red-500 text-white backdrop-blur-sm"
                 >
                   Logout
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="outline" asChild className="w-full">
+                <Button 
+                  variant="outline" 
+                  asChild 
+                  className="w-full bg-transparent text-white/90 border-white/30 hover:bg-white/10 hover:text-white"
+                >
                   <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>
                     Sign In
                   </Link>
                 </Button>
-                <Button asChild className="w-full bg-yellow-600 hover:bg-yellow-700">
+                <Button asChild className="w-full bg-yellow-500/90 hover:bg-yellow-500 text-white backdrop-blur-sm">
                   <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
                     Sign Up
                   </Link>
