@@ -26,7 +26,6 @@ export default function Header() {
   const router = useRouter();
 
   useEffect(() => {
-    // jalankan hanya di client
     if (typeof window === 'undefined') return;
 
     const loadUser = () => {
@@ -34,9 +33,8 @@ export default function Header() {
         const token = localStorage.getItem('token');
         const raw = localStorage.getItem('user');
 
-        if (!token || !raw) return; // belum login / data belum ada
+        if (!token || !raw) return;
 
-        // Tolak string "undefined" / "null"
         if (raw === 'undefined' || raw === 'null') {
           localStorage.removeItem('user');
           return;
@@ -44,7 +42,6 @@ export default function Header() {
 
         const parsed = JSON.parse(raw);
 
-        // Validasi minimal bentuk objek user
         const isValid =
           parsed &&
           typeof parsed === 'object' &&
@@ -56,11 +53,9 @@ export default function Header() {
         if (isValid) {
           setUser(parsed as User);
         } else {
-          // kalau struktur tidak sesuai, bersihkan agar tidak error lagi
           localStorage.removeItem('user');
         }
       } catch (err) {
-        // JSON corrupt → bersihkan supaya tidak crash
         console.error('Invalid user JSON in localStorage:', err);
         localStorage.removeItem('user');
       }
@@ -68,7 +63,6 @@ export default function Header() {
 
     loadUser();
 
-    // Sinkron saat tab lain mengubah localStorage
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'user' || e.key === 'token') loadUser();
     };
@@ -97,26 +91,24 @@ export default function Header() {
 
   return (
     <>
-      {/* Floating header dengan background sangat transparan */}
+      {/* Floating header dengan tinggi lebih tipis */}
       <header
         className="fixed top-3 sm:top-5 left-0 right-0 z-50 pointer-events-none"
         role="navigation"
         aria-label="Site"
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
-          <div
-            className="pointer-events-auto relative overflow-visible rounded-2xl border border-white/20 bg-black/30 backdrop-blur-xl supports-[backdrop-filter]:bg-black/20 shadow-lg shadow-black/10 hover:bg-black/40 transition-all duration-300"
-          >
-            {/* GRID: 1fr auto 1fr */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 py-6">
+          <div className="pointer-events-auto relative overflow-visible rounded-2xl border border-white/20 bg-black/30 backdrop-blur-xl supports-[backdrop-filter]:bg-black/20 shadow-lg shadow-black/10 hover:bg-black/40 transition-all duration-300">
+            {/* GRID: 1fr auto 1fr - dengan tinggi lebih kecil */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 py-3">
               {/* Left: Desktop nav + mobile burger */}
               <div className="flex items-center">
-                <nav className="hidden md:flex w-full justify-start items-center gap-10">
+                <nav className="hidden md:flex w-full justify-start items-center gap-8">
                   {leftNav.map((item) => (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="text-white/90 hover:text-yellow-300 font-sans transition-colors duration-200 hover:scale-105 text-lg"
+                      className="text-white/90 hover:text-yellow-300 font-sans transition-colors duration-200 hover:scale-105 text-base"
                     >
                       {item.name}
                     </Link>
@@ -132,13 +124,13 @@ export default function Header() {
                     className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white"
                     aria-label="Open menu"
                   >
-                    <Menu size={20} />
+                    <Menu size={18} />
                   </Button>
                 </div>
               </div>
 
-              {/* Center: LOGO SANGAT BESAR */}
-              <div className="justify-self-center my-[-2.9em] mb-[-3.4em]">
+              {/* Center: LOGO TETAP BESAR dengan posisi lebih rendah */}
+              <div className="justify-self-center my-[-3.5em] mb-[-4em]">
                 <Link
                   href="/"
                   aria-label="Mutiara Balige Hotel"
@@ -147,22 +139,22 @@ export default function Header() {
                   <Image
                     src="/logo.png"
                     alt="Mutiara Balige"
-                    width={320} // Diperbesar dari 260
-                    height={100} // Diperbesar dari 80
-                    className="h-20 w-auto sm:h-24 md:h-28 brightness-110 contrast-110" // Diperbesar dari h-16 sm:h-20 md:h-24
+                    width={320}
+                    height={100}
+                    className="h-20 w-auto sm:h-24 md:h-28 brightness-110 contrast-110"
                     priority
                   />
                 </Link>
               </div>
 
               {/* Right: Desktop nav + user actions */}
-              <div className="hidden md:flex items-center justify-end space-x-5">
-                <nav className="flex items-center gap-10">
+              <div className="hidden md:flex items-center justify-end space-x-4">
+                <nav className="flex items-center gap-8">
                   {rightNav.map((item) => (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="text-white/90 hover:text-yellow-300 font-sans transition-colors duration-200 hover:scale-105 text-lg"
+                      className="text-white/90 hover:text-yellow-300 font-sans transition-colors duration-200 hover:scale-105 text-base"
                     >
                       {item.name}
                     </Link>
@@ -174,30 +166,30 @@ export default function Header() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="flex items-center space-x-2 border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white backdrop-blur-sm text-base"
+                        className="flex items-center space-x-2 border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white backdrop-blur-sm text-sm"
                       >
-                        <User size={18} />
+                        <User size={16} />
                         <span>{user.name}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent 
                       align="end" 
-                      className="w-56 bg-black/80 backdrop-blur-xl border-white/20 text-white text-base"
+                      className="w-56 bg-black/80 backdrop-blur-xl border-white/20 text-white text-sm"
                     >
-                      <DropdownMenuItem asChild className="hover:bg-white/10 focus:bg-white/10 py-3">
+                      <DropdownMenuItem asChild className="hover:bg-white/10 focus:bg-white/10 py-2">
                         <Link
                           href={user.role === 'admin' ? '/admin' : '/dashboard'}
                           className="flex items-center text-white/90"
                         >
-                          <Settings size={18} className="mr-3" />
+                          <Settings size={16} className="mr-3" />
                           {user.role === 'admin' ? 'Admin Panel' : 'Dashboard'}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={handleLogout}
-                        className="flex items-center text-red-300 hover:text-red-200 hover:bg-white/10 focus:bg-white/10 py-3"
+                        className="flex items-center text-red-300 hover:text-red-200 hover:bg-white/10 focus:bg-white/10 py-2"
                       >
-                        <LogOut size={18} className="mr-3" />
+                        <LogOut size={16} className="mr-3" />
                         Logout
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -207,11 +199,11 @@ export default function Header() {
                     <Button
                       variant="outline"
                       asChild
-                      className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white backdrop-blur-sm text-base px-6 py-2"
+                      className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white backdrop-blur-sm text-sm px-4 py-1.5"
                     >
                       <Link href="/auth/signin">Sign In</Link>
                     </Button>
-                    <Button asChild className="bg-yellow-500/90 hover:bg-yellow-500 text-white backdrop-blur-sm text-base px-6 py-2">
+                    <Button asChild className="bg-yellow-500/90 hover:bg-yellow-500 text-white backdrop-blur-sm text-sm px-4 py-1.5">
                       <Link href="/auth/signup">Sign Up</Link>
                     </Button>
                   </>
@@ -247,7 +239,7 @@ export default function Header() {
             aria-label="Close menu"
             className="text-white/90 hover:bg-white/10"
           >
-            <X size={20} />
+            <X size={18} />
           </Button>
         </div>
 
@@ -256,7 +248,7 @@ export default function Header() {
             <Link
               key={item.name}
               href={item.href}
-              className="block px-3 py-2 rounded-md text-white/90 hover:bg-white/10 hover:text-yellow-300 font-medium transition-colors duration-200"
+              className="block px-3 py-2 rounded-md text-white/90 hover:bg-white/10 hover:text-yellow-300 font-medium transition-colors duration-200 text-base"
               onClick={() => setIsMenuOpen(false)}
             >
               {item.name}
@@ -269,7 +261,7 @@ export default function Header() {
                 <Button 
                   variant="outline" 
                   asChild 
-                  className="w-full justify-start bg-transparent text-white/90 border-white/30 hover:bg-white/10 hover:text-white"
+                  className="w-full justify-start bg-transparent text-white/90 border-white/30 hover:bg-white/10 hover:text-white text-base"
                 >
                   <Link
                     href={user.role === 'admin' ? '/admin' : '/dashboard'}
@@ -283,7 +275,7 @@ export default function Header() {
                     handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="w-full bg-red-500/90 hover:bg-red-500 text-white backdrop-blur-sm"
+                  className="w-full bg-red-500/90 hover:bg-red-500 text-white backdrop-blur-sm text-base"
                 >
                   Logout
                 </Button>
@@ -293,13 +285,13 @@ export default function Header() {
                 <Button 
                   variant="outline" 
                   asChild 
-                  className="w-full bg-transparent text-white/90 border-white/30 hover:bg-white/10 hover:text-white"
+                  className="w-full bg-transparent text-white/90 border-white/30 hover:bg-white/10 hover:text-white text-base"
                 >
                   <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>
                     Sign In
                   </Link>
                 </Button>
-                <Button asChild className="w-full bg-yellow-500/90 hover:bg-yellow-500 text-white backdrop-blur-sm">
+                <Button asChild className="w-full bg-yellow-500/90 hover:bg-yellow-500 text-white backdrop-blur-sm text-base">
                   <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
                     Sign Up
                   </Link>

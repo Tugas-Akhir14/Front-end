@@ -87,67 +87,66 @@ export default function Home() {
       <Header />
       <main>
         {/* Hero Section */}
-       <section className="relative h-screen isolate overflow-hidden">
-  {/* Background video */}
-  <video
-    className="absolute inset-0 w-full h-full object-cover"
-    src="/hotel.mp4"
-    autoPlay
-    loop
-    muted
-    playsInline
-    aria-hidden="true"
-    // poster="/fallback-hero.jpg" // optional: add a poster image if you have one
-  />
+        <section className="relative h-screen isolate overflow-hidden">
+          <video
+            className="absolute inset-0 w-full h-full object-cover"
+            src="/hotel.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
+          <div className="relative z-10 flex h-full items-center justify-center">
+            <div className="text-center text-white max-w-4xl px-4">
+              <h1 className="text-5xl md:text-7xl font-bold mb-6">
+                Welcome to <span className="text-yellow-400">Mutiara Hotel</span>
+              </h1>
+              <p className="text-xl font-sans md:text-2xl mb-8 text-gray-200">
+                Experience unparalleled luxury and comfort in the heart of paradise
+              </p>
+              <div className="space-x-4">
+                <Button 
+                  size="lg" 
+                  className="bg-yellow-600 hover:bg-yellow-500 text-white border-2 border-yellow-500 hover:border-yellow-400 px-8 py-3 text-lg font-semibold transition-all duration-300 shadow-lg shadow-yellow-600/20"
+                >
+                  Book Now
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-white text-white hover:bg-white hover:text-black text-lg px-8 py-3 font-semibold transition-all duration-300 backdrop-blur-sm"
+                >
+                  Explore Rooms
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
 
-  {/* Dark overlay (≈ rgba(0,0,0,0.4)) */}
-  <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
-
-  {/* Content */}
-  <div className="relative z-10 flex h-full items-center justify-center">
-    <div className="text-center text-white max-w-4xl px-4">
-      <h1 className="text-5xl md:text-7xl font-bold mb-6">
-        Welcome to <span className="text-yellow-400">Mutiara Hotel</span>
-      </h1>
-      <p className="text-xl font-sans md:text-2xl mb-8 text-gray-200">
-        Experience unparalleled luxury and comfort in the heart of paradise
-      </p>
-      <div className="space-x-4">
-        <Button size="lg" className="bg-transparent hover:bg-white text-yellow-200 px-8 py-3">
-          Book Now
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          className="border-white text-black hover:bg-black hover:text-white text-lg px-8 py-3"
-        >
-          Explore Rooms
-        </Button>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-        {/* Features Section */}
-        <section className="py-20 bg-gray-50">
+        {/* Features Section - Pure Black */}
+        <section className="py-20 bg-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">World-Class Amenities</h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              <h2 className="text-4xl font-bold text-yellow-400 mb-4">World-Class Amenities</h2>
+              <p className="text-xl text-gray-300 max-w-2xl mx-auto">
                 Discover the finest amenities designed to make your stay unforgettable
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {features.map((feature, index) => (
-                <Card key={index} className="text-center p-6 hover:shadow-lg transition-shadow border-yellow-100">
+                <Card 
+                  key={index} 
+                  className="text-center p-6 hover:shadow-2xl transition-all duration-300 border-yellow-600/30 bg-gray-900 hover:bg-gray-800 hover:border-yellow-500/50 hover:transform hover:-translate-y-2"
+                >
                   <CardContent className="pt-6">
-                    <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <feature.icon className="w-8 h-8 text-yellow-600" />
+                    <div className="w-16 h-16 bg-yellow-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/30">
+                      <feature.icon className="w-8 h-8 text-yellow-400" />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                    <p className="text-gray-600">{feature.description}</p>
+                    <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
+                    <p className="text-gray-300">{feature.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -155,40 +154,44 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Rooms Section */}
-        <section className="py-20 bg-white">
+        {/* Rooms Section - Pure Black */}
+        <section className="py-20 bg-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Luxury Accommodations</h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              <h2 className="text-4xl font-bold text-yellow-400 mb-4">Luxury Accommodations</h2>
+              <p className="text-xl text-gray-300 max-w-2xl mx-auto">
                 Choose from our selection of beautifully appointed rooms and suites
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {rooms.map((room, index) => (
-                <Card key={index} className="overflow-hidden hover:shadow-xl transition-shadow">
+                <Card 
+                  key={index} 
+                  className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-yellow-600/30 bg-gray-900 hover:bg-gray-800 hover:border-yellow-500/50 hover:transform hover:-translate-y-2"
+                >
                   <div className="relative h-64">
                     <img
                       src={room.image}
                       alt={room.name}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-4 right-4 bg-yellow-600 text-white px-3 py-1 rounded-full font-semibold">
+                    <div className="absolute top-4 right-4 bg-yellow-600 text-white px-3 py-1 rounded-full font-semibold border border-yellow-400 shadow-lg">
                       {room.price}/night
                     </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-70"></div>
                   </div>
                   <CardContent className="p-6">
-                    <h3 className="text-2xl font-semibold text-gray-900 mb-3">{room.name}</h3>
+                    <h3 className="text-2xl font-semibold text-white mb-3">{room.name}</h3>
                     <ul className="space-y-2 mb-6">
                       {room.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="text-gray-600 flex items-center">
-                          <span className="w-2 h-2 bg-yellow-400 rounded-full mr-3"></span>
+                        <li key={featureIndex} className="text-gray-300 flex items-center">
+                          <span className="w-2 h-2 bg-yellow-400 rounded-full mr-3 shadow-sm shadow-yellow-400/50"></span>
                           {feature}
                         </li>
                       ))}
                     </ul>
-                    <Button className="w-full bg-yellow-600 hover:bg-yellow-700">
+                    <Button className="w-full bg-yellow-600 hover:bg-yellow-500 text-white border-2 border-yellow-500 hover:border-yellow-400 font-semibold py-2.5 transition-all duration-300 shadow-lg shadow-yellow-600/20">
                       Reserve Now
                     </Button>
                   </CardContent>
@@ -198,11 +201,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Testimonials Section */}
-        <section className="py-20 bg-gray-900 text-white">
+        {/* Testimonials Section - Pure Black */}
+        <section className="py-20 bg-black text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold mb-4">What Our Guests Say</h2>
+              <h2 className="text-4xl font-bold text-yellow-400 mb-4">What Our Guests Say</h2>
               <p className="text-xl text-gray-300 max-w-2xl mx-auto">
                 Read reviews from our satisfied guests who experienced luxury at its finest
               </p>
@@ -210,7 +213,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {testimonials.map((testimonial, index) => (
-                <Card key={index} className="bg-gray-800 border-gray-700">
+                <Card key={index} className="bg-gray-900 border-yellow-600/30 hover:border-yellow-500/50 transition-all duration-300 hover:bg-gray-800">
                   <CardContent className="p-6">
                     <div className="flex mb-4">
                       {[...Array(testimonial.rating)].map((_, i) => (
@@ -226,18 +229,30 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-20 bg-yellow-600 text-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-4xl font-bold mb-4">Ready to Experience Luxury?</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Book your stay now and discover what makes LuxuryStay the premier destination
+        {/* CTA Section - Pure Black */}
+        <section className="py-20 bg-black text-white relative overflow-hidden">
+          {/* Gold accent pattern */}
+          <div className="absolute inset-0 opacity-[0.02]">
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-600"></div>
+          </div>
+          
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <h2 className="text-4xl font-bold text-yellow-400 mb-4">Ready to Experience Luxury?</h2>
+            <p className="text-xl mb-8 text-gray-300">
+              Book your stay now and discover what makes Mutiara Hotel the premier destination
             </p>
-            <div className="space-x-4">
-              <Button size="lg" className="bg-white text-yellow-600 hover:bg-gray-100 text-lg px-8 py-3">
+            <div className="space-x-4 space-y-4 sm:space-y-0">
+              <Button 
+                size="lg" 
+                className="bg-yellow-600 hover:bg-yellow-500 text-white border-2 border-yellow-500 hover:border-yellow-400 text-lg px-8 py-3 font-semibold transition-all duration-300 shadow-lg shadow-yellow-600/20"
+              >
                 Book Your Stay
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-yellow-600 text-lg px-8 py-3">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-2 border-white text-white hover:bg-white hover:text-black text-lg px-8 py-3 font-semibold transition-all duration-300 backdrop-blur-sm"
+              >
                 Contact Us
               </Button>
             </div>

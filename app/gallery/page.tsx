@@ -144,65 +144,82 @@ export default function Gallery() {
   return (
     <>
       <Header />
-      <main>
-        {/* Video Hero Section */}
-        <section className="relative h-screen bg-black">
-          <div className="absolute inset-0 bg-black/30 z-10"></div>
+      <main className="pt-16"> {/* Tambahkan padding top untuk header fixed */}
+        
+        {/* Hero Section dengan Background Image */}
+        <section className="relative h-96 bg-gray-900">
+          <div className="absolute inset-0 bg-black/40 z-10"></div>
           
-          {/* YouTube Video Background */}
-          <div className="absolute inset-0 w-full h-full">
-            <iframe
-              ref={videoRef}
-              src={`https://www.youtube.com/embed/4PLYhb7Wq7Y?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=4PLYhb7Wq7Y`}
-              className="w-full h-full object-cover"
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-              title="Mutiara Hotel Virtual Tour"
-            />
-          </div>
-
-          {/* Video Controls */}
-          <div className="absolute bottom-8 right-8 z-20 flex items-center space-x-4">
-            <button
-              onClick={toggleMute}
-              className="bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-all duration-200 backdrop-blur-sm"
-            >
-              {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-            </button>
-            <div className="bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
-              Virtual Tour
-            </div>
-          </div>
+          {/* Background Image */}
+          <div 
+            className="absolute inset-0 w-full h-full bg-cover bg-center"
+            style={{
+              backgroundImage: 'url(https://images.pexels.com/photos/271619/pexels-photo-271619.jpeg)'
+            }}
+          />
 
           {/* Overlay Content */}
           <div className="relative z-20 flex h-full items-center justify-center">
             <div className="text-center text-white max-w-4xl px-4">
-              <h1 className="text-5xl md:text-7xl font-bold mb-6">
-                Welcome to <span className="text-yellow-400">Mutiara</span>
+              <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                Our <span className="text-yellow-400">Gallery</span>
               </h1>
-              <p className="text-xl md:text-2xl mb-8 text-gray-200 font-light">
-                Experience luxury through our eyes
+              <p className="text-lg md:text-xl mb-8 text-gray-200 font-light">
+                Discover the beauty and luxury of Mutiara Hotel through our visual journey
               </p>
-              <div className="flex justify-center space-x-4">
-                <Button size="lg" className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 text-lg">
-                  Book Your Stay
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="border-white text-white hover:bg-white hover:text-gray-900 px-8 py-3 text-lg"
-                  onClick={() => document.getElementById('gallery-section')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                  View Gallery
-                </Button>
-              </div>
+              <Button 
+                size="lg" 
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 text-lg"
+                onClick={() => document.getElementById('video-section')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Watch Virtual Tour
+              </Button>
             </div>
           </div>
+        </section>
 
-          {/* Scroll Indicator */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 animate-bounce">
-            <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-              <div className="w-1 h-3 bg-white rounded-full mt-2"></div>
+        {/* Video Section - Dipindahkan ke bawah header */}
+        <section id="video-section" className="relative bg-black py-20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-white mb-4">Virtual Tour</h2>
+              <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                Take a virtual journey through our luxurious facilities and breathtaking spaces
+              </p>
+            </div>
+
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+              {/* YouTube Video */}
+              <div className="relative aspect-video w-full">
+                <iframe
+                  ref={videoRef}
+                  src={`https://www.youtube.com/embed/4PLYhb7Wq7Y?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&loop=1&playlist=4PLYhb7Wq7Y`}
+                  className="absolute inset-0 w-full h-full"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                  title="Mutiara Hotel Virtual Tour"
+                />
+              </div>
+
+              {/* Video Controls */}
+              <div className="absolute bottom-6 right-6 z-20 flex items-center space-x-4">
+                <button
+                  onClick={toggleMute}
+                  className="bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-all duration-200 backdrop-blur-sm"
+                >
+                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </button>
+                <div className="bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
+                  Virtual Tour
+                </div>
+              </div>
+            </div>
+
+            {/* Video Description */}
+            <div className="text-center mt-8">
+              <p className="text-gray-400 text-lg">
+                Explore our world-class amenities, elegant rooms, and stunning surroundings
+              </p>
             </div>
           </div>
         </section>
