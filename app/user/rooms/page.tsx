@@ -48,8 +48,8 @@ const rooms = [
     amenities: [Wifi, Tv, Coffee, , Utensils] as AmenityIcon[],
   },
   {
-    id: 'luxury',
-    name: 'Luxury Suite',
+    id: 'Mutiara',
+    name: 'Mutiara Suite',
     price: '$550',
     image: 'https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg',
     description: 'Luxurious accommodation with premium features and stunning views',
@@ -63,8 +63,8 @@ const rooms = [
     name: 'Master Suite',
     price: '$800',
     image: 'https://images.pexels.com/photos/1579253/pexels-photo-1579253.jpeg',
-    description: 'The ultimate luxury experience with exclusive amenities and services',
-    features: ['Master Bedroom + Living Room', 'Private Terrace', 'Personal Chef', 'Luxury Bathroom', '24/7 Concierge'],
+    description: 'The ultimate Mutiara experience with exclusive amenities and services',
+    features: ['Master Bedroom + Living Room', 'Private Terrace', 'Personal Chef', 'Mutiara Bathroom', '24/7 Concierge'],
     size: '120 m²',
     guests: '6 Guests',
     amenities: [Wifi, Tv, Coffee, , Utensils, Waves, Dumbbell, Car] as AmenityIcon[],
@@ -95,7 +95,7 @@ const hotelFeatures = [
   {
     icon: Waves,
     title: 'Pool & Spa',
-    description: 'Infinity pool and full-service luxury spa',
+    description: 'Infinity pool and full-service Mutiara spa',
   },
   {
     icon: Star,
@@ -117,7 +117,7 @@ export default function Rooms() {
           <div className="relative z-10 flex h-full items-center justify-center">
             <div className="text-center text-white max-w-4xl px-4">
               <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                Our <span className="text-yellow-400">Luxury Rooms</span>
+                Our <span className="text-yellow-400">Mutiara Rooms</span>
               </h1>
               <p className="text-xl md:text-2xl text-gray-200">
                 Discover the perfect accommodation for your stay
@@ -133,7 +133,7 @@ export default function Rooms() {
               <h2 className="text-4xl font-bold text-gray-900 mb-4">Accommodation Options</h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                 Choose from our carefully curated selection of rooms and suites, 
-                each designed to provide the ultimate comfort and luxury experience.
+                each designed to provide the ultimate comfort and Mutiara experience.
               </p>
             </div>
 
@@ -248,7 +248,7 @@ export default function Rooms() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-4xl font-bold mb-4">Ready to Book Your Stay?</h2>
             <p className="text-xl mb-8 opacity-90">
-              Experience luxury and comfort like never before. Book your perfect room today.
+              Experience Mutiara and comfort like never before. Book your perfect room today.
             </p>
             <div className="space-x-4">
               <Button size="lg" className="bg-white text-yellow-600 hover:bg-gray-100 text-lg px-8 py-3">

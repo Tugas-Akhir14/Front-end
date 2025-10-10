@@ -7,11 +7,11 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-2xl font-bold text-yellow-400 mb-4">LuxuryStay</h3>
+            <h3 className="text-2xl font-bold text-yellow-400 mb-4">MutiaraStay</h3>
             <p className="text-gray-300 mb-4">
-              Experience luxury and comfort at its finest. Your perfect getaway awaits.
+              Experience Mutiara and comfort at its finest. Your perfect getaway awaits.
             </p>
-            <div className="flex space-x-4">
+            <div className="flex space-x-4">x
               <Facebook className="w-6 h-6 text-gray-400 hover:text-yellow-400 cursor-pointer transition-colors" />
               <Twitter className="w-6 h-6 text-gray-400 hover:text-yellow-400 cursor-pointer transition-colors" />
               <Instagram className="w-6 h-6 text-gray-400 hover:text-yellow-400 cursor-pointer transition-colors" />
@@ -43,7 +43,7 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-yellow-400 mt-1" />
-                <p className="text-gray-300">123 Luxury Avenue, Paradise City, PC 12345</p>
+                <p className="text-gray-300">123 Mutiara Avenue, Paradise City, PC 12345</p>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 text-yellow-400" />
@@ -51,14 +51,14 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-yellow-400" />
-                <p className="text-gray-300">info@luxurystay.com</p>
+                <p className="text-gray-300">info@Mutiarastay.com</p>
               </div>
             </div>
           </div>
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-8 text-center">
-          <p className="text-gray-400">&copy; 2025 LuxuryStay Hotel. All rights reserved.</p>
+          <p className="text-gray-400">&copy; 2025 MutiaraStay Hotel. All rights reserved.</p>
         </div>
       </div>
     </footer>

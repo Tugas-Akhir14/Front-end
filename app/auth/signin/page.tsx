@@ -8,6 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 
+type LoginResponse = {
+  token?: string;
+  message?: string;
+  error?: string;
+  [key: string]: any;
+};
+
 export default function SignIn() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -24,14 +31,19 @@ export default function SignIn() {
     setError('');
 
     try {
+      const payload = { email: email.trim(), password };
+
       const res = await fetch('http://localhost:8080/admins/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        // mode default sudah 'cors' untuk cross-origin; tidak pakai credentials karena token disimpan di sessionStorage
+        body: JSON.stringify(payload),
       });
 
-      // Amankan parse JSON (kalau response kosong/tidak valid)
-      let data: any = {};
+      let data: LoginResponse = {};
       try {
         data = await res.json();
       } catch {
@@ -39,23 +51,27 @@ export default function SignIn() {
       }
 
       if (res.ok) {
-        // Simpan token & user jika tersedia
-        if (data?.token) localStorage.setItem('token', data.token);
-        if (data?.user) {
+        if (data?.token) {
           try {
-            localStorage.setItem('user', JSON.stringify(data.user));
+            sessionStorage.setItem('token', data.token);
           } catch {
-            // fallback jika gagal stringify
-            localStorage.removeItem('user');
+            // no-op jika storage tidak tersedia
           }
+          // Jika Anda mengandalkan token di client-side fetch, cukup push:
+          router.push('/admin/dashboard');
+          // router.refresh(); // tidak perlu karena token tidak via cookie
+        } else {
+          setError('Token tidak ditemukan di respons server.');
         }
-        // SPA navigate
-        router.push('/admin/dashboard');
       } else {
-        setError(data?.error || 'Email atau password salah.');
+        const msg =
+          data?.error ||
+          data?.message ||
+          'Email atau password salah.';
+        setError(msg);
       }
     } catch {
-      setError('Terjadi kesalahan. Coba lagi.');
+      setError('Terjadi kesalahan jaringan. Coba lagi.');
     } finally {
       setIsLoading(false);
     }

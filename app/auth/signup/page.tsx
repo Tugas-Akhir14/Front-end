@@ -116,7 +116,7 @@ export default function SignUp() {
           {/* Heading */}
           <div className="px-8 pt-8 pb-4 text-center">
             <h1 className="text-3xl font-extrabold tracking-tight">Create Account</h1>
-            <p className="mt-2 text-sm text-black/60">Join LuxuryStay for exclusive benefits</p>
+            <p className="mt-2 text-sm text-black/60">Join Mutiara for exclusive benefits</p>
           </div>
 
           {/* Form (grid 2 kolom di ≥ md) */}

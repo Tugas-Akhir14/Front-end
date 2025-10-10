@@ -79,10 +79,10 @@ export default function Header() {
 
   const navigation = [
     { name: 'Home', href: '/' },
-    { name: 'Rooms', href: '/rooms' },
-    { name: 'Gallery', href: '/gallery' },
-    { name: 'News', href: '/news' },
-    { name: 'Contact', href: '/contact' },
+    { name: 'Rooms', href: '/user/rooms' },
+    { name: 'Gallery', href: '/user/gallery' },
+    { name: 'News', href: '/user/news' },
+    { name: 'Contact', href: '/user/contact' },
   ];
 
   const mid = Math.ceil(navigation.length / 2);

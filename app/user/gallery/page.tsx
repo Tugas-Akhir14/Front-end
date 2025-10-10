@@ -31,8 +31,8 @@ export default function Gallery() {
       id: 3,
       type: 'image',
       url: 'https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg',
-      title: 'Luxury Suite',
-      description: 'Elegant luxury suite with premium amenities'
+      title: 'Mutiara Suite',
+      description: 'Elegant Mutiara suite with premium amenities'
     },
     {
       id: 4,
@@ -52,7 +52,7 @@ export default function Gallery() {
       id: 6,
       type: 'image',
       url: 'https://images.pexels.com/photos/338504/pexels-photo-338504.jpeg',
-      title: 'Luxury Spa',
+      title: 'Mutiara Spa',
       description: 'Relaxing spa area for ultimate rejuvenation'
     },
     {

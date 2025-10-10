@@ -207,7 +207,7 @@ export default function Home() {
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-yellow-400 mb-4">What Our Guests Say</h2>
               <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                Read reviews from our satisfied guests who experienced luxury at its finest
+                Read reviews from our satisfied guests who experienced Mutiara at its finest
               </p>
             </div>
 

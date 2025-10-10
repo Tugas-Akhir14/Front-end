@@ -16,7 +16,7 @@ export default function ChatBot({ onReservationRequest }: ChatBotProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      text: "Hello! Welcome to LuxuryStay Hotel. I'm here to help you make a reservation. How can I assist you today?",
+      text: "Hello! Welcome to Mutiara Hotel. I'm here to help you make a reservation. How can I assist you today?",
       sender: 'bot',
       timestamp: new Date(),
     },
@@ -38,10 +38,9 @@ export default function ChatBot({ onReservationRequest }: ChatBotProps) {
   }, [messages]);
 
   const roomTypes = [
-    { name: 'Standard Room', price: 150 },
-    { name: 'Deluxe Room', price: 250 },
-    { name: 'Suite', price: 400 },
-    { name: 'Presidential Suite', price: 800 },
+    { name: 'Superior', price: 250 },
+    { name: 'Deluxe ', price: 360 },
+    { name: 'Executive', price: 725 },
   ];
 
   const addMessage = (text: string, sender: 'user' | 'bot') => {
@@ -179,7 +178,7 @@ To complete your booking, please sign in or create an account. Would you like me
         <Card className="fixed bottom-6 right-6 z-50 w-80 h-96 shadow-2xl border-yellow-200">
           <CardHeader className="bg-yellow-600 text-white p-4 rounded-t-lg">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">LuxuryStay Assistant</CardTitle>
+              <CardTitle className="text-sm font-medium">Mutiara Assistant</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
