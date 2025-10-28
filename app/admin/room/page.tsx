@@ -11,7 +11,7 @@ const api = axios.create({ baseURL: "http://localhost:8080" });
 api.interceptors.request.use((config) => {
   const raw = sessionStorage.getItem("token");
   if (raw) {
-    const token = raw.replace(/^"+|"+$/g, ""); // bersihkan kutip
+    const token = raw.replace(/^"+|"+$/g, "");
     config.headers = config.headers ?? {};
     (config.headers as any).Authorization = `Bearer ${token}`;
   }
@@ -23,11 +23,12 @@ api.interceptors.request.use((config) => {
 // =====================
 export type Room = {
   id: number;
-  number: string; // nomor kamar
+  number: string;
   type: "superior" | "deluxe" | "executive" | string;
-  price: number; // int64
+  price: number;
   capacity: number;
   description?: string;
+  image?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -66,11 +67,15 @@ function formatDate(value?: string | null) {
 function SkeletonRow() {
   return (
     <tr className="animate-pulse">
+      <td className="px-4 py-4">
+        <div className="h-16 w-16 rounded-xl bg-zinc-200" />
+      </td>
       <td className="px-4 py-4"><div className="h-3 w-12 rounded bg-zinc-200" /></td>
       <td className="px-4 py-4"><div className="h-3 w-28 rounded bg-zinc-200" /></td>
       <td className="px-4 py-4"><div className="h-3 w-24 rounded bg-zinc-200" /></td>
       <td className="px-4 py-4"><div className="h-3 w-20 rounded bg-zinc-200" /></td>
       <td className="px-4 py-4"><div className="h-3 w-32 rounded bg-zinc-200" /></td>
+      <td className="px-4 py-4"><div className="h-8 w-28 rounded bg-zinc-200" /></td>
     </tr>
   );
 }
@@ -87,6 +92,18 @@ export default function RoomPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Edit modal state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editing, setEditing] = useState<Room | null>(null);
+  const [editNumber, setEditNumber] = useState("");
+  const [editType, setEditType] = useState<Room["type"]>("superior");
+  const [editPrice, setEditPrice] = useState<string>("0");
+  const [editCapacity, setEditCapacity] = useState<string>("1");
+  const [editDescription, setEditDescription] = useState<string>("");
+  const [editImage, setEditImage] = useState<File | null>(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const page = useMemo(() => Math.floor(offset / limit) + 1, [offset, limit]);
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total, limit]);
@@ -120,6 +137,85 @@ export default function RoomPage() {
     fetchRooms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, roomType, limit, offset]);
+
+  // fallback icon kalau gambar kosong atau gagal load
+  const FallbackThumb = () => (
+    <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50">
+      <svg className="h-5 w-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="4" width="18" height="14" rx="2" />
+        <path d="m8 13 2.5-2.5 4 4L21 9" />
+        <circle cx="7" cy="8" r="1.5" />
+      </svg>
+    </div>
+  );
+
+  // Handlers: Edit & Delete
+  const openEdit = (r: Room) => {
+    setEditing(r);
+    setEditNumber(r.number);
+    setEditType(r.type as Room["type"]);
+    setEditPrice(String(r.price));
+    setEditCapacity(String(r.capacity));
+    setEditDescription(r.description || "");
+    setEditImage(null);
+    setSubmitError(null);
+    setIsEditOpen(true);
+  };
+
+  const closeEdit = () => {
+    setIsEditOpen(false);
+    setEditing(null);
+    setSubmitLoading(false);
+    setSubmitError(null);
+  };
+
+  const handleUpdate = async () => {
+    if (!editing) return;
+    setSubmitLoading(true);
+    setSubmitError(null);
+
+    try {
+      // Backend menerima form-data (ShouldBind), jadi kita kirim multipart.
+      const fd = new FormData();
+      fd.append("number", editNumber);
+      fd.append("type", editType);
+      fd.append("price", String(Number(editPrice) || 0));
+      fd.append("capacity", String(Number(editCapacity) || 1));
+      fd.append("description", editDescription || "");
+      if (editImage) {
+        fd.append("image", editImage);
+      }
+
+      await api.put(`/api/rooms/${editing.id}`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      await fetchRooms();
+      closeEdit();
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Gagal memperbarui kamar.";
+      setSubmitError(msg);
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const handleDelete = async (r: Room) => {
+    const ok = window.confirm(`Hapus kamar ${r.number}? Tindakan ini tidak bisa dibatalkan.`);
+    if (!ok) return;
+    try {
+      await api.delete(`/api/rooms/${r.id}`);
+      // Jika halaman jadi kosong setelah delete, geser offset balik
+      setOffset((o) => {
+        const remaining = total - 1 - (o);
+        const atEnd = remaining <= 0 && o > 0;
+        return atEnd ? Math.max(0, o - limit) : o;
+      });
+      await fetchRooms();
+    } catch (err: any) {
+      alert(err?.response?.data?.error || "Gagal menghapus kamar.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white text-zinc-900">
@@ -202,11 +298,13 @@ export default function RoomPage() {
           <table className="min-w-full divide-y divide-zinc-200">
             <thead className="bg-zinc-50/80">
               <tr>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Gambar</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">No. Kamar</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Tipe</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Harga</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Kapasitas</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Diperbarui</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -214,7 +312,7 @@ export default function RoomPage() {
                 Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
               ) : rooms.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12">
+                  <td colSpan={7} className="px-6 py-12">
                     <div className="text-center">
                       <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200">
                         <svg className="h-5 w-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -235,6 +333,22 @@ export default function RoomPage() {
               ) : (
                 rooms.map((r) => (
                   <tr key={r.id} className="hover:bg-zinc-50/60">
+                    <td className="px-4 py-3 align-top">
+                      {r.image ? (
+                        <img
+                          src={r.image}
+                          alt={`Kamar ${r.number}`}
+                          className="h-16 w-16 rounded-xl object-cover border border-zinc-200"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) parent.appendChild(FallbackThumb().props.children as any);
+                          }}
+                        />
+                      ) : (
+                        <FallbackThumb />
+                      )}
+                    </td>
                     <td className="px-4 py-3 align-top font-medium text-zinc-900">{r.number}</td>
                     <td className="px-4 py-3 align-top capitalize">
                       <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border border-zinc-200 bg-zinc-50 text-zinc-700">
@@ -244,6 +358,24 @@ export default function RoomPage() {
                     <td className="px-4 py-3 align-top text-zinc-800">{rupiah(r.price)}</td>
                     <td className="px-4 py-3 align-top text-zinc-800">{r.capacity}</td>
                     <td className="px-4 py-3 align-top text-sm text-zinc-700">{formatDate(r.updated_at)}</td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openEdit(r)}
+                          className="px-3 py-1.5 rounded-xl text-sm bg-black text-white shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black/20"
+                          title="Ubah"
+                        >
+                          Ubah
+                        </button>
+                        <button
+                          onClick={() => handleDelete(r)}
+                          className="px-3 py-1.5 rounded-xl text-sm border border-zinc-300 hover:bg-zinc-50 focus:outline-none"
+                          title="Hapus"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -271,7 +403,7 @@ export default function RoomPage() {
         {/* Pagination */}
         <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
           <div className="text-sm text-zinc-600">
-            Menampilkan <span className="font-medium text-zinc-900">{rooms.length}</span> dari {" "}
+            Menampilkan <span className="font-medium text-zinc-900">{rooms.length}</span> dari{" "}
             <span className="font-medium text-zinc-900">{total}</span> kamar
           </div>
           <div className="flex items-center gap-2">
@@ -283,7 +415,7 @@ export default function RoomPage() {
               ← Sebelumnya
             </button>
             <div className="text-sm text-zinc-600">
-              Halaman <span className="font-semibold text-zinc-900">{page}</span> dari {" "}
+              Halaman <span className="font-semibold text-zinc-900">{page}</span> dari{" "}
               <span className="font-semibold text-zinc-900">{totalPages}</span>
             </div>
             <button
@@ -296,6 +428,115 @@ export default function RoomPage() {
           </div>
         </div>
       </main>
+
+      {/* EDIT MODAL */}
+      {isEditOpen && editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* backdrop */}
+          <div className="absolute inset-0 bg-black/40" onClick={closeEdit} />
+          {/* modal */}
+          <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-zinc-200">
+            <div className="px-6 py-4 border-b border-zinc-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Ubah Kamar #{editing.number}</h3>
+              <button onClick={closeEdit} className="p-2 rounded-xl hover:bg-zinc-100">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              {submitError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 px-3 py-2 text-sm">{submitError}</div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-zinc-700 mb-1">Nomor</label>
+                  <input
+                    value={editNumber}
+                    onChange={(e) => setEditNumber(e.target.value)}
+                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-zinc-700 mb-1">Tipe</label>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value as Room["type"])}
+                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  >
+                    <option value="superior">Superior</option>
+                    <option value="deluxe">Deluxe</option>
+                    <option value="executive">Executive</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-zinc-700 mb-1">Harga</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-zinc-700 mb-1">Kapasitas</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={editCapacity}
+                    onChange={(e) => setEditCapacity(e.target.value)}
+                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm text-zinc-700 mb-1">Deskripsi</label>
+                  <textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm text-zinc-700 mb-1">Gambar (opsional)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEditImage(e.target.files?.[0] || null)}
+                    className="w-full text-sm"
+                  />
+                  {editing.image && (
+                    <div className="mt-2">
+                      <img src={editing.image} alt="preview" className="h-20 w-20 rounded-xl object-cover border border-zinc-200" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-zinc-200 flex items-center justify-end gap-2">
+              <button
+                onClick={closeEdit}
+                className="px-4 py-2 rounded-xl border border-zinc-300 text-sm hover:bg-zinc-50"
+                disabled={submitLoading}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleUpdate}
+                disabled={submitLoading}
+                className="px-4 py-2 rounded-xl bg-black text-white text-sm shadow-sm hover:opacity-90 disabled:opacity-60"
+              >
+                {submitLoading ? "Menyimpan…" : "Simpan Perubahan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
