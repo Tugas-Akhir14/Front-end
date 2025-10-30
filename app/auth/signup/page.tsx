@@ -1,3 +1,4 @@
+// app/auth/signup/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -6,7 +7,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { User, Mail, Phone, Lock, Eye, EyeOff } from 'lucide-react';
+import { api } from '@/lib/api';
+
 
 export default function SignUp() {
   const [fullName, setFullName] = useState('');
@@ -14,85 +18,54 @@ export default function SignUp() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<'guest' | 'admin_hotel' | 'admin_souvenir' | 'admin_buku' | 'admin_cafe'>('guest');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const router = useRouter();
-
-  const validate = () => {
-    const name = fullName.trim();
-    const mail = email.trim();
-    const phone = phoneNumber.trim();
-
-    if (!name || !mail || !phone || !password || !confirmPassword) {
-      setError('Lengkapi semua field.');
-      return false;
-    }
-    // basic email check
-    if (!/^\S+@\S+\.\S+$/.test(mail)) {
-      setError('Format email tidak valid.');
-      return false;
-    }
-    // simple phone check (angka, +, spasi, tanda hubung)
-    if (!/^[+0-9\s-]{8,}$/.test(phone)) {
-      setError('Nomor telepon tidak valid.');
-      return false;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return false;
-    }
-    return true;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!validate()) return;
+    setSuccess('');
+
+    if (password !== confirmPassword) {
+      setError('Password tidak cocok');
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8080/admins/register', {
+      const res = await api('/admins/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           full_name: fullName.trim(),
           email: email.trim(),
           phone_number: phoneNumber.trim(),
           password,
           confirm_password: confirmPassword,
+          role,
         }),
       });
 
-      let data: any = {};
-      try {
-        data = await response.json();
-      } catch {
-        data = {};
+      if (!res?.ok) {
+        const data = await res?.json().catch(() => ({}));
+        setError(data.error || 'Gagal membuat akun');
+        return;
       }
 
-      if (response.ok) {
-        // simpan jika backend mengembalikan token/user (opsional)
-        if (data?.token) localStorage.setItem('token', data.token);
-        if (data?.user) {
-          try {
-            localStorage.setItem('user', JSON.stringify(data.user));
-          } catch {
-            localStorage.removeItem('user');
-          }
-        }
-        router.push('/auth/signin');
-      } else {
-        setError(data?.error || 'Failed to create account');
-      }
+      setSuccess(
+        role === 'guest'
+          ? 'Registrasi berhasil! Silakan login.'
+          : 'Registrasi berhasil! Menunggu persetujuan Superadmin.'
+      );
+
+      setTimeout(() => router.push('/auth/signin'), 2000);
     } catch {
-      setError('An error occurred. Please try again.');
+      setError('Terjadi kesalahan jaringan');
     } finally {
       setIsLoading(false);
     }
@@ -101,177 +74,105 @@ export default function SignUp() {
   return (
     <div className="min-h-screen bg-white text-black flex items-center justify-center px-4">
       <div className="w-full max-w-3xl relative">
-        {/* Background grid halus */}
-        <div
-          className="
-            absolute -inset-4 -z-10
-            [background:linear-gradient(#000_1px,transparent_1px),linear-gradient(90deg,#000_1px,transparent_1px)]
-            [background-size:24px_24px]
-            opacity-[0.04]
-            rounded-3xl
-          "
-          aria-hidden
-        />
+        <div className="absolute -inset-4 -z-10 [background:linear-gradient(#000_1px,transparent_1px),linear-gradient(90deg,#000_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.04] rounded-3xl" />
         <div className="bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-black/10">
-          {/* Heading */}
           <div className="px-8 pt-8 pb-4 text-center">
             <h1 className="text-3xl font-extrabold tracking-tight">Create Account</h1>
             <p className="mt-2 text-sm text-black/60">Join Mutiara for exclusive benefits</p>
           </div>
 
-          {/* Form (grid 2 kolom di ≥ md) */}
           <form onSubmit={handleSubmit} className="px-8 pb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Alert error (full width) */}
               {error && (
-                <div
-                  className="md:col-span-2 rounded-xl border border-black/15 bg-black/5 px-4 py-3 text-sm text-black"
-                  role="alert"
-                  aria-live="polite"
-                >
+                <div className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {error}
                 </div>
               )}
+              {success && (
+                <div className="md:col-span-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  {success}
+                </div>
+              )}
 
-              {/* KIRI */}
               <div className="space-y-6">
-                {/* Full Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-black">Full Name</Label>
+                  <Label>Full Name</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
-                    <Input
-                      id="fullName"
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="
-                        pl-10
-                        border-black/20 focus:border-black
-                        focus-visible:ring-0 focus-visible:ring-offset-0
-                        placeholder:text-black/40
-                      "
-                      placeholder="Enter your full name"
-                      required
-                      autoComplete="name"
-                    />
+                    <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required className="pl-10" />
                   </div>
                 </div>
 
-                {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-black">Email Address</Label>
+                  <Label>Email Address</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="
-                        pl-10
-                        border-black/20 focus:border-black
-                        focus-visible:ring-0 focus-visible:ring-offset-0
-                        placeholder:text-black/40
-                      "
-                      placeholder="Enter your email"
-                      required
-                      autoComplete="email"
-                    />
+                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10" />
                   </div>
                 </div>
 
-                {/* Phone Number */}
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber" className="text-black">Phone Number</Label>
+                  <Label>Phone Number</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
-                    <Input
-                      id="phoneNumber"
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="
-                        pl-10
-                        border-black/20 focus:border-black
-                        focus-visible:ring-0 focus-visible:ring-offset-0
-                        placeholder:text-black/40
-                      "
-                      placeholder="e.g. +62 812-3456-7890"
-                      required
-                      autoComplete="tel"
-                    />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
+                    <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required className="pl-10" />
                   </div>
                 </div>
               </div>
 
-              {/* KANAN */}
               <div className="space-y-6">
-                {/* Password */}
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-black">Password</Label>
+                  <Label>Role</Label>
+                  <Select value={role} onValueChange={(v) => setRole(v as any)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="guest">Guest</SelectItem>
+                      <SelectItem value="admin_hotel">Admin Hotel</SelectItem>
+                      <SelectItem value="admin_souvenir">Admin Souvenir</SelectItem>
+                      <SelectItem value="admin_buku">Admin Buku</SelectItem>
+                      <SelectItem value="admin_cafe">Admin Cafe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
                     <Input
-                      id="password"
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="
-                        pl-10 pr-10
-                        border-black/20 focus:border-black
-                        focus-visible:ring-0 focus-visible:ring-offset-0
-                        placeholder:text-black/40
-                      "
-                      placeholder="Create a password"
                       required
-                      autoComplete="new-password"
+                      className="pl-10 pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="
-                        absolute right-3 top-1/2 -translate-y-1/2
-                        text-black/50 hover:text-black
-                        transition-colors
-                      "
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-black/50 hover:text-black"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
-                  <p className="text-xs text-black/50">Min. 6 characters</p>
                 </div>
 
-                {/* Confirm Password */}
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-black">Confirm Password</Label>
+                  <Label>Confirm Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
                     <Input
-                      id="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="
-                        pl-10 pr-10
-                        border-black/20 focus:border-black
-                        focus-visible:ring-0 focus-visible:ring-offset-0
-                        placeholder:text-black/40
-                      "
-                      placeholder="Confirm your password"
                       required
-                      autoComplete="new-password"
+                      className="pl-10 pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="
-                        absolute right-3 top-1/2 -translate-y-1/2
-                        text-black/50 hover:text-black
-                        transition-colors
-                      "
-                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-black/50 hover:text-black"
                     >
                       {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -279,31 +180,16 @@ export default function SignUp() {
                 </div>
               </div>
 
-              {/* Tombol submit (full width) */}
               <div className="md:col-span-2">
-                <Button
-                  type="submit"
-                  className="
-                    w-full py-3 text-base font-semibold
-                    bg-black text-white hover:bg-white hover:text-black
-                    border border-black
-                    rounded-xl transition-colors
-                    disabled:opacity-60 disabled:cursor-not-allowed
-                  "
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                <Button type="submit" className="w-full h-12" disabled={isLoading}>
+                  {isLoading ? 'Membuat Akun...' : 'Create Account'}
                 </Button>
               </div>
 
-              {/* Link signin (full width) */}
               <div className="md:col-span-2 text-center">
                 <p className="text-black/70">
                   Already have an account?{' '}
-                  <Link
-                    href="/auth/signin"
-                    className="font-semibold underline decoration-black/40 hover:decoration-black"
-                  >
+                  <Link href="/auth/signin" className="font-semibold underline decoration-black/40 hover:decoration-black">
                     Sign in here
                   </Link>
                 </p>

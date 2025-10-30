@@ -1,5 +1,5 @@
+// app/auth/signin/page.tsx
 'use client';
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -7,13 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
-
-type LoginResponse = {
-  token?: string;
-  message?: string;
-  error?: string;
-  [key: string]: any;
-};
+import { api, LoginResponse } from '@/lib/api';
 
 export default function SignIn() {
   const router = useRouter();
@@ -23,55 +17,59 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
-
-    setIsLoading(true);
     setError('');
+    setIsLoading(true);
 
     try {
-      const payload = { email: email.trim(), password };
+      console.log('[LOGIN] Mengirim:', { email, password }); // DEBUG
 
-      const res = await fetch('http://localhost:8080/admins/login', {
+      const res = await api('/admins/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        // mode default sudah 'cors' untuk cross-origin; tidak pakai credentials karena token disimpan di sessionStorage
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
-      let data: LoginResponse = {};
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
+      // TAMBAH CEK NULL
+      if (!res) {
+        setError('Tidak ada respons dari server');
+        return;
       }
 
-      if (res.ok) {
-        if (data?.token) {
-          try {
-            sessionStorage.setItem('token', data.token);
-          } catch {
-            // no-op jika storage tidak tersedia
-          }
-          // Jika Anda mengandalkan token di client-side fetch, cukup push:
-          router.push('/admin/dashboard');
-          // router.refresh(); // tidak perlu karena token tidak via cookie
-        } else {
-          setError('Token tidak ditemukan di respons server.');
-        }
-      } else {
-        const msg =
-          data?.error ||
-          data?.message ||
-          'Email atau password salah.';
-        setError(msg);
+      console.log('[LOGIN] Status:', res.status); // DEBUG
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.log('[LOGIN] Error data:', data); // DEBUG
+        setError(data.error || 'Email atau password salah');
+        return;
       }
-    } catch {
-      setError('Terjadi kesalahan jaringan. Coba lagi.');
+
+      const data: LoginResponse = await res.json();
+      console.log('[LOGIN] Success data:', data); // DEBUG
+
+      // PASTIKAN TOKEN & USER ADA
+      if (!data.token || !data.user) {
+        setError('Respons tidak lengkap dari server');
+        return;
+      }
+
+      // SIMPAN TANPA KUTIP!
+      sessionStorage.setItem('token', data.token);
+      sessionStorage.setItem('user', JSON.stringify(data.user));
+
+      console.log('[LOGIN] Token disimpan:', data.token);
+      console.log('[LOGIN] User disimpan:', data.user);
+
+      // CEK APPROVAL
+      if (data.user.role.startsWith('admin_') && !data.user.is_approved) {
+        router.push('/pending');
+      } else {
+        router.push('/admin/dashboard');
+      }
+    } catch (err) {
+      console.error('[LOGIN] Catch error:', err);
+      setError('Terjadi kesalahan jaringan');
     } finally {
       setIsLoading(false);
     }
@@ -80,83 +78,53 @@ export default function SignIn() {
   return (
     <div className="min-h-screen bg-white text-black flex items-center justify-center px-4">
       <div className="w-full max-w-md relative">
-        {/* Grid monokrom halus di belakang */}
-        <div
-          className="
-            absolute -inset-4 -z-10
-            [background:linear-gradient(#000_1px,transparent_1px),linear-gradient(90deg,#000_1px,transparent_1px)]
-            [background-size:24px_24px]
-            opacity-[0.04]
-            rounded-3xl
-          "
-          aria-hidden
-        />
+        <div className="absolute -inset-4 -z-10 [background:linear-gradient(#000_1px,transparent_1px),linear-gradient(90deg,#000_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.04] rounded-3xl" />
         <div className="bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-black/10">
-          {/* Heading */}
           <div className="px-8 pt-8 pb-4 text-center">
             <h1 className="text-2xl font-extrabold tracking-tight">Sign in</h1>
-            <p className="mt-2 text-sm text-black/60">Welcome Back👋</p>
+            <p className="mt-2 text-sm text-black/60">Welcome Back</p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-6" noValidate>
             {error && (
-              <div
-                className="rounded-xl border border-black/15 bg-black/5 px-4 py-3 text-sm text-black"
-                role="alert"
-                aria-live="polite"
-              >
-            
+              <div className="rounded-xl border border-black/15 bg-black/5 px-4 py-3 text-sm text-black" role="alert">
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-black">Email</Label>
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="you@example.com"
-                  className="
-                    pl-10 h-12
-                    bg-white text-black placeholder:text-black/40
-                    border border-black/20 rounded-xl
-                    focus:border-black focus-visible:ring-0 focus-visible:ring-offset-0
-                  "
+                  className="pl-10 h-12 bg-white text-black placeholder:text-black/40 border border-black/20 rounded-xl focus:border-black focus-visible:ring-0"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoComplete="email"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-black">Password</Label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 w-5 h-5" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="
-                    pl-10 pr-10 h-12
-                    bg-white text-black placeholder:text-black/40
-                    border border-black/20 rounded-xl
-                    focus:border-black focus-visible:ring-0 focus-visible:ring-offset-0
-                  "
+                  className="pl-10 pr-10 h-12 bg-white text-black placeholder:text-black/40 border border-black/20 rounded-xl focus:border-black focus-visible:ring-0"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  autoComplete="current-password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black/50 hover:text-black transition-colors"
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black/50 hover:text-black"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -165,13 +133,7 @@ export default function SignIn() {
 
             <Button
               type="submit"
-              className="
-                w-full h-12
-                bg-black text-white hover:bg-white hover:text-black
-                border border-black rounded-xl
-                font-semibold transition-colors
-                disabled:opacity-60 disabled:cursor-not-allowed
-              "
+              className="w-full h-12 bg-black text-white hover:bg-white hover:text-black border border-black rounded-xl font-semibold"
               disabled={isLoading || !email || !password}
             >
               {isLoading ? (
