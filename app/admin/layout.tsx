@@ -120,26 +120,25 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
           {/* MANAGE SOUVENIR */}
           <div className={`${effectiveExpanded ? 'px-2 mb-2' : 'hidden'} text-[13px] font-semibold text-slate-400 dark:text-slate-500`}>MANAGE SOUVENIR</div>
           <nav className="space-y-1.5">
-            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboard" />
+            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboardSouvenir" />
             <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Product" href="/admin/productSouvenir" badge={<Badge>NEW</Badge>} />
-            <Item icon={<I name="calendar" className="h-5 h-5" />} label="Galery" href="/admin/gallery" />
-            <Item icon={<I name="task" className="h-5 h-5" />} label="Profile" href="/admin/profile" />
+            <Item icon={<I name="calendar" className="h-5 h-5" />} label="Category" href="/admin/categorySouvenir" />
           </nav>
 
           {/* MANAGE BOOK */}
           <div className={`${effectiveExpanded ? 'px-2 mb-2' : 'hidden'} text-[13px] font-semibold text-slate-400 dark:text-slate-500`}>MANAGE BOOK</div>
           <nav className="space-y-1.5">
-            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboard" />
-            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Rooms" href="/admin/room" badge={<Badge>NEW</Badge>} />
-            <Item icon={<I name="task" className="h-5 h-5" />} label="Profile" href="/admin/profile" />
+            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboardBook" />
+            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Product" href="/admin/productBook" badge={<Badge>NEW</Badge>} />
+            <Item icon={<I name="calendar" className="h-5 h-5" />} label="Category" href="/admin/categoryBook" />
           </nav>
 
           {/* MANAGE CAFE */}
           <div className={`${effectiveExpanded ? 'px-2 mb-2' : 'hidden'} text-[13px] font-semibold text-slate-400 dark:text-slate-500`}>MANAGE CAFE</div>
           <nav className="space-y-1.5">
-            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboard" />
-            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Rooms" href="/admin/room" badge={<Badge>NEW</Badge>} />
-            <Item icon={<I name="task" className="h-5 h-5" />} label="Profile" href="/admin/profile" />
+            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboardCafe" />
+            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Product" href="/admin/productCafe" badge={<Badge>ANJAYY</Badge>} />
+            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Category" href="/admin/categoryCafe" badge={<Badge>NEW</Badge>} />
           </nav>
 
           {/* SUPPORT */}
