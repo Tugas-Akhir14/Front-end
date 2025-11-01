@@ -50,7 +50,7 @@ function Badge({ children, tone = 'green' }: { children: React.ReactNode; tone?:
   );
 }
 
-/* ===================== SIDEBAR ===================== */
+/* ===================== SIDEBAR DINAMIS ===================== */
 type SidebarProps = {
   isCollapsed: boolean;
   isPeeking: boolean;
@@ -60,10 +60,59 @@ type SidebarProps = {
 };
 
 function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobile }: SidebarProps) {
+  const { user, logout } = useAuth();
+  const role = user?.role;
   const effectiveExpanded = !isCollapsed || isPeeking;
-  const { logout } = useAuth();
 
-  const Item = ({ icon, label, badge, href }: { icon: React.ReactNode; label: string; badge?: React.ReactNode; href: string }) => (
+  // HAK AKSES
+  const can = (roles: string[]) => roles.includes(role) || role === 'superadmin';
+
+  // MENU DINAMIS
+  const menus = [
+    ...(can(['admin_hotel']) ? [{
+      title: 'MANAGE HOTEL',
+      items: [
+        { icon: 'grid', label: 'Dashboard', href: '/admin/hotel/dashboard' },
+        { icon: 'plug-in', label: 'Rooms', href: '/admin/hotel/room', badge: 'NEW' },
+        { icon: 'box', label: 'News', href: '/admin/hotel/news', badge: 'NEW' },
+        { icon: 'calendar', label: 'Gallery', href: '/admin/hotel/gallery' },
+        { icon: 'user-circle', label: 'Visi Misi', href: '/admin/hotel/visi-misi' },
+      ],
+    }] : []),
+    ...(can(['admin_souvenir']) ? [{
+      title: 'MANAGE SOUVENIR',
+      items: [
+        { icon: 'grid', label: 'Dashboard', href: '/admin/souvenir/dashboard' },
+        { icon: 'plug-in', label: 'Product', href: '/admin/souvenir/product', badge: 'NEW' },
+        { icon: 'calendar', label: 'Category', href: '/admin/souvenir/category' },
+      ],
+    }] : []),
+    ...(can(['admin_buku']) ? [{
+      title: 'MANAGE BUKU',
+      items: [
+        { icon: 'grid', label: 'Dashboard', href: '/admin/book/dashboard' },
+        { icon: 'plug-in', label: 'Product', href: '/admin/book/product', badge: 'NEW' },
+        { icon: 'calendar', label: 'Category', href: '/admin/book/category' },
+      ],
+    }] : []),
+    ...(can(['admin_cafe']) ? [{
+      title: 'MANAGE CAFE',
+      items: [
+        { icon: 'grid', label: 'Dashboard', href: '/admin/cafe/dashboard' },
+        { icon: 'plug-in', label: 'Product', href: '/admin/cafe/product', badge: 'NEW' },
+        { icon: 'plug-in', label: 'Category', href: '/admin/cafe/category', badge: 'NEW' },
+      ],
+    }] : []),
+    ...(role === 'superadmin' ? [{
+      title: 'SUPERADMIN',
+      items: [
+        { icon: 'shield', label: 'All Modules', href: '/admin/dashboard' },
+        { icon: 'users', label: 'Pending Admins', href: '/admin/pending' },
+      ],
+    }] : []),
+  ];
+
+  const Item = ({ icon, label, badge, href }: { icon: string; label: string; badge?: string; href: string }) => (
     <Link
       href={href}
       className="group flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -71,12 +120,14 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className="h-9 w-9 shrink-0 rounded-lg bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 grid place-items-center">
-          {icon}
+          <I name={icon} className="h-5 w-5" />
         </div>
-        <div className={`${effectiveExpanded ? 'flex items-center gap-2 min-w-0' : 'hidden'}`}>
-          <span className="text-[13px] text-slate-700 dark:text-slate-200 font-medium truncate">{label}</span>
-          {badge}
-        </div>
+        {effectiveExpanded && (
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[13px] text-slate-700 dark:text-slate-200 font-medium truncate">{label}</span>
+            {badge && <Badge>{badge}</Badge>}
+          </div>
+        )}
       </div>
       {effectiveExpanded && <I name="chevron-down" className="h-4 w-4 opacity-60 dark:opacity-70" />}
     </Link>
@@ -100,50 +151,34 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
       >
         <div className="px-4 py-5 flex items-center gap-3">
           <I name="bolt" className="h-9 w-9 rounded-xl" alt="Logo" />
-          <div className={`${effectiveExpanded ? 'block' : 'hidden'} text-lg font-extrabold tracking-tight text-slate-900 dark:text-white`}>
-            SuperAdmin
-          </div>
+          {effectiveExpanded && (
+            <div className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
+              {role === 'superadmin' ? 'SuperAdmin' : 'Admin Panel'}
+            </div>
+          )}
         </div>
 
         <div className="px-3 pb-20 overflow-y-auto h-[calc(100vh-72px)] flex flex-col">
-          {/* MANAGE HOTEL */}
-          <div className={`${effectiveExpanded ? 'px-2 mb-2' : 'hidden'} text-[13px] font-semibold text-slate-400 dark:text-slate-500`}>MANAGE HOTEL</div>
-          <nav className="space-y-1.5">
-            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboard" />
-            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Rooms" href="/admin/room" badge={<Badge>NEW</Badge>} />
-            <Item icon={<I name="box" className="h-5 h-5" />} label="News" href="/admin/news" badge={<Badge>NEW</Badge>} />
-            <Item icon={<I name="calendar" className="h-5 h-5" />} label="Galery" href="/admin/gallery" />
-            <Item icon={<I name="user-circle" className="h-5 h-5" />} label="Visi Misi" href="/admin/visi-misi" />
-            <Item icon={<I name="task" className="h-5 h-5" />} label="Profile" href="/admin/profile" />
-          </nav>
-
-          {/* MANAGE SOUVENIR */}
-          <div className={`${effectiveExpanded ? 'px-2 mb-2' : 'hidden'} text-[13px] font-semibold text-slate-400 dark:text-slate-500`}>MANAGE SOUVENIR</div>
-          <nav className="space-y-1.5">
-            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboardSouvenir" />
-            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Product" href="/admin/productSouvenir" badge={<Badge>NEW</Badge>} />
-            <Item icon={<I name="calendar" className="h-5 h-5" />} label="Category" href="/admin/categorySouvenir" />
-          </nav>
-
-          {/* MANAGE BOOK */}
-          <div className={`${effectiveExpanded ? 'px-2 mb-2' : 'hidden'} text-[13px] font-semibold text-slate-400 dark:text-slate-500`}>MANAGE BOOK</div>
-          <nav className="space-y-1.5">
-            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboardBook" />
-            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Product" href="/admin/productBook" badge={<Badge>NEW</Badge>} />
-            <Item icon={<I name="calendar" className="h-5 h-5" />} label="Category" href="/admin/categoryBook" />
-          </nav>
-
-          {/* MANAGE CAFE */}
-          <div className={`${effectiveExpanded ? 'px-2 mb-2' : 'hidden'} text-[13px] font-semibold text-slate-400 dark:text-slate-500`}>MANAGE CAFE</div>
-          <nav className="space-y-1.5">
-            <Item icon={<I name="grid" className="h-5 h-5" />} label="Dashboard" href="/admin/dashboardCafe" />
-            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Product" href="/admin/productCafe" badge={<Badge>ANJAYY</Badge>} />
-            <Item icon={<I name="plug-in" className="h-5 h-5" />} label="Category" href="/admin/categoryCafe" badge={<Badge>NEW</Badge>} />
-          </nav>
+          {menus.map((menu, i) => (
+            <div key={i} className="mb-6">
+              {effectiveExpanded && (
+                <div className="px-2 mb-2 text-[13px] font-semibold text-slate-400 dark:text-slate-500">
+                  {menu.title}
+                </div>
+              )}
+              <nav className="space-y-1.5">
+                {menu.items.map((item, j) => (
+                  <Item key={j} icon={item.icon} label={item.label} href={item.href} badge={item.badge} />
+                ))}
+              </nav>
+            </div>
+          ))}
 
           {/* SUPPORT */}
           <div className="mt-auto pt-6">
-            <div className={`${effectiveExpanded ? 'px-2 mb-2' : 'hidden'} text-[13px] font-semibold text-slate-400 dark:text-slate-500`}>SUPPORT</div>
+            {effectiveExpanded && (
+              <div className="px-2 mb-2 text-[13px] font-semibold text-slate-400 dark:text-slate-500">SUPPORT</div>
+            )}
             <div className="space-y-1.5">
               <div className="px-3 py-2.5 text-[12px] text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-3" title="Chat">
                 <I name="chat" className="h-5 h-5" /> {effectiveExpanded && <span>Chat</span>}
@@ -166,7 +201,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
   );
 }
 
-/* ===================== TOPBAR ===================== */
+/* ===================== TOPBAR (TIDAK BERUBAH) ===================== */
 type TopbarProps = {
   onToggleDesktop: () => void;
   onOpenMobile: () => void;
@@ -333,7 +368,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [profileName, setProfileName] = useState<string>('');
   const [adminLogins, setAdminLogins] = useState<any[]>([]);
 
-  // authFetch di memo
   const authFetch = useMemo(
     () => async (url: string, init: RequestInit = {}) => {
       const headers = new Headers(init.headers || {});
@@ -358,15 +392,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.replace('/auth/signin');
   };
 
-  // LOAD TOKEN SEKALI SAJA!
   useEffect(() => {
     const raw = sessionStorage.getItem('token') || '';
     const cleaned = raw.replace(/^"+|"+$/g, '');
     const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
-
-    console.log('[LAYOUT] Raw token:', raw);
-    console.log('[LAYOUT] Cleaned token:', cleaned);
-    console.log('[LAYOUT] User:', userData);
 
     if (!cleaned || !userData.id) {
       router.replace('/auth/signin');
@@ -376,21 +405,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setToken(cleaned);
     setUser(userData);
     setProfileName(userData.full_name || 'User');
-    setReady(true); // HANYA SEKALI!
+    setReady(true);
 
-    // CEK APPROVAL
     if (userData.role?.startsWith('admin_') && !userData.is_approved) {
       router.replace('/pending');
     }
-  }, [router]); // HANYA DEPENDENCY router
+  }, [router]);
 
-  // POLLING HANYA SETELAH READY
   useEffect(() => {
     if (!ready || user?.role !== 'superadmin') return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await authFetch('/pending-admins');
+        const res = await authFetch('/api/pending-admins');
         if (res?.ok) {
           const data = await res.json();
           const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -414,7 +441,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleApprove = async (adminId: number) => {
     try {
-      const res = await authFetch(`/admins/approve/${adminId}`, { method: 'PATCH' });
+      const res = await authFetch(`/api/admins/approve/${adminId}`, { method: 'PATCH' });
       if (res?.ok) {
         setAdminLogins((prev) => prev.filter((a) => a.id !== adminId));
         alert(`Admin ${adminId} berhasil di-approve!`);
@@ -422,8 +449,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     } catch (err) {
       alert('Gagal approve admin');
     }
-
-    
   };
 
   if (!ready) {

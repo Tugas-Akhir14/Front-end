@@ -125,10 +125,10 @@ export default function SignUp() {
                   <Label>Role</Label>
                   <Select value={role} onValueChange={(v) => setRole(v as any)}>
                     <SelectTrigger>
+                      <p className="px-4 py-2 text-sm text-black/60">Select your role</p>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="guest">Guest</SelectItem>
                       <SelectItem value="admin_hotel">Admin Hotel</SelectItem>
                       <SelectItem value="admin_souvenir">Admin Souvenir</SelectItem>
                       <SelectItem value="admin_buku">Admin Buku</SelectItem>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../layout';
+import { useAuth } from '../../layout';
 
 export type Gallery = {
   id: number;
@@ -192,7 +192,7 @@ export default function AdminGalleryPage() {
         <div className="flex items-center justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Manajemen Galeri</h1>
           <Link
-            href="/admin/galery/create"
+            href="/admin/hotel/gallery/create"
             className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black"
           >
             + Tambah Foto
