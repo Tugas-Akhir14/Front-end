@@ -81,7 +81,7 @@ export default function AdminNewsCreatePage() {
       }
 
       // sukses: kembali ke daftar
-      router.push("/admin/news");
+      router.push("/admin/hotel/news");
     } catch (err: any) {
       setError(err?.message || "Terjadi kesalahan saat membuat berita.");
     } finally {

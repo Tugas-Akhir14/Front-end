@@ -16,6 +16,7 @@ export function middleware(req: NextRequest) {
   } catch {
     return NextResponse.redirect(new URL('/auth/signin', req.url));
   }
+  
 
   // Cek approval
   if (user.role.startsWith('admin_') && !user.is_approved) {

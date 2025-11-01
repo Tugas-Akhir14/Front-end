@@ -228,7 +228,7 @@ export default function RoomPage() {
             </div>
             <div className="flex items-center gap-2">
               <Link
-                href="/admin/room/create"
+                href="/admin/hotel/room/create"
                 className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow-sm shadow-black/10 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black"
               >
                 + Tambah Kamar
@@ -323,7 +323,7 @@ export default function RoomPage() {
                       <p className="text-zinc-800 font-medium">Belum ada data kamar.</p>
                       <p className="text-zinc-500 text-sm mt-1">Mulai dengan menambahkan kamar baru.</p>
                       <div className="mt-4">
-                        <Link href="/admin/room/create" className="inline-flex items-center rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow-sm shadow-black/10 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black">
+                        <Link href="/admin/hotel/room/create" className="inline-flex items-center rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow-sm shadow-black/10 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black">
                           + Tambah Kamar
                         </Link>
                       </div>

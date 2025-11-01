@@ -77,6 +77,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
         { icon: 'box', label: 'News', href: '/admin/hotel/news', badge: 'NEW' },
         { icon: 'calendar', label: 'Gallery', href: '/admin/hotel/gallery' },
         { icon: 'user-circle', label: 'Visi Misi', href: '/admin/hotel/visi-misi' },
+        { icon: 'user-circle', label: 'Review', href: '/admin/hotel/review' },
       ],
     }] : []),
     ...(can(['admin_souvenir']) ? [{

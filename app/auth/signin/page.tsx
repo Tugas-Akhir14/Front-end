@@ -51,7 +51,7 @@ export default function SignIn() {
       }
 
       const redirectMap: Record<string, string> = {
-        superadmin: '/admin/dashboard',
+        superadmin: '/admin/hotel/dashboard',
         admin_hotel: '/admin/hotel/dashboard',
         admin_souvenir: '/admin/souvenir/dashboard',
         admin_buku: '/admin/book/dashboard',
@@ -145,6 +145,9 @@ export default function SignIn() {
                 Daftar
               </Link>
             </p>
+             <p className="text-center text-blue-600 hover:underline mt-6">
+      <Link href="/">Kembali ke Beranda</Link>
+    </p>
           </form>
         </div>
       </div>

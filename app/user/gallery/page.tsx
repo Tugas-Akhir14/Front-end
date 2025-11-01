@@ -7,134 +7,95 @@ import { Play, X, ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-rea
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
 
+type APIGalleryItem = {
+  id: number;
+  url: string;         // contoh: "/uploads/gallery/xxx.jpg"
+  title?: string | null;
+  caption?: string | null;
+  room_id?: number | null;
+  mime_type?: string | null;
+  size?: number | null;
+};
+
+type APIListResponse = {
+  data: APIGalleryItem[];
+  total?: number;
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+
+// normalisasi agar url relatif jadi absolute
+function toAbsoluteURL(path: string) {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (path.startsWith('/')) return `${API_BASE}${path}`;
+  return `${API_BASE}/${path}`;
+}
+
 export default function Gallery() {
-  const [selectedImage, setSelectedImage] = useState<number | null>(null);
+  const [items, setItems] = useState<APIGalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLIFrameElement>(null);
 
-  const galleryImages = [
-    {
-      id: 1,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/271619/pexels-photo-271619.jpeg',
-      title: 'Junior Suite',
-      description: 'Cozy and comfortable junior suite room'
-    },
-    {
-      id: 2,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
-      title: 'Medium Suite',
-      description: 'Spacious medium suite with sitting area'
-    },
-    {
-      id: 3,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg',
-      title: 'Mutiara Suite',
-      description: 'Elegant Mutiara suite with premium amenities'
-    },
-    {
-      id: 4,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/1579253/pexels-photo-1579253.jpeg',
-      title: 'Master Suite',
-      description: 'Exclusive master suite with private terrace'
-    },
-    {
-      id: 5,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg',
-      title: 'Infinity Pool',
-      description: 'Stunning infinity pool with ocean view'
-    },
-    {
-      id: 6,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/338504/pexels-photo-338504.jpeg',
-      title: 'Mutiara Spa',
-      description: 'Relaxing spa area for ultimate rejuvenation'
-    },
-    {
-      id: 7,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
-      title: 'Fine Dining Restaurant',
-      description: 'Award-winning restaurant with gourmet cuisine'
-    },
-    {
-      id: 8,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg',
-      title: 'Hotel Lobby',
-      description: 'Grand lobby with elegant interior design'
-    },
-    {
-      id: 9,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/2373201/pexels-photo-2373201.jpeg',
-      title: 'Ocean View',
-      description: 'Breathtaking ocean view from our suites'
-    },
-    {
-      id: 10,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg',
-      title: 'Pool Area',
-      description: 'Beautiful pool area surrounded by nature'
-    },
-    {
-      id: 11,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg',
-      title: 'Executive Lounge',
-      description: 'Exclusive executive lounge for guests'
-    },
-    {
-      id: 12,
-      type: 'image',
-      url: 'https://images.pexels.com/photos/261169/pexels-photo-261169.jpeg',
-      title: 'Bedroom Detail',
-      description: 'Luxurious bedroom with premium bedding'
-    }
-  ];
-
-  // Auto play video when component mounts
+  // fetch data dari endpoint publik
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const abort = new AbortController();
+
+    async function fetchGallery() {
+      setLoading(true);
+      setErr(null);
+      try {
+        // 1) coba singular
+        let res = await fetch(`${API_BASE}/public/gallery`, { signal: abort.signal, cache: 'no-store' });
+        if (res.status === 404) {
+          // 2) fallback plural
+          res = await fetch(`${API_BASE}/public/galleries`, { signal: abort.signal, cache: 'no-store' });
+        }
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const json = (await res.json()) as APIListResponse | APIGalleryItem[];
+        const data = Array.isArray(json) ? json : json.data;
+
+        // filter hanya konten image (kalau backend nanti ada video, dll)
+        const cleaned = (data || []).filter(Boolean);
+        setItems(cleaned);
+      } catch (e: any) {
+        if (e.name !== 'AbortError') setErr(e.message || 'Gagal memuat galeri');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchGallery();
+    return () => abort.abort();
+  }, []);
+
+  // autoplay video
+  useEffect(() => {
+    const t = setTimeout(() => {
       if (videoRef.current) {
-        // YouTube iframe API would be needed for full control
-        // This is a workaround to ensure video plays
         const iframe = videoRef.current;
         iframe.src = `https://www.youtube.com/embed/4PLYhb7Wq7Y?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&loop=1&playlist=4PLYhb7Wq7Y`;
       }
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    }, 600);
+    return () => clearTimeout(t);
   }, [isMuted]);
 
-  const openLightbox = (index: number) => {
-    setSelectedImage(index);
-  };
-
-  const closeLightbox = () => {
-    setSelectedImage(null);
-  };
-
+  const openLightbox = (index: number) => setSelectedIndex(index);
+  const closeLightbox = () => setSelectedIndex(null);
   const nextImage = () => {
-    if (selectedImage !== null) {
-      setSelectedImage((selectedImage + 1) % galleryImages.length);
-    }
+    if (selectedIndex !== null) setSelectedIndex((selectedIndex + 1) % items.length);
   };
-
   const prevImage = () => {
-    if (selectedImage !== null) {
-      setSelectedImage((selectedImage - 1 + galleryImages.length) % galleryImages.length);
-    }
+    if (selectedIndex !== null) setSelectedIndex((selectedIndex - 1 + items.length) % items.length);
   };
-
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    setIsMuted(v => !v);
     if (videoRef.current) {
       const iframe = videoRef.current;
       iframe.src = `https://www.youtube.com/embed/4PLYhb7Wq7Y?autoplay=1&mute=${!isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&loop=1&playlist=4PLYhb7Wq7Y`;
@@ -144,21 +105,15 @@ export default function Gallery() {
   return (
     <>
       <Header />
-      <main className="pt-16"> {/* Tambahkan padding top untuk header fixed */}
-        
-        {/* Hero Section dengan Background Image */}
+      <main className="pt-16">
+
+        {/* Hero */}
         <section className="relative h-96 bg-gray-900">
           <div className="absolute inset-0 bg-black/40 z-10"></div>
-          
-          {/* Background Image */}
-          <div 
+          <div
             className="absolute inset-0 w-full h-full bg-cover bg-center"
-            style={{
-              backgroundImage: 'url(https://images.pexels.com/photos/271619/pexels-photo-271619.jpeg)'
-            }}
+            style={{ backgroundImage: 'url(https://images.pexels.com/photos/271619/pexels-photo-271619.jpeg)' }}
           />
-
-          {/* Overlay Content */}
           <div className="relative z-20 flex h-full items-center justify-center">
             <div className="text-center text-white max-w-4xl px-4">
               <h1 className="text-4xl md:text-6xl font-bold mb-6">
@@ -167,8 +122,8 @@ export default function Gallery() {
               <p className="text-lg md:text-xl mb-8 text-gray-200 font-light">
                 Discover the beauty and luxury of Mutiara Hotel through our visual journey
               </p>
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 text-lg"
                 onClick={() => document.getElementById('video-section')?.scrollIntoView({ behavior: 'smooth' })}
               >
@@ -178,7 +133,7 @@ export default function Gallery() {
           </div>
         </section>
 
-        {/* Video Section - Dipindahkan ke bawah header */}
+        {/* Video */}
         <section id="video-section" className="relative bg-black py-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -189,7 +144,6 @@ export default function Gallery() {
             </div>
 
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              {/* YouTube Video */}
               <div className="relative aspect-video w-full">
                 <iframe
                   ref={videoRef}
@@ -200,8 +154,6 @@ export default function Gallery() {
                   title="Mutiara Hotel Virtual Tour"
                 />
               </div>
-
-              {/* Video Controls */}
               <div className="absolute bottom-6 right-6 z-20 flex items-center space-x-4">
                 <button
                   onClick={toggleMute}
@@ -215,7 +167,6 @@ export default function Gallery() {
               </div>
             </div>
 
-            {/* Video Description */}
             <div className="text-center mt-8">
               <p className="text-gray-400 text-lg">
                 Explore our world-class amenities, elegant rooms, and stunning surroundings
@@ -224,7 +175,7 @@ export default function Gallery() {
           </div>
         </section>
 
-        {/* Gallery Grid Section */}
+        {/* Gallery */}
         <section id="gallery-section" className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
@@ -234,43 +185,67 @@ export default function Gallery() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {galleryImages.map((item, index) => (
-                <Card 
-                  key={item.id} 
-                  className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group"
-                  onClick={() => openLightbox(index)}
-                >
-                  <div className="relative h-80 overflow-hidden">
-                    <img
-                      src={item.url}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    
-                    <div className="absolute top-4 left-4 bg-yellow-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      Photo
-                    </div>
-                    
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white">
-                      <h3 className="font-semibold text-xl mb-2">{item.title}</h3>
-                      <p className="text-gray-200 text-sm opacity-90">
-                        {item.description}
-                      </p>
-                    </div>
+            {/* Loading / Error / Empty */}
+            {loading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-80 rounded-xl bg-gray-200 animate-pulse" />
+                ))}
+              </div>
+            )}
 
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-yellow-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <div className="bg-white/20 backdrop-blur-sm rounded-full p-4 transform scale-0 group-hover:scale-100 transition-transform duration-300">
-                        <Play className="w-8 h-8 text-white fill-current" />
+            {!loading && err && (
+              <div className="text-center text-red-600">
+                Gagal memuat galeri: {err}
+              </div>
+            )}
+
+            {!loading && !err && items.length === 0 && (
+              <div className="text-center text-gray-600">
+                Belum ada foto galeri.
+              </div>
+            )}
+
+            {!loading && !err && items.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {items.map((item, index) => (
+                  <Card
+                    key={item.id}
+                    className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group"
+                    onClick={() => openLightbox(index)}
+                  >
+                    <div className="relative h-80 overflow-hidden">
+                      <img
+                        src={toAbsoluteURL(item.url)}
+                        alt={item.title || 'Gallery Photo'}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1200&auto=format&fit=crop';
+                        }}
+                      />
+                      <div className="absolute top-4 left-4 bg-yellow-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        Photo
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white">
+                        <h3 className="font-semibold text-xl mb-2">{item.title || 'Untitled'}</h3>
+                        <p className="text-gray-200 text-sm opacity-90">
+                          {item.caption || '—'}
+                        </p>
+                      </div>
+                      <div className="absolute inset-0 bg-yellow-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-4 transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                          <Play className="w-8 h-8 text-white fill-current" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
+            )}
 
-            {/* CTA Section */}
+            {/* CTA */}
             <div className="text-center mt-16">
               <Card className="bg-gradient-to-r from-yellow-600 to-yellow-700 text-white p-12">
                 <CardContent className="p-0">
@@ -282,9 +257,9 @@ export default function Gallery() {
                     <Button size="lg" className="bg-white text-yellow-600 hover:bg-gray-100 text-lg px-8 py-3">
                       Book Your Stay
                     </Button>
-                    <Button 
-                      size="lg" 
-                      variant="outline" 
+                    <Button
+                      size="lg"
+                      variant="outline"
                       className="border-white text-white hover:bg-white hover:text-yellow-600 text-lg px-8 py-3"
                     >
                       Contact Us
@@ -297,11 +272,10 @@ export default function Gallery() {
         </section>
       </main>
 
-      {/* Lightbox Modal */}
-      {selectedImage !== null && (
+      {/* Lightbox */}
+      {selectedIndex !== null && items[selectedIndex] && (
         <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
           <div className="relative max-w-6xl max-h-full w-full">
-            {/* Close Button */}
             <button
               onClick={closeLightbox}
               className="absolute top-4 right-4 z-10 bg-white/20 hover:bg-white/30 text-white rounded-full p-3 transition-colors duration-200 backdrop-blur-sm"
@@ -309,36 +283,36 @@ export default function Gallery() {
               <X className="w-6 h-6" />
             </button>
 
-            {/* Navigation Buttons */}
             <button
               onClick={prevImage}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 text-white rounded-full p-3 transition-colors duration-200 backdrop-blur-sm"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 text-white rounded-full p-3 transition-colors duration-200 backdrop-blur-sm"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
 
             <button
               onClick={nextImage}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 text-white rounded-full p-3 transition-colors duration-200 backdrop-blur-sm"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 text-white rounded-full p-3 transition-colors duration-200 backdrop-blur-sm"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
 
-            {/* Content */}
             <div className="bg-white rounded-lg overflow-hidden shadow-2xl">
               <img
-                src={galleryImages[selectedImage].url}
-                alt={galleryImages[selectedImage].title}
+                src={toAbsoluteURL(items[selectedIndex].url)}
+                alt={items[selectedIndex].title || 'Gallery Photo'}
                 className="w-full h-auto max-h-[70vh] object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src =
+                    'https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1200&auto=format&fit=crop';
+                }}
               />
-
-              {/* Caption */}
               <div className="p-6 bg-gradient-to-r from-gray-50 to-white">
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  {galleryImages[selectedImage].title}
+                  {items[selectedIndex].title || 'Untitled'}
                 </h3>
                 <p className="text-gray-600 text-lg">
-                  {galleryImages[selectedImage].description}
+                  {items[selectedIndex].caption || '—'}
                 </p>
               </div>
             </div>

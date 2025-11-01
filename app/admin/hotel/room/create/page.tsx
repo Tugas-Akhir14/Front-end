@@ -99,7 +99,7 @@ export default function RoomCreatePage() {
       }
 
       // sukses: balik ke list
-      router.push("/admin/room");
+      router.push("/admin/hotel/room");
     } catch (err: any) {
       setError(err?.message || "Terjadi kesalahan tak bernama.");
     } finally {
