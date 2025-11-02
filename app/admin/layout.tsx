@@ -75,6 +75,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
         { icon: 'grid', label: 'Dashboard', href: '/admin/hotel/dashboard' },
         { icon: 'plug-in', label: 'Rooms', href: '/admin/hotel/room', badge: 'NEW' },
         { icon: 'box', label: 'News', href: '/admin/hotel/news', badge: 'NEW' },
+        { icon: 'time', label: 'Booking', href: '/admin/hotel/booking', badge: 'NEW' },
         { icon: 'calendar', label: 'Gallery', href: '/admin/hotel/gallery' },
         { icon: 'user-circle', label: 'Visi Misi', href: '/admin/hotel/visi-misi' },
         { icon: 'user-circle', label: 'Review', href: '/admin/hotel/review' },

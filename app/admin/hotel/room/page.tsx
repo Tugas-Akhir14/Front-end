@@ -19,7 +19,7 @@ api.interceptors.request.use((config) => {
 });
 
 // =====================
-// Types – sesuaikan dengan backend
+// Types – SESUAI DENGAN BACKEND
 // =====================
 export type Room = {
   id: number;
@@ -29,6 +29,7 @@ export type Room = {
   capacity: number;
   description?: string;
   image?: string | null;
+  status: "available" | "booked" | "maintenance" | "cleaning";
   created_at: string;
   updated_at: string;
 };
@@ -37,6 +38,15 @@ export type RoomsResponse = {
   data: Room[];
   total: number;
 };
+
+// STATUS OPTIONS
+const ROOM_STATUSES = [
+  { label: "Semua Status", value: "" },
+  { label: "Tersedia", value: "available", color: "bg-green-100 text-green-800" },
+  { label: "Dipesan", value: "booked", color: "bg-blue-100 text-blue-800" },
+  { label: "Maintenance", value: "maintenance", color: "bg-orange-100 text-orange-800" },
+  { label: "Sedang Dibersihkan", value: "cleaning", color: "bg-purple-100 text-purple-800" },
+];
 
 const ROOM_TYPES: Array<{ label: string; value: string }> = [
   { label: "Semua Tipe", value: "" },
@@ -75,15 +85,17 @@ function SkeletonRow() {
       <td className="px-4 py-4"><div className="h-3 w-24 rounded bg-zinc-200" /></td>
       <td className="px-4 py-4"><div className="h-3 w-20 rounded bg-zinc-200" /></td>
       <td className="px-4 py-4"><div className="h-3 w-32 rounded bg-zinc-200" /></td>
+      <td className="px-4 py-4"><div className="h-3 w-20 rounded bg-zinc-200" /></td>
       <td className="px-4 py-4"><div className="h-8 w-28 rounded bg-zinc-200" /></td>
     </tr>
   );
 }
 
 export default function RoomPage() {
-  // Query state sesuai backend: q, type, limit, offset
+  // Query state
   const [search, setSearch] = useState("");
   const [roomType, setRoomType] = useState("");
+  const [roomStatus, setRoomStatus] = useState(""); // BARU: Filter status
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
 
@@ -101,6 +113,7 @@ export default function RoomPage() {
   const [editPrice, setEditPrice] = useState<string>("0");
   const [editCapacity, setEditCapacity] = useState<string>("1");
   const [editDescription, setEditDescription] = useState<string>("");
+  const [editStatus, setEditStatus] = useState<Room["status"]>("available"); // BARU
   const [editImage, setEditImage] = useState<File | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -121,7 +134,13 @@ export default function RoomPage() {
 
     try {
       const res = await api.get<RoomsResponse>("/api/rooms", {
-        params: { q: search || undefined, type: roomType || undefined, limit, offset },
+        params: {
+          q: search || undefined,
+          type: roomType || undefined,
+          status: roomStatus || undefined, // BARU: kirim status
+          limit,
+          offset,
+        },
       });
       setRooms(res.data.data || []);
       setTotal(res.data.total ?? 0);
@@ -135,10 +154,9 @@ export default function RoomPage() {
 
   useEffect(() => {
     fetchRooms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, roomType, limit, offset]);
+  }, [search, roomType, roomStatus, limit, offset]);
 
-  // fallback icon kalau gambar kosong atau gagal load
+  // Fallback gambar
   const FallbackThumb = () => (
     <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50">
       <svg className="h-5 w-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -149,7 +167,14 @@ export default function RoomPage() {
     </div>
   );
 
-  // Handlers: Edit & Delete
+  // Badge status
+  const getStatusBadge = (status: string) => {
+    const s = ROOM_STATUSES.find(s => s.value === status);
+    if (!s) return <span className="text-xs text-zinc-500">{status}</span>;
+    return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${s.color}`}>{s.label}</span>;
+  };
+
+  // Handlers
   const openEdit = (r: Room) => {
     setEditing(r);
     setEditNumber(r.number);
@@ -157,6 +182,7 @@ export default function RoomPage() {
     setEditPrice(String(r.price));
     setEditCapacity(String(r.capacity));
     setEditDescription(r.description || "");
+    setEditStatus(r.status); // BARU
     setEditImage(null);
     setSubmitError(null);
     setIsEditOpen(true);
@@ -175,16 +201,14 @@ export default function RoomPage() {
     setSubmitError(null);
 
     try {
-      // Backend menerima form-data (ShouldBind), jadi kita kirim multipart.
       const fd = new FormData();
       fd.append("number", editNumber);
       fd.append("type", editType);
       fd.append("price", String(Number(editPrice) || 0));
       fd.append("capacity", String(Number(editCapacity) || 1));
       fd.append("description", editDescription || "");
-      if (editImage) {
-        fd.append("image", editImage);
-      }
+      fd.append("status", editStatus); // BARU: kirim status
+      if (editImage) fd.append("image", editImage);
 
       await api.put(`/api/rooms/${editing.id}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -205,9 +229,8 @@ export default function RoomPage() {
     if (!ok) return;
     try {
       await api.delete(`/api/rooms/${r.id}`);
-      // Jika halaman jadi kosong setelah delete, geser offset balik
       setOffset((o) => {
-        const remaining = total - 1 - (o);
+        const remaining = total - 1 - o;
         const atEnd = remaining <= 0 && o > 0;
         return atEnd ? Math.max(0, o - limit) : o;
       });
@@ -267,9 +290,21 @@ export default function RoomPage() {
             className="rounded-xl bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
           >
             {ROOM_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+
+          {/* BARU: Filter Status */}
+          <select
+            value={roomStatus}
+            onChange={(e) => {
+              setRoomStatus(e.target.value);
+              setOffset(0);
+            }}
+            className="rounded-xl bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+          >
+            {ROOM_STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
 
@@ -285,9 +320,7 @@ export default function RoomPage() {
               className="rounded-xl bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
             >
               {[5, 10, 20, 50].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
+                <option key={n} value={n}>{n}</option>
               ))}
             </select>
           </div>
@@ -303,6 +336,7 @@ export default function RoomPage() {
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Tipe</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Harga</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Kapasitas</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Status</th> {/* BARU */}
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Diperbarui</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Aksi</th>
               </tr>
@@ -312,7 +346,7 @@ export default function RoomPage() {
                 Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
               ) : rooms.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12">
+                  <td colSpan={8} className="px-6 py-12"> {/* 8 kolom */}
                     <div className="text-center">
                       <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200">
                         <svg className="h-5 w-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -357,6 +391,7 @@ export default function RoomPage() {
                     </td>
                     <td className="px-4 py-3 align-top text-zinc-800">{rupiah(r.price)}</td>
                     <td className="px-4 py-3 align-top text-zinc-800">{r.capacity}</td>
+                    <td className="px-4 py-3 align-top">{getStatusBadge(r.status)}</td> {/* BARU */}
                     <td className="px-4 py-3 align-top text-sm text-zinc-700">{formatDate(r.updated_at)}</td>
                     <td className="px-4 py-3 align-top">
                       <div className="flex items-center gap-2">
@@ -432,9 +467,7 @@ export default function RoomPage() {
       {/* EDIT MODAL */}
       {isEditOpen && editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* backdrop */}
           <div className="absolute inset-0 bg-black/40" onClick={closeEdit} />
-          {/* modal */}
           <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-zinc-200">
             <div className="px-6 py-4 border-b border-zinc-200 flex items-center justify-between">
               <h3 className="text-lg font-semibold">Ubah Kamar #{editing.number}</h3>
@@ -475,7 +508,6 @@ export default function RoomPage() {
                   <label className="block text-sm text-zinc-700 mb-1">Harga</label>
                   <input
                     type="number"
-                    inputMode="numeric"
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
                     className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
@@ -485,12 +517,24 @@ export default function RoomPage() {
                   <label className="block text-sm text-zinc-700 mb-1">Kapasitas</label>
                   <input
                     type="number"
-                    inputMode="numeric"
                     min={1}
                     value={editCapacity}
                     onChange={(e) => setEditCapacity(e.target.value)}
                     className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm text-zinc-700 mb-1">Status</label> {/* BARU */}
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as Room["status"])}
+                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  >
+                    <option value="available">Tersedia</option>
+                    <option value="booked">Dipesan</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="cleaning">Sedang Dibersihkan</option>
+                  </select>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm text-zinc-700 mb-1">Deskripsi</label>

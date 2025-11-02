@@ -57,9 +57,20 @@ export type News = {
   updated_at: string;
 };
 
+export type Booking = {
+  id: number;
+  check_in: string;
+  check_out: string;
+  guests: number;
+  total_price: number;
+  status: "pending" | "confirmed" | "cancelled";
+  created_at: string;
+};
+
 export type RoomsResponse = { data: Room[]; total: number };
 export type GalleriesResponse = { data: Gallery[]; total: number };
 export type NewsResponse = { data: News[]; total: number };
+export type BookingsResponse = { data: Booking[]; total: number };
 
 // =====================
 // Helper Functions
@@ -119,20 +130,23 @@ export default function DashboardPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [news, setNews] = useState<News[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]); // BARU
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch All Data
   const fetchAll = async () => {
     try {
-      const [roomsRes, galleriesRes, newsRes] = await Promise.all([
+      const [roomsRes, galleriesRes, newsRes, bookingsRes] = await Promise.all([
         api.get<RoomsResponse>("/api/rooms", { params: { limit: 1000 } }),
         api.get<GalleriesResponse>("/api/galleries", { params: { limit: 1000 } }),
-        api.get<NewsResponse>("/api/news", { params: { limit: 1000 } })
+        api.get<NewsResponse>("/api/news", { params: { limit: 1000 } }),
+        api.get<BookingsResponse>("/api/bookings", { params: { limit: 1000 } }) // BARU
       ]);
       setRooms(roomsRes.data.data || []);
       setGalleries(galleriesRes.data.data || []);
       setNews(newsRes.data.data || []);
+      setBookings(bookingsRes.data.data || []); // BARU
     } catch (err: any) {
       setError("Gagal memuat data. Silakan coba lagi.");
       console.error(err);
@@ -199,6 +213,37 @@ export default function DashboardPage() {
   ];
 
   // =====================
+  // BARU: Booking Stats (Bulan Ini)
+  // =====================
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  const bookingStats = useMemo(() => {
+    const thisMonthBookings = bookings.filter(b => {
+      const date = new Date(b.check_in);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+
+    const confirmed = thisMonthBookings.filter(b => b.status === "confirmed");
+
+    const totalGuests = confirmed.reduce((sum, b) => sum + b.guests, 0);
+    const totalRevenue = confirmed.reduce((sum, b) => sum + b.total_price, 0);
+    const confirmedCount = confirmed.length;
+
+    // Hitung tingkat hunian: kamar yang terbooking / total kamar
+    const occupiedRooms = new Set(confirmed.map(b => b.room_id)).size; // asumsi room_id ada
+    const occupancyRate = rooms.length > 0 ? (occupiedRooms / rooms.length) * 100 : 0;
+
+    return {
+      occupancyRate: Number(occupancyRate.toFixed(1)),
+      totalGuests,
+      avgGuestsPerBooking: confirmedCount > 0 ? Number((totalGuests / confirmedCount).toFixed(1)) : 0,
+      totalRevenue,
+      confirmedCount
+    };
+  }, [bookings, rooms, currentMonth, currentYear]);
+
+  // =====================
   // Monthly Activity (Last 6 Months)
   // =====================
   const monthlyData = useMemo(() => {
@@ -242,7 +287,7 @@ export default function DashboardPage() {
       <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-zinc-900">Laporan Dashboard</h1>
-          <p className="text-zinc-600 mt-1">Ringkasan performa sistem: kamar, galeri, dan berita</p>
+          <p className="text-zinc-600 mt-1">Ringkasan performa sistem: kamar, galeri, berita, dan <strong>booking</strong></p>
         </div>
 
         {error && (
@@ -255,9 +300,70 @@ export default function DashboardPage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
           {loading ? (
-            Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />)
+            Array.from({ length: 10 }).map((_, i) => <StatCardSkeleton key={i} />)
           ) : (
             <>
+              {/* BARU: 4 Kartu Booking */}
+              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-600">Tingkat Hunian</p>
+                    <p className="text-2xl font-bold text-zinc-900">{bookingStats.occupancyRate}%</p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
+                    <svg className="h-5 w-5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 7h18M3 12h18M3 17h18" />
+                      <path d="M8 7v10M12 7v10M16 7v10" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-600">Tamu Bulan Ini</p>
+                    <p className="text-2xl font-bold text-zinc-900">{bookingStats.totalGuests}</p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100">
+                    <svg className="h-5 w-5 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm6 3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-600">Rata-rata Tamu</p>
+                    <p className="text-2xl font-bold text-zinc-900">{bookingStats.avgGuestsPerBooking} org</p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100">
+                    <svg className="h-5 w-5 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-600">Pendapatan Bulan Ini</p>
+                    <p className="text-2xl font-bold text-green-600">{rupiah(bookingStats.totalRevenue)}</p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100">
+                    <svg className="h-5 w-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 8c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z" />
+                      <path d="M12 14c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z" />
+                      <path d="M12 20c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* KARTU LAMA */}
               <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
@@ -419,7 +525,7 @@ export default function DashboardPage() {
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
             <div className="border-b border-zinc-200 px-5 py-3 flex justify-between items-center">
               <h3 className="text-lg font-semibold">Kamar Terbaru</h3>
-              <Link href="/admin/room" className="text-sm text-black hover:underline">Lihat semua</Link>
+              <Link href="/admin/hotel/room" className="text-sm text-black hover:underline">Lihat semua</Link>
             </div>
             <table className="min-w-full">
               <tbody className="divide-y divide-zinc-100">

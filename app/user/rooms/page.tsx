@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // TAMBAHKAN INI
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -14,7 +15,7 @@ import {
   Waves,
   Utensils,
   Users,
-  Square
+  Square,
 } from 'lucide-react';
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
@@ -22,24 +23,59 @@ import Footer from '@/components/Layout/Footer';
 // ===== Types from API =====
 type RoomAPI = {
   id: number;
-  number: string; // <— NOMOR KAMAR
+  number: string;
   type: 'superior' | 'deluxe' | 'executive' | string;
   price: number;
   capacity: number;
   description: string;
   image: string;
+  status: 'available' | 'booked' | 'maintenance' | 'cleaning' | string;
   created_at: string;
   updated_at: string;
 };
 
-// Amenity icon type
-type AmenityIcon = React.ComponentType<{ className?: string }>;
+// ===== Badge Status Config =====
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; bg: string; text: string; border?: string }
+> = {
+  available: {
+    label: 'Available',
+    bg: 'bg-green-100',
+    text: 'text-green-800',
+    border: 'border-green-300',
+  },
+  booked: {
+    label: 'Booked',
+    bg: 'bg-red-100',
+    text: 'text-red-800',
+    border: 'border-red-300',
+  },
+  maintenance: {
+    label: 'Maintenance',
+    bg: 'bg-orange-100',
+    text: 'text-orange-800',
+    border: 'border-orange-300',
+  },
+  cleaning: {
+    label: 'Cleaning',
+    bg: 'bg-blue-100',
+    text: 'text-blue-800',
+    border: 'border-blue-300',
+  },
+};
+
+// ===== Fallback Status =====
+const getStatusConfig = (status: string) => {
+  const key = status?.toLowerCase();
+  return STATUS_CONFIG[key] || { label: status || 'Unknown', bg: 'bg-gray-100', text: 'text-gray-800' };
+};
 
 // ===== Helpers =====
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8080';
 
 const toTitle = (t: string) => {
-  switch (t) {
+  switch (t?.toLowerCase()) {
     case 'superior': return 'Superior Room';
     case 'deluxe': return 'Deluxe Room';
     case 'executive': return 'Executive Suite';
@@ -50,8 +86,8 @@ const toTitle = (t: string) => {
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 
-// Default features/amenities by type (karena API-mu belum kirim field ini)
-const TYPE_PRESETS: Record<string, { features: string[]; amenities: AmenityIcon[]; size: string }> = {
+// Preset tipe kamar
+const TYPE_PRESETS: Record<string, { features: string[]; amenities: React.ComponentType[]; size: string }> = {
   superior: {
     features: ['Queen Size Bed', 'Free Wi-Fi', 'Smart TV', 'Coffee Maker', 'Private Bathroom'],
     amenities: [Wifi, Tv, Coffee],
@@ -69,10 +105,9 @@ const TYPE_PRESETS: Record<string, { features: string[]; amenities: AmenityIcon[
   },
 };
 
-const buildPreset = (type: string): { features: string[]; amenities: AmenityIcon[]; size: string } => {
+const buildPreset = (type: string) => {
   const key = type?.toLowerCase();
   if (TYPE_PRESETS[key]) return TYPE_PRESETS[key];
-  // fallback jika tipe tak dikenal
   return {
     features: ['Comfortable Bed', 'Free Wi-Fi', 'Smart TV', 'Private Bathroom'],
     amenities: [Wifi, Tv],
@@ -89,8 +124,9 @@ const hotelFeatures = [
   { icon: Star, title: '5-Star Service', description: 'Dedicated staff ensuring exceptional experience' },
 ];
 
+// ===== KOMPONEN UTAMA =====
 export default function Rooms() {
-  const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
+  const router = useRouter(); // PINDAHKAN KE SINI
   const [rooms, setRooms] = useState<RoomAPI[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -101,7 +137,6 @@ export default function Rooms() {
       try {
         setLoading(true);
         setErr(null);
-        // pakai path canonical /public/rooms
         const res = await fetch(`${API_BASE}/public/rooms`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
@@ -120,20 +155,35 @@ export default function Rooms() {
   const cards = useMemo(() => {
     return rooms.map((r) => {
       const preset = buildPreset(r.type);
+      const statusConfig = getStatusConfig(r.status);
       return {
         id: r.id,
-        number: r.number,                          // <— NOMOR KAMAR
-        name: `${toTitle(r.type)} • No. ${r.number}`, // tampilkan nomor di judul
+        number: r.number,
+        name: `${toTitle(r.type)} • No. ${r.number}`,
         priceLabel: `${formatRupiah(r.price)}/malam`,
-        image: r.image,
+        image: r.image || '/placeholder-room.jpg',
         description: r.description || 'Comfortable room with thoughtful amenities.',
         features: preset.features,
         size: preset.size,
         guests: `${r.capacity} Guests`,
         amenities: preset.amenities,
+        status: r.status,
+        statusLabel: statusConfig.label,
+        statusStyle: {
+          bg: statusConfig.bg,
+          text: statusConfig.text,
+          border: statusConfig.border,
+        },
       };
     });
   }, [rooms]);
+
+  // PINDAHKAN handleBookNow KE SINI
+  const handleBookNow = (roomId: number, status: string) => {
+    if (status === 'available') {
+      router.push(`/user/book?room=${roomId}`);
+    }
+  };
 
   return (
     <>
@@ -160,17 +210,16 @@ export default function Rooms() {
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-gray-900 mb-4">Accommodation Options</h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Choose from our carefully curated selection of rooms and suites,
-                each designed to provide the ultimate comfort and Mutiara experience.
+                Choose from our carefully curated selection of rooms and suites.
               </p>
             </div>
 
-            {/* Loading / Error states */}
+            {/* Loading / Error */}
             {loading && (
-              <div className="text-center text-gray-600">Memuat kamar... sabar, servernya lagi pemanasan.</div>
+              <div className="text-center text-gray-600">Memuat kamar...</div>
             )}
             {err && !loading && (
-              <div className="text-center text-red-600">Gagal memuat kamar: {err}</div>
+              <div className="text-center text-red-600">Error: {err}</div>
             )}
 
             {!loading && !err && (
@@ -185,16 +234,29 @@ export default function Rooms() {
                         src={room.image}
                         alt={room.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-room.jpg';
+                        }}
                       />
-                      {/* Badge harga */}
-                      <div className="absolute top-4 right-4 bg-yellow-600 text-white px-4 py-2 rounded-full font-semibold text-lg">
+
+                      {/* STATUS BADGE */}
+                      <div
+                        className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${room.statusStyle.bg} ${room.statusStyle.text} ${room.statusStyle.border || ''} shadow-md`}
+                      >
+                        {room.statusLabel}
+                      </div>
+
+                      {/* Harga Badge */}
+                      <div className="absolute top-4 left-4 bg-yellow-600 text-white px-4 py-2 rounded-full font-semibold text-lg shadow-lg">
                         {room.priceLabel}
                       </div>
-                      {/* Badge nomor kamar */}
-                      <div className="absolute top-4 left-4 bg-white/90 text-gray-900 px-3 py-1 rounded-full text-sm font-semibold shadow">
+
+                      {/* Nomor Kamar */}
+                      <div className="absolute top-16 left-4 bg-white/90 text-gray-900 px-3 py-1 rounded-full text-sm font-semibold shadow">
                         No. {room.number}
                       </div>
-                      {/* Info size & capacity */}
+
+                      {/* Size & Guests */}
                       <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-1 rounded text-sm">
                         <div className="flex items-center space-x-2">
                           <Square className="w-4 h-4" />
@@ -241,10 +303,11 @@ export default function Rooms() {
 
                       <div className="flex space-x-4">
                         <Button
-                          className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-3 text-lg"
-                          onClick={() => setSelectedRoom(room.id)}
+                          className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-3 text-lg transition-all"
+                          onClick={() => handleBookNow(room.id, room.status)} // PAKAI INI
+                          disabled={room.status !== 'available'}
                         >
-                          Book Now
+                          {room.status === 'available' ? 'Book Now' : 'Not Available'}
                         </Button>
                         <Button
                           variant="outline"
@@ -261,21 +324,20 @@ export default function Rooms() {
             )}
 
             {!loading && !err && rooms.length === 0 && (
-              <div className="text-center text-gray-500">Belum ada kamar. Isi dulu databasenya, maestro.</div>
+              <div className="text-center text-gray-500">Tidak ada kamar tersedia saat ini.</div>
             )}
           </div>
         </section>
 
-        {/* Features Section */}
+        {/* Hotel Features */}
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-gray-900 mb-4">Hotel Amenities</h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Enjoy world-class amenities and services designed to make your stay unforgettable
+                Enjoy world-class amenities and services.
               </p>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {hotelFeatures.map((feature, index) => (
                 <Card key={index} className="text-center p-6 hover:shadow-lg transition-shadow border-yellow-100">
@@ -292,18 +354,18 @@ export default function Rooms() {
           </div>
         </section>
 
-        {/* CTA Section */}
+        {/* CTA */}
         <section className="py-20 bg-yellow-600 text-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-4xl font-bold mb-4">Ready to Book Your Stay?</h2>
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <h2 className="text-4xl font-bold mb-4">Ready to Book?</h2>
             <p className="text-xl mb-8 opacity-90">
-              Experience Mutiara and comfort like never before. Book your perfect room today.
+              Experience Mutiara comfort. Book your room today.
             </p>
             <div className="space-x-4">
-              <Button size="lg" className="bg-white text-yellow-600 hover:bg-gray-100 text-lg px-8 py-3" asChild>
-                <Link href="/">Book Your Room</Link>
+              <Button size="lg" className="bg-white text-yellow-600 hover:bg-gray-100" asChild>
+                <Link href="/">Book Now</Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-yellow-600 text-lg px-8 py-3" asChild>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-yellow-600" asChild>
                 <Link href="/contact">Contact Us</Link>
               </Button>
             </div>
