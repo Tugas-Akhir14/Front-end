@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Star, Wifi, Car, Utensils, Dumbbell, Waves } from 'lucide-react';
+import { Star } from 'lucide-react';
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
 import ChatBot from '@/components/Chatbot/ChatBot';
 import axios from 'axios';
 
-// Tipe data dari backend
+// ================== Types dari backend ==================
 type Room = {
   id: number;
   number: string;
@@ -22,7 +22,6 @@ type Room = {
   updated_at: string;
 };
 
-// === TAMBAH: TYPE UNTUK REVIEW ===
 type Review = {
   id: number;
   rating: number;
@@ -31,52 +30,56 @@ type Review = {
   created_at: string;
 };
 
+// Vision & Mission publik
+type VisionMission = {
+  vision: string;
+  missions: string[];     // diserialisasi dari datatypes.JSON -> array
+  active?: boolean;
+  updated_at?: string;
+};
+
 export default function Home() {
-  const [reservationData, setReservationData] = useState(null);
+  const [reservationData, setReservationData] = useState<any>(null);
+
+  // Rooms
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]); // TAMBAH: State untuk reviews
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [roomsError, setRoomsError] = useState<string | null>(null);
 
-  const features = [
-    { icon: Wifi, title: 'Free Wi-Fi', description: 'High-speed internet throughout the hotel' },
-    { icon: Car, title: 'Free Parking', description: 'Complimentary valet parking service' },
-    { icon: Utensils, title: 'Fine Dining', description: 'Award-winning restaurant with local cuisine' },
-    { icon: Dumbbell, title: 'Fitness Center', description: '24/7 access to modern gym equipment' },
-    { icon: Waves, title: 'Pool & Spa', description: 'Relaxing pool and full-service spa' },
-  ];
+  // Reviews
+  const [reviews, setReviews] = useState<Review[]>([]);
 
-  // === TAMBAH: Fetch Reviews ===
+  // Vision Mission
+  const [vm, setVm] = useState<VisionMission | null>(null);
+  const [loadingVm, setLoadingVm] = useState(true);
+  const [vmError, setVmError] = useState<string | null>(null);
+
+  // ================== Fetch Reviews ==================
   useEffect(() => {
     const fetchReviews = async () => {
       try {
         const response = await axios.get<Review[]>('/public/reviews');
-        const approvedReviews = response.data.filter((r) => r.rating >= 4); // Hanya tampilkan rating 4-5
-        setReviews(approvedReviews.slice(0, 6)); // Maksimal 6 ulasan
+        const approvedReviews = response.data.filter((r) => r.rating >= 4);
+        setReviews(approvedReviews.slice(0, 6));
       } catch (err: any) {
         console.error('Failed to fetch reviews:', err);
-        // Fallback ke data statis jika API gagal
+        // Fallback statis yang SESUAI tipe Review
         setReviews([
-          { id: 1, name: 'Sarah Johnson', rating: 5, comment: 'Absolutely amazing experience! The service was impeccable and the room was luxurious.', created_at: '2025-01-15' },
-          { id: 2, name: 'Michael Chen', rating: 5, comment: 'Perfect location and outstanding amenities. Will definitely come back!', created_at: '2025-01-10' },
-          { id: 3, name: 'Emma Williams', rating: 5, comment: 'The spa services were incredible and the staff went above and beyond.', created_at: '2025-01-08' },
+          { id: 1, rating: 5, comment: 'Pelayanan memukau, kamar super nyaman.', guest_name: 'Sarah Johnson', created_at: '2025-01-15' },
+          { id: 2, rating: 5, comment: 'Lokasi strategis, fasilitas mantap.', guest_name: 'Michael Chen', created_at: '2025-01-10' },
+          { id: 3, rating: 4, comment: 'Spa top tier, staf ramah.', guest_name: 'Emma Williams', created_at: '2025-01-08' },
         ]);
       }
     };
-
     fetchReviews();
   }, []);
 
-  const handleReservationRequest = (data: any) => {
-    setReservationData(data);
-  };
-
+  // ================== Fetch Rooms ==================
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        setLoading(true);
-        setError(null);
-
+        setLoadingRooms(true);
+        setRoomsError(null);
         const response = await axios.get<{ data: Room[] }>('/public/rooms');
         const allRooms = response.data.data || [];
 
@@ -93,15 +96,38 @@ export default function Home() {
         setRooms(selected);
       } catch (err: any) {
         console.error('Failed to fetch rooms:', err);
-        setError('Gagal memuat kamar. Silakan coba lagi nanti.');
+        setRoomsError('Gagal memuat kamar. Silakan coba lagi nanti.');
       } finally {
-        setLoading(false);
+        setLoadingRooms(false);
       }
     };
 
     fetchRooms();
   }, []);
 
+  // ================== Fetch Vision & Mission (baru) ==================
+  useEffect(() => {
+    const fetchVm = async () => {
+      try {
+        setLoadingVm(true);
+        setVmError(null);
+        const { data } = await axios.get<{ data: VisionMission }>('/public/visi-misi');
+        setVm(data?.data ?? null);
+      } catch (err: any) {
+        console.error('Failed to fetch vision-mission:', err);
+        setVmError('Visi & misi belum tersedia.');
+      } finally {
+        setLoadingVm(false);
+      }
+    };
+    fetchVm();
+  }, []);
+
+  const handleReservationRequest = (data: any) => {
+    setReservationData(data);
+  };
+
+  // ================== Helpers ==================
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -131,7 +157,6 @@ export default function Home() {
     return base;
   };
 
-  // === TAMBAH: Format tanggal ===
   const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat('id-ID', {
       year: 'numeric',
@@ -176,28 +201,65 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features */}
+        {/* ================== Vision & Mission (Dinamis) ================== */}
         <section className="py-20 bg-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-yellow-400 mb-4">World-Class Amenities</h2>
+              <h2 className="text-4xl font-bold text-yellow-400 mb-4">Vision & Mission</h2>
               <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                Discover the finest amenities designed to make your stay unforgettable
+                Kompas nilai kami, agar setiap pengalaman menginap punya arah yang jelas: memanjakan tamu tanpa drama.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {features.map((f, i) => (
-                <Card key={i} className="text-center p-6 hover:shadow-2xl transition-all duration-300 border-yellow-600/30 bg-gray-900 hover:bg-gray-800 hover:border-yellow-500/50 hover:transform hover:-translate-y-2">
-                  <CardContent className="pt-6">
-                    <div className="w-16 h-16 bg-yellow-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/30">
-                      <f.icon className="w-8 h-8 text-yellow-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">{f.title}</h3>
-                    <p className="text-gray-300">{f.description}</p>
+
+            {/* Loading / Error / Content */}
+            {loadingVm ? (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {[0, 1, 2].map((i) => (
+                  <Card key={i} className="bg-gray-900 border-yellow-600/30 animate-pulse">
+                    <div className="h-40 bg-gray-800" />
+                    <CardContent className="p-6 space-y-3">
+                      <div className="h-6 bg-gray-700 rounded w-3/4" />
+                      <div className="h-4 bg-gray-700 rounded w-2/3" />
+                      <div className="h-4 bg-gray-700 rounded w-1/2" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : vmError ? (
+              <div className="text-center py-12 text-gray-400">{vmError}</div>
+            ) : !vm ? (
+              <div className="text-center py-12 text-gray-400">Visi & misi belum diatur.</div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Vision highlight */}
+                <Card className="lg:col-span-1 overflow-hidden border-yellow-600/30 bg-gray-900 hover:bg-gray-800 hover:border-yellow-500/50 transition-all duration-300">
+                  <div className="relative h-40 bg-gradient-to-br from-yellow-600/20 to-yellow-800/20" />
+                  <CardContent className="p-6">
+                    <h3 className="text-2xl font-semibold text-white mb-3">Our Vision</h3>
+                    <p className="text-gray-300 leading-relaxed">{vm.vision}</p>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+
+                {/* Missions list */}
+                <Card className="lg:col-span-2 overflow-hidden border-yellow-600/30 bg-gray-900 hover:bg-gray-800 hover:border-yellow-500/50 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <h3 className="text-2xl font-semibold text-white mb-4">Our Missions</h3>
+                    {vm.missions?.length ? (
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {vm.missions.map((m, idx) => (
+                          <li key={idx} className="text-gray-300 flex items-start">
+                            <span className="mt-2 mr-3 w-2 h-2 rounded-full bg-yellow-400 shadow-sm shadow-yellow-400/50" />
+                            <span className="leading-relaxed">{m}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-400">Belum ada daftar misi.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </section>
 
@@ -211,7 +273,7 @@ export default function Home() {
               </p>
             </div>
 
-            {loading ? (
+            {loadingRooms ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {[...Array(3)].map((_, i) => (
                   <Card key={i} className="overflow-hidden bg-gray-900 border-yellow-600/30 animate-pulse">
@@ -229,14 +291,17 @@ export default function Home() {
                   </Card>
                 ))}
               </div>
-            ) : error ? (
-              <div className="text-center py-12 text-red-400">{error}</div>
+            ) : roomsError ? (
+              <div className="text-center py-12 text-red-400">{roomsError}</div>
             ) : rooms.length === 0 ? (
               <div className="text-center py-12 text-gray-400">Belum ada kamar tersedia.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {rooms.map((room) => (
-                  <Card key={room.id} className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-yellow-600/30 bg-gray-900 hover:bg-gray-800 hover:border-yellow-500/50 hover:transform hover:-translate-y-2">
+                  <Card
+                    key={room.id}
+                    className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-yellow-600/30 bg-gray-900 hover:bg-gray-800 hover:border-yellow-500/50 hover:transform hover:-translate-y-2"
+                  >
                     <div className="relative h-64">
                       {room.image ? (
                         <img
@@ -249,7 +314,8 @@ export default function Home() {
                             const parent = target.parentElement;
                             if (parent) {
                               const fallback = document.createElement('div');
-                              fallback.className = 'w-full h-full bg-gradient-to-br from-yellow-600/20 to-yellow-800/20 flex items-center justify-center';
+                              fallback.className =
+                                'w-full h-full bg-gradient-to-br from-yellow-600/20 to-yellow-800/20 flex items-center justify-center';
                               fallback.innerHTML = `<svg class="w-16 h-16 text-yellow-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7h18M3 12h18M3 17h18" /><circle cx="7" cy="7" r="2" /><circle cx="17" cy="12" r="2" /><circle cx="7" cy="17" r="2" /></svg>`;
                               parent.appendChild(fallback);
                             }
@@ -291,7 +357,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Testimonials - UPDATE: Dynamic dari API */}
+        {/* Testimonials - Dynamic dari API */}
         <section className="py-20 bg-black text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
@@ -302,29 +368,22 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {reviews.length === 0 ? (
-                // Fallback loading
                 <div className="col-span-full text-center py-12 text-gray-400">
                   Memuat ulasan...
                 </div>
               ) : (
-                // Dynamic reviews dari API
                 reviews.map((review, i) => (
                   <Card key={review.id || i} className="bg-gray-900 border-yellow-600/30 hover:border-yellow-500/50 transition-all duration-300 hover:bg-gray-800">
                     <CardContent className="p-6">
-                      {/* Rating Stars */}
                       <div className="flex mb-4">
                         {[...Array(5)].map((_, j) => (
-                          <Star 
-                            key={j} 
-                            className={`w-5 h-5 transition-colors ${
-                              j < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-600'
-                            }`} 
+                          <Star
+                            key={j}
+                            className={`w-5 h-5 transition-colors ${j < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-600'}`}
                           />
                         ))}
                       </div>
-                      {/* Comment */}
                       <p className="text-gray-300 mb-4 italic leading-relaxed">"{review.comment}"</p>
-                      {/* Guest Name & Date */}
                       <div className="flex justify-between items-center">
                         <p className="font-semibold text-yellow-400">
                           {review.guest_name || 'Tamu'}
@@ -338,11 +397,10 @@ export default function Home() {
                 ))
               )}
             </div>
-            {/* Show All Button */}
             {reviews.length > 0 && (
               <div className="text-center mt-12">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="border-2 border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-black hover:border-yellow-500 font-semibold px-8 py-3 transition-all duration-300"
                 >
                   Lihat Semua Ulasan ({reviews.length})

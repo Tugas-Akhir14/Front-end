@@ -351,8 +351,8 @@ export default function UnifiedDashboard() {
               {t.label}
             </button>
           ))}
-        </div>
-
+        </div>  
+        
         {/* === OVERVIEW === */}
         {tab === 'overview' && (
           <div className="space-y-6">
