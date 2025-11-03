@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // TAMBAHKAN INI
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -16,9 +14,12 @@ import {
   Utensils,
   Users,
   Square,
+  Sparkles,
+  Crown,
+  Camera,
 } from 'lucide-react';
-import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
+import Header from '@/components/Layout/Header';
 
 // ===== Types from API =====
 type RoomAPI = {
@@ -41,34 +42,34 @@ const STATUS_CONFIG: Record<
 > = {
   available: {
     label: 'Available',
-    bg: 'bg-green-100',
-    text: 'text-green-800',
-    border: 'border-green-300',
+    bg: 'bg-gradient-to-r from-amber-400 to-yellow-500',
+    text: 'text-black',
+    border: 'border-amber-300',
   },
   booked: {
     label: 'Booked',
-    bg: 'bg-red-100',
-    text: 'text-red-800',
-    border: 'border-red-300',
+    bg: 'bg-gradient-to-r from-gray-700 to-gray-800',
+    text: 'text-white',
+    border: 'border-gray-600',
   },
   maintenance: {
     label: 'Maintenance',
-    bg: 'bg-orange-100',
-    text: 'text-orange-800',
-    border: 'border-orange-300',
+    bg: 'bg-gradient-to-r from-orange-600 to-amber-600',
+    text: 'text-white',
+    border: 'border-orange-500',
   },
   cleaning: {
     label: 'Cleaning',
-    bg: 'bg-blue-100',
-    text: 'text-blue-800',
-    border: 'border-blue-300',
+    bg: 'bg-gradient-to-r from-slate-700 to-gray-700',
+    text: 'text-white',
+    border: 'border-slate-600',
   },
 };
 
 // ===== Fallback Status =====
 const getStatusConfig = (status: string) => {
   const key = status?.toLowerCase();
-  return STATUS_CONFIG[key] || { label: status || 'Unknown', bg: 'bg-gray-100', text: 'text-gray-800' };
+  return STATUS_CONFIG[key] || { label: status || 'Unknown', bg: 'bg-gray-800', text: 'text-white' };
 };
 
 // ===== Helpers =====
@@ -126,7 +127,6 @@ const hotelFeatures = [
 
 // ===== KOMPONEN UTAMA =====
 export default function Rooms() {
-  const router = useRouter(); // PINDAHKAN KE SINI
   const [rooms, setRooms] = useState<RoomAPI[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -178,124 +178,193 @@ export default function Rooms() {
     });
   }, [rooms]);
 
-  // PINDAHKAN handleBookNow KE SINI
   const handleBookNow = (roomId: number, status: string) => {
     if (status === 'available') {
-      router.push(`/user/book?room=${roomId}`);
+      // router.push(`/user/book?room=${roomId}`);
+      console.log('Book room:', roomId);
     }
   };
 
   return (
-    <>
-      <Header />
+    <div className="bg-black min-h-screen">
       <main>
+        <Header />  
         {/* Hero Section */}
-        <section className="relative h-80 bg-gradient-to-r from-blue-900 to-purple-900">
-          <div className="absolute inset-0 bg-black/40"></div>
-          <div className="relative z-10 flex h-full items-center justify-center">
-            <div className="text-center text-white max-w-4xl px-4">
-              <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                Our <span className="text-yellow-400">Mutiara Rooms</span>
+        <section className="relative h-[600px] bg-gradient-to-br from-black via-gray-900 to-amber-950 overflow-hidden">
+          {/* Animated gold pattern background */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0" style={{
+              backgroundImage: 'radial-gradient(circle, #d4af37 2px, transparent 2px)',
+              backgroundSize: '60px 60px'
+            }}></div>
+          </div>
+          
+          {/* Gradient overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10"></div>
+          <div
+            className="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-700 hover:scale-105 opacity-40"
+            style={{ backgroundImage: 'url(https://images.pexels.com/photos/271619/pexels-photo-271619.jpeg)' }}
+          />
+          
+          {/* Floating sparkles */}
+          <div className="absolute top-20 left-10 animate-pulse z-20">
+            <Sparkles className="w-10 h-10 text-amber-400 opacity-60" />
+          </div>
+          <div className="absolute top-32 right-20 animate-pulse z-20" style={{ animationDelay: '0.5s' }}>
+            <Sparkles className="w-8 h-8 text-yellow-300 opacity-60" />
+          </div>
+          <div className="absolute bottom-40 left-1/3 animate-pulse z-20" style={{ animationDelay: '1s' }}>
+            <Sparkles className="w-9 h-9 text-amber-500 opacity-60" />
+          </div>
+          
+          {/* Gold glow effects */}
+          <div className="absolute top-20 right-10 w-64 h-64 bg-amber-600/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 left-10 w-80 h-80 bg-yellow-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.7s' }}></div>
+          
+          <div className="relative z-20 flex h-full items-center justify-center">
+            <div className="text-center text-white max-w-5xl px-4 space-y-8">
+              
+              {/* Badge */}
+              <div className="inline-block mb-4">
+                <div className="flex items-center justify-center space-x-3 bg-gradient-to-r from-amber-900/40 to-yellow-900/40 backdrop-blur-md px-6 py-3 rounded-full border-2 border-amber-600/30">
+                  <span className="text-amber-300 text-sm font-bold tracking-widest uppercase">Visual Excellence</span>
+                </div>
+              </div>
+              
+              <h1 className="text-6xl md:text-8xl font-bold mb-8 leading-tight">
+                <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent">
+                  Rooms
+                </span>
               </h1>
-              <p className="text-xl md:text-2xl text-gray-200">
-                Discover the perfect accommodation for your stay
+              
+              <p className="text-xl md:text-2xl mb-10 text-amber-100/90 font-light max-w-3xl mx-auto leading-relaxed">
+                Immerse yourself in the opulent beauty and timeless elegance of our luxury sanctuary
               </p>
+              
+              {/* Decorative line */}
+              <div className="flex justify-center mb-10">
+                <div className="h-px w-64 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+               
+              </div>
             </div>
           </div>
+          
+          {/* Bottom gradient transition */}
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent z-20"></div>
         </section>
 
         {/* Rooms Grid Section */}
-        <section className="py-20 bg-gray-50">
+        <section className="py-24 bg-gradient-to-b from-black via-gray-900 to-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Accommodation Options</h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Choose from our carefully curated selection of rooms and suites.
+            <div className="text-center mb-20">
+              <div className="inline-block mb-4">
+                <div className="flex items-center space-x-2 text-amber-400">
+                  <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-400"></div>
+                  <Star className="w-5 h-5 fill-current" />
+                  <div className="h-px w-12 bg-gradient-to-l from-transparent to-amber-400"></div>
+                </div>
+              </div>
+              <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent">
+                Our Exclusive Rooms
+              </h2>
+              <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                Indulge in sophistication and comfort with our handpicked collection
               </p>
             </div>
 
             {/* Loading / Error */}
             {loading && (
-              <div className="text-center text-gray-600">Memuat kamar...</div>
+              <div className="text-center text-amber-400 text-lg">Loading luxury rooms...</div>
             )}
             {err && !loading && (
-              <div className="text-center text-red-600">Error: {err}</div>
+              <div className="text-center text-red-400">Error: {err}</div>
             )}
 
             {!loading && !err && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {cards.map((room) => (
                   <Card
                     key={room.id}
-                    className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                    className="overflow-hidden bg-gradient-to-br from-gray-900 to-black border-2 border-amber-900/30 hover:border-amber-600/50 transition-all duration-500 transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-amber-900/20"
                   >
-                    <div className="relative h-80">
+                    <div className="relative h-80 group">
                       <img
                         src={room.image}
                         alt={room.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         onError={(e) => {
                           e.currentTarget.src = '/placeholder-room.jpg';
                         }}
                       />
+                      
+                      {/* Dark Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-60"></div>
 
                       {/* STATUS BADGE */}
                       <div
-                        className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${room.statusStyle.bg} ${room.statusStyle.text} ${room.statusStyle.border || ''} shadow-md`}
+                        className={`absolute top-4 right-4 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest border-2 ${room.statusStyle.bg} ${room.statusStyle.text} ${room.statusStyle.border || ''} shadow-2xl backdrop-blur-sm`}
                       >
                         {room.statusLabel}
                       </div>
 
                       {/* Harga Badge */}
-                      <div className="absolute top-4 left-4 bg-yellow-600 text-white px-4 py-2 rounded-full font-semibold text-lg shadow-lg">
+                      <div className="absolute top-4 left-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-5 py-2.5 rounded-full font-bold text-lg shadow-2xl border-2 border-amber-300">
                         {room.priceLabel}
                       </div>
 
                       {/* Nomor Kamar */}
-                      <div className="absolute top-16 left-4 bg-white/90 text-gray-900 px-3 py-1 rounded-full text-sm font-semibold shadow">
-                        No. {room.number}
+                      <div className="absolute top-20 left-4 bg-black/80 backdrop-blur-sm text-amber-400 px-4 py-2 rounded-full text-sm font-bold shadow-xl border border-amber-600/30">
+                        Room {room.number}
                       </div>
 
                       {/* Size & Guests */}
-                      <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-1 rounded text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Square className="w-4 h-4" />
-                          <span>{room.size}</span>
-                          <Users className="w-4 h-4 ml-2" />
-                          <span>{room.guests}</span>
+                      <div className="absolute bottom-4 left-4 bg-black/90 backdrop-blur-sm text-amber-100 px-4 py-2 rounded-lg text-sm border border-amber-600/30">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-1.5">
+                            <Square className="w-4 h-4 text-amber-400" />
+                            <span>{room.size}</span>
+                          </div>
+                          <div className="h-4 w-px bg-amber-600/30"></div>
+                          <div className="flex items-center space-x-1.5">
+                            <Users className="w-4 h-4 text-amber-400" />
+                            <span>{room.guests}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <CardContent className="p-8">
-                      <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-2xl font-bold text-gray-900">{room.name}</h3>
+                    <CardContent className="p-8 bg-gradient-to-b from-gray-900 to-black">
+                      <div className="flex justify-between items-start mb-6">
+                        <h3 className="text-2xl font-bold text-amber-100">{room.name}</h3>
                         <div className="flex space-x-1">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                            <Star key={i} className="w-5 h-5 text-amber-400 fill-current" />
                           ))}
                         </div>
                       </div>
 
-                      <p className="text-gray-600 mb-6 text-lg">{room.description}</p>
+                      <p className="text-gray-400 mb-8 text-base leading-relaxed">{room.description}</p>
 
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-gray-900 mb-3">Room Features:</h4>
-                        <div className="grid grid-cols-2 gap-2">
+                      <div className="mb-8">
+                        <h4 className="font-bold text-amber-300 mb-4 text-sm uppercase tracking-wider">Room Features</h4>
+                        <div className="grid grid-cols-2 gap-3">
                           {room.features.map((feature, idx) => (
-                            <div key={idx} className="flex items-center text-gray-600">
-                              <span className="w-2 h-2 bg-yellow-400 rounded-full mr-3"></span>
+                            <div key={idx} className="flex items-center text-gray-300 text-sm">
+                              <span className="w-1.5 h-1.5 bg-amber-400 rounded-full mr-3 shadow-lg shadow-amber-400/50"></span>
                               {feature}
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center mb-6">
-                        <div className="flex space-x-2">
+                      <div className="flex justify-between items-center mb-8 pb-6 border-b border-amber-900/30">
+                        <div className="flex space-x-3">
                           {room.amenities.map((AmenityIcon, idx) => (
-                            <div key={idx} className="p-2 bg-gray-100 rounded-lg">
-                              <AmenityIcon className="w-5 h-5 text-gray-600" />
+                            <div key={idx} className="p-2.5 bg-gradient-to-br from-amber-900/20 to-black rounded-lg border border-amber-800/30 hover:border-amber-600/50 transition-colors">
+                              <AmenityIcon className="w-5 h-5 text-amber-400" />
                             </div>
                           ))}
                         </div>
@@ -303,18 +372,17 @@ export default function Rooms() {
 
                       <div className="flex space-x-4">
                         <Button
-                          className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-3 text-lg transition-all"
-                          onClick={() => handleBookNow(room.id, room.status)} // PAKAI INI
+                          className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-bold py-6 text-base transition-all shadow-lg hover:shadow-amber-900/50 border-2 border-amber-400 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 disabled:border-gray-700"
+                          onClick={() => handleBookNow(room.id, room.status)}
                           disabled={room.status !== 'available'}
                         >
-                          {room.status === 'available' ? 'Book Now' : 'Not Available'}
+                          {room.status === 'available' ? 'Reserve Now' : 'Not Available'}
                         </Button>
                         <Button
                           variant="outline"
-                          className="flex-1 border-yellow-600 text-yellow-600 hover:bg-yellow-50 py-3 text-lg"
-                          asChild
+                          className="flex-1 border-2 border-amber-600 text-amber-400 hover:bg-amber-950 hover:text-amber-300 py-6 text-base transition-all font-semibold"
                         >
-                          <Link href={`/rooms/${room.id}`}>View Details</Link>
+                          View Details
                         </Button>
                       </div>
                     </CardContent>
@@ -324,29 +392,38 @@ export default function Rooms() {
             )}
 
             {!loading && !err && rooms.length === 0 && (
-              <div className="text-center text-gray-500">Tidak ada kamar tersedia saat ini.</div>
+              <div className="text-center text-gray-500">No rooms available at this time.</div>
             )}
           </div>
         </section>
 
         {/* Hotel Features */}
-        <section className="py-20 bg-white">
+        <section className="py-24 bg-gradient-to-b from-black via-amber-950/10 to-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Hotel Amenities</h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Enjoy world-class amenities and services.
+            <div className="text-center mb-20">
+              <div className="inline-block mb-4">
+                <div className="flex items-center space-x-2 text-amber-400">
+                  <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-400"></div>
+                  <Sparkles className="w-5 h-5" />
+                  <div className="h-px w-12 bg-gradient-to-l from-transparent to-amber-400"></div>
+                </div>
+              </div>
+              <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent">
+                Premium Amenities
+              </h2>
+              <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                World-class facilities for an unforgettable experience
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {hotelFeatures.map((feature, index) => (
-                <Card key={index} className="text-center p-6 hover:shadow-lg transition-shadow border-yellow-100">
+                <Card key={index} className="text-center p-8 bg-gradient-to-br from-gray-900 to-black border-2 border-amber-900/30 hover:border-amber-600/50 transition-all duration-300 hover:shadow-xl hover:shadow-amber-900/20 group">
                   <CardContent className="pt-6">
-                    <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <feature.icon className="w-8 h-8 text-yellow-600" />
+                    <div className="w-20 h-20 bg-gradient-to-br from-amber-900/30 to-amber-950/50 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-amber-800/30 group-hover:border-amber-600/50 transition-colors">
+                      <feature.icon className="w-9 h-9 text-amber-400" />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                    <p className="text-gray-600">{feature.description}</p>
+                    <h3 className="text-xl font-bold text-amber-100 mb-3">{feature.title}</h3>
+                    <p className="text-gray-400 leading-relaxed">{feature.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -354,25 +431,9 @@ export default function Rooms() {
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="py-20 bg-yellow-600 text-white">
-          <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-4xl font-bold mb-4">Ready to Book?</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Experience Mutiara comfort. Book your room today.
-            </p>
-            <div className="space-x-4">
-              <Button size="lg" className="bg-white text-yellow-600 hover:bg-gray-100" asChild>
-                <Link href="/">Book Now</Link>
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-yellow-600" asChild>
-                <Link href="/contact">Contact Us</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+   
+        <Footer />
       </main>
-      <Footer />
-    </>
+    </div>
   );
 }
