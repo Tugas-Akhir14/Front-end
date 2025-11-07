@@ -107,7 +107,7 @@ export default function AdminGalleryCreatePage() {
 
       setSuccess('Berhasil menambahkan item galeri.');
       // redirect setelah sedikit jeda biar alert kebaca
-      setTimeout(() => router.push('/admin/gallery'), 600);
+      setTimeout(() => router.push('/admin/hotel/gallery'), 600);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Terjadi kesalahan saat menyimpan.');
     } finally {

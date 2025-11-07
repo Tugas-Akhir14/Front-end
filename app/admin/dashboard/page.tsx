@@ -1,659 +1,633 @@
-// app/admin/dashboard/page.tsx
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Package, Coffee, Bed, Gift, Image, Newspaper, Download, RefreshCw, Moon, Sun, Search, ChevronLeft, ChevronRight, AlertTriangle, Tag, Filter } from 'lucide-react';
-import axios from 'axios';
-import Link from 'next/link';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { format, subDays, startOfDay } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Hotel, Bed, Star, Calendar, DollarSign, Users, RefreshCw, Check, XCircle, Trash2, Sun, Moon } from 'lucide-react';
 
-// === AXIOS ===
-const api = axios.create({ baseURL: 'http://localhost:8080' });
-api.interceptors.request.use(config => {
-  const token = sessionStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+// === CONFIG ===
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API = `${API_BASE}/api`;
 
-export default function UnifiedDashboard() {
-  const [tab, setTab] = useState('overview');
-  const [darkMode, setDarkMode] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+// === TYPES (SESUAI BACKEND) ===
+type Room = {
+  id: number;
+  number: string;
+  type: string;
+  price: number;
+  capacity: number;
+  status: string;
+  description?: string;
+  image?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type Booking = {
+  id: number;
+  name: string;
+  phone: string;
+  email: string | null;
+  room: { number: string; type: string };
+  check_in: string;
+  check_out: string;
+  guests: number;
+  total_price: number;
+  status: string;
+  created_at: string;
+};
+
+type Review = {
+  id: number;
+  rating: number;
+  comment: string;
+  guest_name: string | null;
+  status?: string;
+  created_at: string;
+};
+
+// === UTILS ===
+const getToken = (): string | null => {
+  const raw = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
+  return raw ? raw.replace(/^"+|"+$/g, '') : null;
+};
+
+const rupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+
+const getStatusColor = (status: string) => {
+  const s = status.toLowerCase();
+  const map: Record<string, string> = {
+    available: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+    booked: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+    maintenance: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300',
+    cleaning: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300',
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
+    confirmed: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+  };
+  return map[s] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
+};
+
+const getStatusLabel = (status: string, type: 'room' | 'booking') => {
+  const s = status.toLowerCase();
+  const roomMap: Record<string, string> = {
+    available: 'Tersedia',
+    booked: 'Dipesan',
+    maintenance: 'Maintenance',
+    cleaning: 'Dibersihkan'
+  };
+  const bookingMap: Record<string, string> = {
+    pending: 'Menunggu',
+    confirmed: 'Dikonfirmasi',
+    cancelled: 'Dibatalkan'
+  };
+  return type === 'room' ? roomMap[s] || status : bookingMap[s] || status;
+};
+
+// === API CALLS ===
+const api = {
+  rooms: async (token: string) => {
+    const res = await fetch(`${API}/rooms?limit=1000`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal memuat kamar');
+    const json = await res.json();
+    return json.data || [];
+  },
+  bookings: async (token: string) => {
+    const res = await fetch(`${API}/bookings`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal memuat booking');
+    const json = await res.json();
+    return json.data || [];
+  },
+  reviews: async (token: string) => {
+    const res = await fetch(`${API}/reviews/pending`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal memuat ulasan');
+    return (await res.json()) || [];
+  },
+  approveReview: async (id: number, token: string) => {
+    const res = await fetch(`${API}/reviews/${id}/approve`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal menyetujui');
+  },
+  deleteReview: async (id: number, token: string) => {
+    const res = await fetch(`${API}/reviews/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal menghapus');
+  },
+  updateBooking: async (id: number, action: 'confirm' | 'cancel', token: string) => {
+    const res = await fetch(`${API}/bookings/${id}/${action}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal update status');
+  },
+};
+
+// === MAIN DASHBOARD ===
+export default function AdminHotelDashboard() {
+  const { toast } = useToast();
+  const [token, setToken] = useState<string | null>(null);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // === DATA STATES ===
-  const [books, setBooks] = useState<any[]>([]);
-  const [bookCategories, setBookCategories] = useState<any[]>([]);
-  const [cafeProducts, setCafeProducts] = useState<any[]>([]);
-  const [cafeCategories, setCafeCategories] = useState<any[]>([]);
-  const [souvenirProducts, setSouvenirProducts] = useState<any[]>([]);
-  const [souvenirCategories, setSouvenirCategories] = useState<any[]>([]);
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [galleries, setGalleries] = useState<any[]>([]);
-  const [news, setNews] = useState<any[]>([]);
+  // Filters
+  const [roomFilter, setRoomFilter] = useState<'all' | 'available' | 'booked'>('all');
+  const [bookingFilter, setBookingFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
 
-  // === FILTERS (Cafe & Souvenir) ===
-  const [searchCafe, setSearchCafe] = useState('');
-  const [selectedCafeCat, setSelectedCafeCat] = useState('all');
-  const [stockFilterCafe, setStockFilterCafe] = useState<'all' | 'in' | 'low' | 'empty'>('all');
-  const [priceRangeCafe, setPriceRangeCafe] = useState<[number, number]>([0, 500000]);
-  const [dateRangeCafe, setDateRangeCafe] = useState<'all' | '30d' | '90d' | 'custom'>('all');
-  const [customStartCafe, setCustomStartCafe] = useState('');
-  const [customEndCafe, setCustomEndCafe] = useState('');
-  const [sortByCafe, setSortByCafe] = useState<'harga' | 'stok' | 'created_at'>('created_at');
-  const [sortOrderCafe, setSortOrderCafe] = useState<'asc' | 'desc'>('desc');
-  const [pageCafe, setPageCafe] = useState(1);
+  // === DARK MODE STATE (SYNC DENGAN LAYOUT) ===
+  const [isDark, setIsDark] = useState(false);
 
-  const [searchSouvenir, setSearchSouvenir] = useState('');
-  const [selectedSouvenirCat, setSelectedSouvenirCat] = useState('all');
-  const [stockFilterSouvenir, setStockFilterSouvenir] = useState<'all' | 'in-stock' | 'low' | 'empty'>('all');
-  const [priceRangeSouvenir, setPriceRangeSouvenir] = useState<[number, number]>([0, 1000000]);
-  const [dateRangeSouvenir, setDateRangeSouvenir] = useState<'all' | 'last30' | 'last90' | 'custom'>('all');
-  const [customStartSouvenir, setCustomStartSouvenir] = useState('');
-  const [customEndSouvenir, setCustomEndSouvenir] = useState('');
-  const [sortBySouvenir, setSortBySouvenir] = useState<'nama' | 'harga' | 'stok' | 'created_at'>('created_at');
-  const [sortOrderSouvenir, setSortOrderSouvenir] = useState<'asc' | 'desc'>('desc');
-  const [pageSouvenir, setPageSouvenir] = useState(1);
-
-  const limit = 10;
-
-  // === FETCH ALL DATA ===
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [
-        bRes, bcRes, cRes, ccRes, sRes, scRes, rRes, gRes, nRes
-      ] = await Promise.all([
-        api.get('/api/books'),
-        api.get('/api/book-categories'),
-        api.get('/api/cafe-products'),
-        api.get('/api/cafe-categories'),
-        api.get('/api/products?limit=1000'),
-        api.get('/api/categories'),
-        api.get('/api/rooms?limit=1000'),
-        api.get('/api/galleries?limit=1000'),
-        api.get('/api/news?limit=1000')
-      ]);
-
-      setBooks(bRes.data.data || []);
-      setBookCategories(bcRes.data.data || []);
-      setCafeProducts(cRes.data || []);
-      setCafeCategories(ccRes.data || []);
-      setSouvenirProducts(sRes.data.data || []);
-      setSouvenirCategories(scRes.data.data || []);
-      setRooms(rRes.data.data || []);
-      setGalleries(gRes.data.data || []);
-      setNews(nRes.data.data || []);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Gagal memuat data. Pastikan backend aktif.');
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    const checkDark = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  // Load token
   useEffect(() => {
-    if (!autoRefresh) return;
-    const int = setInterval(fetchAll, 30000);
-    return () => clearInterval(int);
-  }, [autoRefresh, fetchAll]);
-
-  // === FORMATTER ===
-  const formatRupiah = (v: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
-
-  // === OVERVIEW ===
-  const overview = useMemo(() => {
-    const totalProducts = books.length + cafeProducts.length + souvenirProducts.length;
-    const totalStock = [...books, ...cafeProducts, ...souvenirProducts].reduce((s, p) => s + (p.stok || 0), 0);
-    const totalValue = books.reduce((s, p) => s + p.harga * p.stok, 0);
-    const outOfStock = [...books, ...cafeProducts, ...souvenirProducts].filter(p => p.stok === 0).length;
-    return { totalProducts, totalStock, totalValue, outOfStock, rooms: rooms.length, galleries: galleries.length, news: news.length };
-  }, [books, cafeProducts, souvenirProducts, rooms, galleries, news]);
-
-  // === BOOK CHARTS ===
-  const bookChartCategory = useMemo(() => {
-    const map = new Map();
-    books.forEach(b => {
-      const cur = map.get(b.category_id) || { jumlah: 0, nilai: 0 };
-      map.set(b.category_id, { jumlah: cur.jumlah + 1, nilai: cur.nilai + b.harga * b.stok });
-    });
-    return bookCategories
-      .map(cat => ({
-        name: cat.nama,
-        jumlah: map.get(cat.id)?.jumlah || 0,
-        nilai: Math.round(map.get(cat.id)?.nilai || 0)
-      }))
-      .filter(c => c.jumlah > 0)
-      .sort((a, b) => b.jumlah - a.jumlah);
-  }, [books, bookCategories]);
-
-  const bookStockStatus = useMemo(() => {
-    const inStock = books.filter(b => b.stok > 0).length;
-    const low = books.filter(b => b.stok > 0 && b.stok <= 5).length;
-    const out = books.filter(b => b.stok === 0).length;
-    return [
-      { name: 'Tersedia', jumlah: inStock },
-      { name: 'Stok Rendah', jumlah: low },
-      { name: 'Habis', jumlah: out }
-    ].filter(d => d.jumlah > 0);
-  }, [books]);
-
-  // === CAFE FILTERED & PAGINATED ===
-  const filteredCafe = useMemo(() => {
-    let filtered = cafeProducts;
-    if (searchCafe) filtered = filtered.filter(p => p.nama.toLowerCase().includes(searchCafe.toLowerCase()));
-    if (selectedCafeCat !== 'all') filtered = filtered.filter(p => p.category?.id === Number(selectedCafeCat));
-    if (stockFilterCafe === 'in') filtered = filtered.filter(p => p.stok > 0);
-    if (stockFilterCafe === 'low') filtered = filtered.filter(p => p.stok > 0 && p.stok <= 10);
-    if (stockFilterCafe === 'empty') filtered = filtered.filter(p => p.stok === 0);
-    filtered = filtered.filter(p => p.harga >= priceRangeCafe[0] && p.harga <= priceRangeCafe[1]);
-    if (dateRangeCafe === '30d') {
-      const threshold = subMonths(new Date(), 1);
-      filtered = filtered.filter(p => new Date(p.created_at) >= threshold);
-    } else if (dateRangeCafe === '90d') {
-      const threshold = subMonths(new Date(), 3);
-      filtered = filtered.filter(p => new Date(p.created_at) >= threshold);
-    } else if (dateRangeCafe === 'custom' && customStartCafe && customEndCafe) {
-      const start = new Date(customStartCafe);
-      const end = new Date(customEndCafe);
-      filtered = filtered.filter(p => isWithinInterval(new Date(p.created_at), { start, end }));
+    const t = getToken();
+    setToken(t);
+    if (!t) {
+      toast({ title: 'Login Diperlukan', description: 'Silakan login sebagai admin.', variant: 'destructive' });
     }
-    return filtered;
-  }, [cafeProducts, searchCafe, selectedCafeCat, stockFilterCafe, priceRangeCafe, dateRangeCafe, customStartCafe, customEndCafe]);
+  }, [toast]);
 
-  const sortedCafe = useMemo(() => {
-    return [...filteredCafe].sort((a, b) => {
-      const aVal = a[sortByCafe], bVal = b[sortByCafe];
-      if (sortByCafe === 'created_at') {
-        return sortOrderCafe === 'asc'
-          ? new Date(aVal).getTime() - new Date(bVal).getTime()
-          : new Date(bVal).getTime() - new Date(aVal).getTime();
-      }
-      return sortOrderCafe === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
-    });
-  }, [filteredCafe, sortByCafe, sortOrderCafe]);
+  // Fetch all data
+  const fetchAll = useCallback(async () => {
+    if (!token) return;
+    setRefreshing(true);
+    try {
+      const [rawRooms, rawBookings, rawReviews] = await Promise.all([
+        api.rooms(token),
+        api.bookings(token),
+        api.reviews(token),
+      ]);
 
-  const paginatedCafe = sortedCafe.slice((pageCafe - 1) * limit, pageCafe * limit);
-  const totalPagesCafe = Math.ceil(sortedCafe.length / limit);
+      const mappedBookings: Booking[] = (rawBookings || []).map((b: any) => ({
+        id: b.id,
+        name: b.name,
+        phone: b.phone,
+        email: b.email,
+        room: {
+          number: b.room?.number || '—',
+          type: b.room?.type || 'unknown'
+        },
+        check_in: b.check_in,
+        check_out: b.check_out,
+        guests: b.guests,
+        total_price: b.total_price || 0,
+        status: b.status || 'unknown',
+        created_at: b.created_at,
+      }));
 
-  // === SOUVENIR FILTERED & PAGINATED ===
-  const filteredSouvenir = useMemo(() => {
-    let filtered = souvenirProducts;
-    if (searchSouvenir) {
-      filtered = filtered.filter(p =>
-        p.nama.toLowerCase().includes(searchSouvenir.toLowerCase()) ||
-        p.deskripsi?.toLowerCase().includes(searchSouvenir.toLowerCase())
-      );
+      setRooms(rawRooms || []);
+      setBookings(mappedBookings);
+      setReviews(rawReviews || []);
+    } catch (err: any) {
+      toast({ title: 'Gagal Memuat', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    if (selectedSouvenirCat !== 'all') filtered = filtered.filter(p => p.category_id === Number(selectedSouvenirCat));
-    if (stockFilterSouvenir === 'in-stock') filtered = filtered.filter(p => p.stok > 0);
-    if (stockFilterSouvenir === 'low') filtered = filtered.filter(p => p.stok > 0 && p.stok <= 10);
-    if (stockFilterSouvenir === 'empty') filtered = filtered.filter(p => p.stok === 0);
-    filtered = filtered.filter(p => p.harga >= priceRangeSouvenir[0] && p.harga <= priceRangeSouvenir[1]);
-    if (dateRangeSouvenir === 'last30') {
-      const threshold = subMonths(new Date(), 1);
-      filtered = filtered.filter(p => new Date(p.created_at) >= threshold);
-    } else if (dateRangeSouvenir === 'last90') {
-      const threshold = subMonths(new Date(), 3);
-      filtered = filtered.filter(p => new Date(p.created_at) >= threshold);
-    } else if (dateRangeSouvenir === 'custom' && customStartSouvenir && customEndSouvenir) {
-      const start = new Date(customStartSouvenir);
-      const end = new Date(customEndSouvenir);
-      filtered = filtered.filter(p => isWithinInterval(new Date(p.created_at), { start, end }));
+  }, [token, toast]);
+
+  useEffect(() => {
+    if (token) {
+      fetchAll();
+      const interval = setInterval(fetchAll, 30000);
+      return () => clearInterval(interval);
     }
-    return filtered;
-  }, [souvenirProducts, searchSouvenir, selectedSouvenirCat, stockFilterSouvenir, priceRangeSouvenir, dateRangeSouvenir, customStartSouvenir, customEndSouvenir]);
+  }, [token, fetchAll]);
 
-  const sortedSouvenir = useMemo(() => {
-    return [...filteredSouvenir].sort((a, b) => {
-      const aVal = a[sortBySouvenir], bVal = b[sortBySouvenir];
-      if (sortBySouvenir === 'created_at') {
-        return sortOrderSouvenir === 'asc'
-          ? new Date(aVal).getTime() - new Date(bVal).getTime()
-          : new Date(bVal).getTime() - new Date(aVal).getTime();
-      }
-      return sortOrderSouvenir === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+  // === STATISTICS ===
+  const stats = useMemo(() => {
+    const totalRooms = rooms.length;
+    const availableRooms = rooms.filter(r => r.status.toLowerCase() === 'available').length;
+    const pendingBookings = bookings.filter(b => b.status.toLowerCase() === 'pending').length;
+    const totalRevenue = bookings
+      .filter(b => b.status.toLowerCase() === 'confirmed')
+      .reduce((sum, b) => sum + (b.total_price || 0), 0);
+    const avgRating = reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      : '0';
+
+    return {
+      totalRooms,
+      availableRooms,
+      pendingBookings,
+      totalRevenue,
+      avgRating: parseFloat(avgRating)
+    };
+  }, [rooms, bookings, reviews]);
+
+  // === CHARTS DATA ===
+  const roomTypeData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    rooms.forEach(r => {
+      const key = r.type.toLowerCase();
+      counts[key] = (counts[key] || 0) + 1;
     });
-  }, [filteredSouvenir, sortBySouvenir, sortOrderSouvenir]);
-
-  const paginatedSouvenir = sortedSouvenir.slice((pageSouvenir - 1) * limit, pageSouvenir * limit);
-  const totalPagesSouvenir = Math.ceil(sortedSouvenir.length / limit);
-
-  // === HOTEL CHARTS ===
-  const roomPieData = useMemo(() => {
-    const typeCount = rooms.reduce((acc, r) => {
-      acc[r.type] = (acc[r.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    return Object.entries(typeCount).map(([type, count]) => ({
-      name: type.charAt(0).toUpperCase() + type.slice(1),
-      value: count,
-      fill: ['#3b82f6', '#10b981', '#f59e0b'][Object.keys(typeCount).indexOf(type) % 3] || '#94a3b8'
+    return Object.entries(counts).map(([key, value]) => ({
+      name: key.charAt(0).toUpperCase() + key.slice(1),
+      value
     }));
   }, [rooms]);
 
-  const newsStatusData = useMemo(() => {
-    const statusCount = news.reduce((acc, n) => {
-      acc[n.status] = (acc[n.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+  const bookingStatusData = useMemo(() => {
+    const counts: Record<string, number> = { pending: 0, confirmed: 0, cancelled: 0 };
+    bookings.forEach(b => {
+      const key = b.status.toLowerCase();
+      if (key in counts) counts[key]++;
+    });
     return [
-      { name: 'Published', value: statusCount['published'] || 0, fill: '#10b981' },
-      { name: 'Draft', value: statusCount['draft'] || 0, fill: '#94a3b8' }
+      { name: 'Menunggu', value: counts.pending, color: '#facc15' },
+      { name: 'Dikonfirmasi', value: counts.confirmed, color: '#22c55e' },
+      { name: 'Dibatalkan', value: counts.cancelled, color: '#ef4444' },
     ];
-  }, [news]);
+  }, [bookings]);
 
-  const monthlyActivity = useMemo(() => {
-    const now = new Date();
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      return {
-        name: new Intl.DateTimeFormat("id-ID", { month: "short" }).format(d),
-        room: 0,
-        gallery: 0,
-        news: 0
-      };
-    }).reverse();
-    const countByMonth = (items: any[], key: string) => {
-      items.forEach(item => {
-        const date = new Date(item.created_at);
-        const monthKey = new Intl.DateTimeFormat("id-ID", { month: "short" }).format(date);
-        const month = months.find(m => m.name === monthKey);
-        if (month) month[key]++;
-      });
-    };
-    countByMonth(rooms, "room");
-    countByMonth(galleries, "gallery");
-    countByMonth(news, "news");
-    return months;
-  }, [rooms, galleries, news]);
+  const last7DaysBookings = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = startOfDay(subDays(new Date(), 6 - i));
+      const count = bookings.filter(b => {
+        const created = new Date(b.created_at);
+        return startOfDay(created).getTime() === date.getTime();
+      }).length;
+      return { date: format(date, 'dd MMM', { locale: id }), count };
+    });
+  }, [bookings]);
 
-  const recent = <T extends { updated_at: string }>(items: T[], n = 5) =>
-    [...items].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, n);
-
-  // === EXPORT CSV ===
-  const exportCSV = (data: any[], name: string) => {
-    const headers = ['ID', 'Nama', 'Kategori', 'Harga', 'Stok', 'Dibuat'];
-    const rows = data.map(p => [
-      p.id, p.nama, p.category?.nama || '-', p.harga, p.stok,
-      p.created_at ? format(new Date(p.created_at), 'dd/MM/yyyy') : '-'
-    ]);
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${name}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
+  // === HANDLERS ===
+  const handleApproveReview = async (id: number) => {
+    if (!token) return;
+    try {
+      await api.approveReview(id, token);
+      setReviews(prev => prev.filter(r => r.id !== id));
+      toast({ title: 'Disetujui', description: 'Ulasan telah disetujui.' });
+    } catch {
+      toast({ title: 'Gagal', description: 'Gagal menyetujui ulasan.', variant: 'destructive' });
+    }
   };
 
-  // === LOADING & ERROR ===
-  if (loading) {
+  const handleDeleteReview = async (id: number) => {
+    if (!token || !confirm('Hapus ulasan ini?')) return;
+    try {
+      await api.deleteReview(id, token);
+      setReviews(prev => prev.filter(r => r.id !== id));
+      toast({ title: 'Dihapus', description: 'Ulasan telah dihapus.' });
+    } catch {
+      toast({ title: 'Gagal', description: 'Gagal menghapus ulasan.', variant: 'destructive' });
+    }
+  };
+
+  const handleBookingAction = async (id: number, action: 'confirm' | 'cancel') => {
+    if (!token) return;
+    try {
+      await api.updateBooking(id, action, token);
+      await fetchAll();
+      toast({
+        title: action === 'confirm' ? 'Dikonfirmasi' : 'Dibatalkan',
+        description: `Booking #${id} berhasil.`
+      });
+    } catch {
+      toast({ title: 'Gagal', description: 'Gagal update status.', variant: 'destructive' });
+    }
+  };
+
+  // === FILTERED DATA ===
+  const filteredRooms = roomFilter === 'all'
+    ? rooms
+    : rooms.filter(r => r.status.toLowerCase() === roomFilter);
+
+  const filteredBookings = bookingFilter === 'all'
+    ? bookings
+    : bookings.filter(b => b.status.toLowerCase() === bookingFilter);
+
+  if (!token) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} flex items-center justify-center`}>
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4"></div>
-          <p className="text-lg">Memuat semua dashboard...</p>
-        </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <p className="text-red-600 dark:text-red-400 mb-4">Login sebagai admin diperlukan.</p>
+            <a href="/login" className="inline-block bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700">
+              Login Admin
+            </a>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (error) {
+  if (loading) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg">
-          <strong>Error:</strong> {error}
+      <div classlayout="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-10 h-10 animate-spin mx-auto mb-4 text-yellow-600 dark:text-yellow-400" />
+          <p className="text-gray-600 dark:text-gray-400">Memuat dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'} transition-colors p-6`}>
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard Terpadu</h1>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Buku • Cafe • Hotel • Souvenir • Terakhir: {format(new Date(), 'HH:mm')}
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <Hotel className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
+              Dashboard Hotel
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Pantau semua aktivitas hotel secara real-time</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setAutoRefresh(!autoRefresh)} className={`p-2 rounded-lg ${autoRefresh ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
-              <RefreshCw className={`w-5 h-5 ${autoRefresh ? 'animate-spin' : ''}`} />
-            </button>
-            <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-lg bg-gray-200">
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
+            {/* Tombol Dark Mode (Opsional - bisa dihapus jika hanya pakai di Topbar) */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+              }}
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
+            <Button onClick={fetchAll} disabled={refreshing} size="sm" variant="outline">
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex overflow-x-auto border-b">
-          {[
-            { key: 'overview', label: 'Ringkasan' },
-            { key: 'book', label: 'Buku' },
-            { key: 'cafe', label: 'Cafe' },
-            { key: 'hotel', label: 'Hotel' },
-            { key: 'souvenir', label: 'Souvenir' }
-          ].map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-6 py-3 font-medium whitespace-nowrap ${tab === t.key ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>  
-        
-        {/* === OVERVIEW === */}
-        {tab === 'overview' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Produk', value: overview.totalProducts, icon: Package, color: 'blue' },
-                { label: 'Total Stok', value: overview.totalStock.toLocaleString(), icon: Package, color: 'green' },
-                { label: 'Nilai Stok (Buku)', value: formatRupiah(overview.totalValue), icon: Coffee, color: 'yellow' },
-                { label: 'Kamar Tersedia', value: overview.rooms, icon: Bed, color: 'purple' },
-              ].map((s, i) => (
-                <div key={i} className={`p-5 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm opacity-70">{s.label}</p>
-                      <p className="text-2xl font-bold mt-1">{s.value}</p>
-                    </div>
-                    <div className={`p-3 rounded-lg bg-${s.color}-100`}>
-                      <s.icon className={`w-6 h-6 text-${s.color}-600`} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Total Kamar</CardTitle>
+              <Bed className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalRooms}</div>
+              <p className="text-xs text-muted-foreground">{stats.availableRooms} tersedia</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Booking Menunggu</CardTitle>
+              <Calendar className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.pendingBookings}</div>
+              <p className="text-xs text-muted-foreground">Perlu konfirmasi</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Pendapatan</CardTitle>
+              <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{rupiah(stats.totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground">Dari booking dikonfirmasi</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Ulasan Pending</CardTitle>
+              <Star className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{reviews.length}</div>
+              <p className="text-xs text-muted-foreground">Menunggu moderasi</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Rating Rata-rata</CardTitle>
+              <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.avgRating} ★</div>
+              <p className="text-xs text-muted-foreground">Dari {reviews.length} ulasan</p>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* === BOOK TAB === */}
-        {tab === 'book' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Dashboard Buku</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Buku', value: books.length },
-                { label: 'Total Stok', value: books.reduce((s, b) => s + b.stok, 0).toLocaleString() },
-                { label: 'Nilai Stok', value: formatRupiah(books.reduce((s, b) => s + b.harga * b.stok, 0)) },
-                { label: 'Stok Habis', value: books.filter(b => b.stok === 0).length, color: 'text-red-600' },
-              ].map((k, i) => (
-                <div key={i} className="bg-white p-4 rounded-lg shadow-sm border">
-                  <p className="text-sm text-gray-600">{k.label}</p>
-                  <p className={`text-2xl font-bold ${k.color || 'text-gray-900'}`}>{k.value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h3 className="text-lg font-semibold mb-4">Distribusi Buku per Kategori</h3>
-                {bookChartCategory.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">Belum ada data buku</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={bookChartCategory}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                      <YAxis />
-                      <Tooltip formatter={(v: any, n) => n === 'nilai' ? formatRupiah(v) : v} />
-                      <Legend />
-                      <Bar dataKey="jumlah" fill="#3B82F6" name="Jumlah Buku" />
-                      <Bar dataKey="nilai" fill="#10B981" name="Nilai Stok" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h3 className="text-lg font-semibold mb-4">Status Ketersediaan Stok</h3>
-                {bookStockStatus.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">Semua stok tersedia</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={bookStockStatus}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="jumlah" fill="#8B5CF6" name="Jumlah Buku" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-            {books.some(b => b.stok > 0 && b.stok <= 5) && (
-              <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                <div className="px-6 py-4 border-b">
-                  <h3 className="text-lg font-semibold">Stok Rendah (≤5)</h3>
-                </div>
-                <table className="min-w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Buku</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stok</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harga</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {books.filter(b => b.stok > 0 && b.stok <= 5).sort((a, b) => a.stok - b.stok).map(b => (
-                      <tr key={b.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm font-medium">{b.nama}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{b.category?.nama || '-'}</td>
-                        <td className="px-6 py-4"><span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">{b.stok}</span></td>
-                        <td className="px-6 py-4 text-sm">Rp {b.harga.toLocaleString()}</td>
-                      </tr>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader><CardTitle className="text-gray-900 dark:text-white">Distribusi Tipe Kamar</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={roomTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
+                    {roomTypeData.map((_, i) => (
+                      <Cell key={`cell-${i}`} fill={['#3b82f6', '#10b981', '#f59e0b'][i % 3]} />
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', border: '1px solid #e2e8f0' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        {/* === CAFE TAB === */}
-        {tab === 'cafe' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Dashboard Cafe</h2>
-              <button onClick={() => exportCSV(cafeProducts, 'cafe')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg">
-                <Download className="w-4 h-4" /> CSV
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Produk', value: cafeProducts.length },
-                { label: 'Kategori', value: cafeCategories.length },
-                { label: 'Total Stok', value: cafeProducts.reduce((s, p) => s + p.stok, 0).toLocaleString() },
-                { label: 'Rata-rata Harga', value: formatRupiah(Math.round(cafeProducts.reduce((s, p) => s + p.harga, 0) / (cafeProducts.length || 1))) },
-              ].map((k, i) => (
-                <div key={i} className="bg-white p-4 rounded-lg shadow-sm border">
-                  <p className="text-sm text-gray-600">{k.label}</p>
-                  <p className="text-2xl font-bold">{k.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <div className="relative flex-1 min-w-64">
-                <Search className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
-                <input type="text" placeholder="Cari produk..." value={searchCafe} onChange={e => setSearchCafe(e.target.value)} className="w-full pl-10 pr-3 py-2 rounded-lg border bg-gray-50" />
-              </div>
-              <select value={selectedCafeCat} onChange={e => setSelectedCafeCat(e.target.value)} className="px-3 py-2 rounded-lg border bg-gray-50">
-                <option value="all">Semua Kategori</option>
-                {cafeCategories.map(c => <option key={c.id} value={c.id}>{c.nama}</option>)}
-              </select>
-              <select value={stockFilterCafe} onChange={e => setStockFilterCafe(e.target.value as any)} className="px-3 py-2 rounded-lg border bg-gray-50">
-                <option value="all">Semua Stok</option>
-                <option value="in">Ada Stok</option>
-                <option value="low">Stok Rendah</option>
-                <option value="empty">Habis</option>
-              </select>
-              <button onClick={() => { setSearchCafe(''); setSelectedCafeCat('all'); setStockFilterCafe('all'); setPriceRangeCafe([0, 500000]); setDateRangeCafe('all'); }} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm">Reset</button>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {['nama', 'harga', 'stok', 'created_at'].map(col => (
-                      <th key={col} onClick={() => { setSortByCafe(col as any); setSortOrderCafe(sortByCafe === col ? (sortOrderCafe === 'asc' ? 'desc' : 'asc') : 'desc'); }} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer">
-                        {col === 'nama' ? 'Nama' : col === 'harga' ? 'Harga' : col === 'stok' ? 'Stok' : 'Dibuat'}
-                        {sortByCafe === col && (sortOrderCafe === 'asc' ? ' up' : ' down')}
-                      </th>
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader><CardTitle className="text-gray-900 dark:text-white">Status Booking</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={bookingStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
+                    {bookingStatusData.map((entry, i) => (
+                      <Cell key={`cell-${i}`} fill={entry.color} />
                     ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedCafe.map(p => (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium">{p.nama}</td>
-                      <td className="px-4 py-3 text-sm">Rp {p.harga.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className={`px-2 py-1 text-xs rounded-full ${p.stok > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {p.stok}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs">{format(new Date(p.created_at), 'dd MMM yyyy')}</td>
-                      <td className="px-4 py-3 text-sm">{p.category?.nama || '-'}</td>
-                    </tr>
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', border: '1px solid #e2e8f0' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader><CardTitle className="text-gray-900 dark:text-white">Tren Booking 7 Hari Terakhir</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={last7DaysBookings}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e5e7eb'} />
+                  <XAxis dataKey="date" stroke={isDark ? '#94a3b8' : '#6b7280'} />
+                  <YAxis stroke={isDark ? '#94a3b8' : '#6b7280'} />
+                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', border: '1px solid #e2e8f0' }} />
+                  <Line type="monotone" dataKey="count" stroke="#f59e0b" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tables */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Rooms */}
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-gray-900 dark:text-white">Kamar</CardTitle>
+                <Select value={roomFilter} onValueChange={(v) => setRoomFilter(v as any)}>
+                  <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
+                    <SelectItem value="available">Tersedia</SelectItem>
+                    <SelectItem value="booked">Dipesan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>No. Kamar</TableHead>
+                    <TableHead>Tipe</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRooms.slice(0, 5).map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium">{r.number}</TableCell>
+                      <TableCell>{r.type}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(r.status)}>{getStatusLabel(r.status, 'room')}</Badge>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-              <div className="px-4 py-3 flex justify-between border-t">
-                <p className="text-sm">Halaman {pageCafe} dari {totalPagesCafe}</p>
-                <div className="flex gap-2">
-                  <button onClick={() => setPageCafe(p => Math.max(1, p - 1))} disabled={pageCafe === 1} className="p-2 rounded-lg bg-gray-200 disabled:opacity-50">
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setPageCafe(p => Math.min(totalPagesCafe, p + 1))} disabled={pageCafe === totalPagesCafe} className="p-2 rounded-lg bg-gray-200 disabled:opacity-50">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                </TableBody>
+              </Table>
+              {filteredRooms.length > 5 && (
+                <div className="px-6 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                  +{filteredRooms.length - 5} kamar lainnya
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
+              )}
+            </CardContent>
+          </Card>
 
-        {/* === HOTEL TAB === */}
-        {tab === 'hotel' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Dashboard Hotel</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { label: 'Total Kamar', value: rooms.length },
-                { label: 'Total Galeri', value: galleries.length },
-                { label: 'Total Berita', value: news.length },
-              ].map((k, i) => (
-                <div key={i} className="bg-white p-4 rounded-lg shadow-sm border">
-                  <p className="text-sm text-gray-600">{k.label}</p>
-                  <p className="text-2xl font-bold">{k.value}</p>
+          {/* Bookings */}
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-gray-900 dark:text-white">Pemesanan</CardTitle>
+                <Select value={bookingFilter} onValueChange={(v) => setBookingFilter(v as any)}>
+                  <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
+                    <SelectItem value="pending">Menunggu</SelectItem>
+                    <SelectItem value="confirmed">Dikonfirmasi</SelectItem>
+                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Tamu</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredBookings.slice(0, 5).map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-mono">#{b.id}</TableCell>
+                      <TableCell>{b.name}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(b.status)}>{getStatusLabel(b.status, 'booking')}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {b.status.toLowerCase() === 'pending' && (
+                          <div className="flex gap-1">
+                            <Button size="sm" onClick={() => handleBookingAction(b.id, 'confirm')} className="h-7 w-7 p-0">
+                              <Check className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleBookingAction(b.id, 'cancel')} className="h-7 w-7 p-0">
+                              <XCircle className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Reviews */}
+          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <CardHeader><CardTitle className="text-gray-900 dark:text-white">Ulasan Pending</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {reviews.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">Tidak ada ulasan menunggu</div>
+              ) : (
+                <div className="space-y-3 p-4">
+                  {reviews.slice(0, 3).map((r) => (
+                    <div key={r.id} className="border-b dark:border-slate-700 pb-3 last:border-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate text-gray-900 dark:text-white">{r.guest_name || 'Tamu'}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{r.comment}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`w-3 h-3 ${i < r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="sm" onClick={() => handleApproveReview(r.id)} className="h-7 w-7 p-0">
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleDeleteReview(r.id)} className="h-7 w-7 p-0">
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h3 className="text-lg font-semibold mb-4">Distribusi Tipe Kamar</h3>
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
-                    <Pie data={roomPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {roomPieData.map((_, i) => <Cell key={i} fill={roomPieData[i].fill} />)}
-                    </Pie>
-                    <Tooltip formatter={(v) => `${v} kamar`} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h3 className="text-lg font-semibold mb-4">Status Berita</h3>
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
-                    <Pie data={newsStatusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {newsStatusData.map((_, i) => <Cell key={i} fill={newsStatusData[i].fill} />)}
-                    </Pie>
-                    <Tooltip formatter={(v) => `${v} artikel`} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h3 className="text-lg font-semibold mb-4">Aktivitas Bulanan</h3>
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={monthlyActivity}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="room" fill="#3b82f6" name="Kamar" />
-                    <Bar dataKey="gallery" fill="#8b5cf6" name="Galeri" />
-                    <Bar dataKey="news" fill="#f59e0b" name="Berita" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {[
-                { title: 'Kamar Terbaru', data: recent(rooms), link: '/admin/room' },
-                { title: 'Galeri Terbaru', data: recent(galleries), link: '/admin/gallery' },
-                { title: 'Berita Terbaru', data: recent(news), link: '/admin/news' }
-              ].map((sec, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                  <div className="border-b px-5 py-3 flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">{sec.title}</h3>
-                    <Link href={sec.link} className="text-sm text-black hover:underline">Lihat semua</Link>
-                  </div>
-                  <table className="min-w-full">
-                    <tbody className="divide-y divide-gray-100">
-                      {sec.data.length === 0 ? (
-                        <tr><td className="px-6 py-8 text-center text-gray-500">Belum ada data</td></tr>
-                      ) : sec.data.map((item: any) => (
-                        <tr key={item.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-2 w-12">
-                            <div className="h-10 w-10 rounded-lg border overflow-hidden">
-                              <img src={item.image || item.url || item.image_url || '/placeholder.svg'} alt="" className="h-full w-full object-cover" onError={e => (e.currentTarget.src = '/placeholder.svg')} />
-                            </div>
-                          </td>
-                          <td className="px-4 py-2 text-sm font-medium line-clamp-1">{item.nama || item.number || item.title}</td>
-                          <td className="px-4 py-2 text-xs text-gray-600">{format(new Date(item.updated_at), 'dd MMM')}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* === SOUVENIR TAB === */}
-        {tab === 'souvenir' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Dashboard Souvenir</h2>
-              <button onClick={() => exportCSV(souvenirProducts, 'souvenir')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg">
-                <Download className="w-4 h-4" /> CSV
-              </button>
-            </div>
-            {/* Filter & Tabel mirip Cafe, tapi untuk souvenir */}
-            <p className="text-center text-gray-500">Souvenir menggunakan filter & tabel seperti Cafe. Gunakan fitur di atas.</p>
-          </div>
-        )}
-
+        {/* Footer */}
+        <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+          Dashboard diperbarui otomatis setiap 30 detik • {format(new Date(), 'dd MMMM yyyy, HH:mm', { locale: id })}
+        </div>
       </div>
     </div>
   );

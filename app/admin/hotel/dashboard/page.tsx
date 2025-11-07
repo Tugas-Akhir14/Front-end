@@ -1,607 +1,612 @@
 'use client';
-import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import axios from "axios";
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid
-} from "recharts";
 
-// =====================
-// AXIOS INSTANCE
-// =====================
-const api = axios.create({ baseURL: "http://localhost:8080" });
-api.interceptors.request.use((config) => {
-  const raw = sessionStorage.getItem("token");
-  if (raw) {
-    const token = raw.replace(/^"+|"+$/g, "");
-    config.headers = config.headers ?? {};
-    (config.headers as any).Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { format, subDays, startOfDay } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Hotel, Bed, Star, Calendar, DollarSign, Users, RefreshCw, Check, XCircle, Trash2 } from 'lucide-react';
 
-// =====================
-// Types
-// =====================
-export type Room = {
+// === CONFIG ===
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API = `${API_BASE}/api`;
+
+// === TYPES (SESUAI BACKEND) ===
+type Room = {
   id: number;
   number: string;
-  type: "superior" | "deluxe" | "executive" | string;
+  type: string; // BISA "executive", "Superior", dll
   price: number;
   capacity: number;
+  status: string; // BISA "available", "Available", dll
   description?: string;
   image?: string | null;
   created_at: string;
   updated_at: string;
 };
 
-export type Gallery = {
+type Booking = {
   id: number;
-  title: string;
-  caption: string;
-  url: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type News = {
-  id: number;
-  title: string;
-  slug: string;
-  content: string;
-  image_url?: string | null;
-  status: "draft" | "published" | string;
-  published_at?: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type Booking = {
-  id: number;
+  name: string;
+  phone: string;
+  email: string | null;
+  room: { number: string; type: string };
   check_in: string;
   check_out: string;
   guests: number;
   total_price: number;
-  status: "pending" | "confirmed" | "cancelled";
+  status: string;
   created_at: string;
 };
 
-export type RoomsResponse = { data: Room[]; total: number };
-export type GalleriesResponse = { data: Gallery[]; total: number };
-export type NewsResponse = { data: News[]; total: number };
-export type BookingsResponse = { data: Booking[]; total: number };
+type Review = {
+  id: number;
+  rating: number;
+  comment: string;
+  guest_name: string | null;
+  status?: string;
+  created_at: string;
+};
 
-// =====================
-// Helper Functions
-// =====================
-function rupiah(n: number) {
-  try {
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-  } catch {
-    return `Rp ${n}`;
-  }
-}
+// === UTILS ===
+const getToken = (): string | null => {
+  const raw = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
+  return raw ? raw.replace(/^"+|"+$/g, '') : null;
+};
 
-function formatDate(value?: string | null) {
-  if (!value) return "—";
-  try {
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return "—";
-    return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(d);
-  } catch {
-    return "—";
-  }
-}
+const rupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 
-function fileURL(path: string | null | undefined) {
-  if (!path) return "/placeholder.svg";
-  if (path.startsWith("http")) return path;
-  const p = path.startsWith("/") ? path : `/${path}`;
-  return `${api.defaults.baseURL}${p}`;
-}
+const getStatusColor = (status: string) => {
+  const s = status.toLowerCase();
+  const map: Record<string, string> = {
+    available: 'bg-green-100 text-green-800',
+    booked: 'bg-blue-100 text-blue-800',
+    maintenance: 'bg-orange-100 text-orange-800',
+    cleaning: 'bg-purple-100 text-purple-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    confirmed: 'bg-green-100 text-green-800',
+    cancelled: 'bg-red-100 text-red-800',
+  };
+  return map[s] || 'bg-gray-100 text-gray-800';
+};
 
-// Status Badge
-function StatusBadge({ status }: { status: string }) {
-  const base = "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border";
-  const styles =
-    status === "published"
-      ? "bg-green-100 text-green-800 border-green-200"
-      : status === "draft"
-      ? "bg-gray-100 text-gray-700 border-gray-200"
-      : "bg-zinc-100 text-zinc-700 border-zinc-200";
-  return <span className={`${base} ${styles}`}>{status}</span>;
-}
+const getStatusLabel = (status: string, type: 'room' | 'booking') => {
+  const s = status.toLowerCase();
+  const roomMap: Record<string, string> = {
+    available: 'Tersedia',
+    booked: 'Dipesan',
+    maintenance: 'Maintenance',
+    cleaning: 'Dibersihkan'
+  };
+  const bookingMap: Record<string, string> = {
+    pending: 'Menunggu',
+    confirmed: 'Dikonfirmasi',
+    cancelled: 'Dibatalkan'
+  };
+  return type === 'room' ? roomMap[s] || status : bookingMap[s] || status;
+};
 
-// Skeleton
-function StatCardSkeleton() {
-  return <div className="h-24 w-full rounded-2xl bg-zinc-100 animate-pulse" />;
-}
-function ChartSkeleton() {
-  return <div className="h-64 w-full rounded-2xl bg-zinc-100 animate-pulse" />;
-}
+// === API CALLS ===
+const api = {
+  rooms: async (token: string) => {
+    const res = await fetch(`${API}/rooms?limit=1000`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal memuat kamar');
+    const json = await res.json();
+    return json.data || [];
+  },
+  bookings: async (token: string) => {
+    const res = await fetch(`${API}/bookings`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal memuat booking');
+    const json = await res.json();
+    return json.data || [];
+  },
+  reviews: async (token: string) => {
+    const res = await fetch(`${API}/reviews/pending`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal memuat ulasan');
+    return (await res.json()) || [];
+  },
+  approveReview: async (id: number, token: string) => {
+    const res = await fetch(`${API}/reviews/${id}/approve`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal menyetujui');
+  },
+  deleteReview: async (id: number, token: string) => {
+    const res = await fetch(`${API}/reviews/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal menghapus');
+  },
+  updateBooking: async (id: number, action: 'confirm' | 'cancel', token: string) => {
+    const res = await fetch(`${API}/bookings/${id}/${action}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Gagal update status');
+  },
+};
 
-// Colors
-const ROOM_COLORS = { superior: "#3b82f6", deluxe: "#10b981", executive: "#f59e0b" };
-const NEWS_STATUS_COLORS = { published: "#10b981", draft: "#94a3b8" };
-const BAR_COLORS = { room: "#3b82f6", gallery: "#8b5cf6", news: "#f59e0b" };
-
-export default function DashboardPage() {
+// === MAIN DASHBOARD ===
+export default function AdminHotelDashboard() {
+  const { toast } = useToast();
+  const [token, setToken] = useState<string | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [galleries, setGalleries] = useState<Gallery[]>([]);
-  const [news, setNews] = useState<News[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]); // BARU
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch All Data
-  const fetchAll = async () => {
+  // Filters
+  const [roomFilter, setRoomFilter] = useState<'all' | 'available' | 'booked'>('all');
+  const [bookingFilter, setBookingFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
+
+  // Load token
+  useEffect(() => {
+    const t = getToken();
+    setToken(t);
+    if (!t) {
+      toast({ title: 'Login Diperlukan', description: 'Silakan login sebagai admin.', variant: 'destructive' });
+    }
+  }, [toast]);
+
+  // Fetch all data
+  const fetchAll = useCallback(async () => {
+    if (!token) return;
+    setRefreshing(true);
     try {
-      const [roomsRes, galleriesRes, newsRes, bookingsRes] = await Promise.all([
-        api.get<RoomsResponse>("/api/rooms", { params: { limit: 1000 } }),
-        api.get<GalleriesResponse>("/api/galleries", { params: { limit: 1000 } }),
-        api.get<NewsResponse>("/api/news", { params: { limit: 1000 } }),
-        api.get<BookingsResponse>("/api/bookings", { params: { limit: 1000 } }) // BARU
+      const [rawRooms, rawBookings, rawReviews] = await Promise.all([
+        api.rooms(token),
+        api.bookings(token),
+        api.reviews(token),
       ]);
-      setRooms(roomsRes.data.data || []);
-      setGalleries(galleriesRes.data.data || []);
-      setNews(newsRes.data.data || []);
-      setBookings(bookingsRes.data.data || []); // BARU
+
+      console.log('Rooms:', rawRooms);
+      console.log('Bookings:', rawBookings);
+      console.log('Reviews:', rawReviews);
+
+      const mappedBookings: Booking[] = (rawBookings || []).map((b: any) => ({
+        id: b.id,
+        name: b.name,
+        phone: b.phone,
+        email: b.email,
+        room: {
+          number: b.room?.number || '—',
+          type: b.room?.type || 'unknown'
+        },
+        check_in: b.check_in,
+        check_out: b.check_out,
+        guests: b.guests,
+        total_price: b.total_price || 0,
+        status: b.status || 'unknown',
+        created_at: b.created_at,
+      }));
+
+      setRooms(rawRooms || []);
+      setBookings(mappedBookings);
+      setReviews(rawReviews || []);
     } catch (err: any) {
-      setError("Gagal memuat data. Silakan coba lagi.");
-      console.error(err);
+      toast({ title: 'Gagal Memuat', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  }, [token, toast]);
+
+  useEffect(() => {
+    if (token) {
+      fetchAll();
+      const interval = setInterval(fetchAll, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [token, fetchAll]);
+
+  // === STATISTICS ===
+  const stats = useMemo(() => {
+    const totalRooms = rooms.length;
+    const availableRooms = rooms.filter(r => r.status.toLowerCase() === 'available').length;
+    const pendingBookings = bookings.filter(b => b.status.toLowerCase() === 'pending').length;
+    const totalRevenue = bookings
+      .filter(b => b.status.toLowerCase() === 'confirmed')
+      .reduce((sum, b) => sum + (b.total_price || 0), 0);
+    const avgRating = reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      : '0';
+
+    return {
+      totalRooms,
+      availableRooms,
+      pendingBookings,
+      totalRevenue,
+      avgRating: parseFloat(avgRating)
+    };
+  }, [rooms, bookings, reviews]);
+
+  // === CHARTS DATA ===
+  const roomTypeData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    rooms.forEach(r => {
+      const key = r.type.toLowerCase();
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return Object.entries(counts).map(([key, value]) => ({
+      name: key.charAt(0).toUpperCase() + key.slice(1),
+      value
+    }));
+  }, [rooms]);
+
+  const bookingStatusData = useMemo(() => {
+    const counts: Record<string, number> = { pending: 0, confirmed: 0, cancelled: 0 };
+    bookings.forEach(b => {
+      const key = b.status.toLowerCase();
+      if (key in counts) counts[key]++;
+    });
+    return [
+      { name: 'Menunggu', value: counts.pending, color: '#facc15' },
+      { name: 'Dikonfirmasi', value: counts.confirmed, color: '#22c55e' },
+      { name: 'Dibatalkan', value: counts.cancelled, color: '#ef4444' },
+    ];
+  }, [bookings]);
+
+  const last7DaysBookings = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = startOfDay(subDays(new Date(), 6 - i));
+      const count = bookings.filter(b => {
+        const created = new Date(b.created_at);
+        return startOfDay(created).getTime() === date.getTime();
+      }).length;
+      return { date: format(date, 'dd MMM', { locale: id }), count };
+    });
+  }, [bookings]);
+
+  // === HANDLERS ===
+  const handleApproveReview = async (id: number) => {
+    if (!token) return;
+    try {
+      await api.approveReview(id, token);
+      setReviews(prev => prev.filter(r => r.id !== id));
+      toast({ title: 'Disetujui', description: 'Ulasan telah disetujui.' });
+    } catch {
+      toast({ title: 'Gagal', description: 'Gagal menyetujui ulasan.', variant: 'destructive' });
     }
   };
 
-  useEffect(() => {
-    const token = sessionStorage.getItem("token");
-    if (!token) {
-      setError("Tidak ada token. Silakan login kembali.");
-      setLoading(false);
-      return;
+  const handleDeleteReview = async (id: number) => {
+    if (!token || !confirm('Hapus ulasan ini?')) return;
+    try {
+      await api.deleteReview(id, token);
+      setReviews(prev => prev.filter(r => r.id !== id));
+      toast({ title: 'Dihapus', description: 'Ulasan telah dihapus.' });
+    } catch {
+      toast({ title: 'Gagal', description: 'Gagal menghapus ulasan.', variant: 'destructive' });
     }
-    fetchAll();
-  }, []);
+  };
 
-  // =====================
-  // Stats: Room
-  // =====================
-  const roomStats = useMemo(() => {
-    const typeCount = rooms.reduce((acc, r) => {
-      acc[r.type] = (acc[r.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const totalPrice = rooms.reduce((sum, r) => sum + r.price, 0);
-    const totalCapacity = rooms.reduce((sum, r) => sum + r.capacity, 0);
-
-    return {
-      total: rooms.length,
-      avgPrice: rooms.length ? Math.round(totalPrice / rooms.length) : 0,
-      avgCapacity: rooms.length ? Number((totalCapacity / rooms.length).toFixed(1)) : 0,
-      typeCount
-    };
-  }, [rooms]);
-
-  const roomPieData = Object.entries(roomStats.typeCount).map(([type, count]) => ({
-    name: type.charAt(0).toUpperCase() + type.slice(1),
-    value: count,
-    fill: ROOM_COLORS[type as keyof typeof ROOM_COLORS] || "#94a3b8"
-  }));
-
-  // =====================
-  // Stats: News
-  // =====================
-  const newsStats = useMemo(() => {
-    const statusCount = news.reduce((acc, n) => {
-      acc[n.status] = (acc[n.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return {
-      total: news.length,
-      published: statusCount["published"] || 0,
-      draft: statusCount["draft"] || 0
-    };
-  }, [news]);
-
-  const newsStatusData = [
-    { name: "Published", value: newsStats.published, fill: NEWS_STATUS_COLORS.published },
-    { name: "Draft", value: newsStats.draft, fill: NEWS_STATUS_COLORS.draft }
-  ];
-
-  // =====================
-  // BARU: Booking Stats (Bulan Ini)
-  // =====================
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-
-  const bookingStats = useMemo(() => {
-    const thisMonthBookings = bookings.filter(b => {
-      const date = new Date(b.check_in);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    });
-
-    const confirmed = thisMonthBookings.filter(b => b.status === "confirmed");
-
-    const totalGuests = confirmed.reduce((sum, b) => sum + b.guests, 0);
-    const totalRevenue = confirmed.reduce((sum, b) => sum + b.total_price, 0);
-    const confirmedCount = confirmed.length;
-
-    // Hitung tingkat hunian: kamar yang terbooking / total kamar
-    const occupiedRooms = new Set(confirmed.map(b => b.room_id)).size; // asumsi room_id ada
-    const occupancyRate = rooms.length > 0 ? (occupiedRooms / rooms.length) * 100 : 0;
-
-    return {
-      occupancyRate: Number(occupancyRate.toFixed(1)),
-      totalGuests,
-      avgGuestsPerBooking: confirmedCount > 0 ? Number((totalGuests / confirmedCount).toFixed(1)) : 0,
-      totalRevenue,
-      confirmedCount
-    };
-  }, [bookings, rooms, currentMonth, currentYear]);
-
-  // =====================
-  // Monthly Activity (Last 6 Months)
-  // =====================
-  const monthlyData = useMemo(() => {
-    const now = new Date();
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      return {
-        name: new Intl.DateTimeFormat("id-ID", { month: "short" }).format(d),
-        room: 0,
-        gallery: 0,
-        news: 0
-      };
-    }).reverse();
-
-    const countByMonth = (items: any[], key: string) => {
-      items.forEach(item => {
-        const date = new Date(item.created_at);
-        const monthKey = new Intl.DateTimeFormat("id-ID", { month: "short" }).format(date);
-        const month = months.find(m => m.name === monthKey);
-        if (month) month[key]++;
+  const handleBookingAction = async (id: number, action: 'confirm' | 'cancel') => {
+    if (!token) return;
+    try {
+      await api.updateBooking(id, action, token);
+      await fetchAll();
+      toast({
+        title: action === 'confirm' ? 'Dikonfirmasi' : 'Dibatalkan',
+        description: `Booking #${id} berhasil.`
       });
-    };
+    } catch {
+      toast({ title: 'Gagal', description: 'Gagal update status.', variant: 'destructive' });
+    }
+  };
 
-    countByMonth(rooms, "room");
-    countByMonth(galleries, "gallery");
-    countByMonth(news, "news");
+  // === FILTERED DATA ===
+  const filteredRooms = roomFilter === 'all'
+    ? rooms
+    : rooms.filter(r => r.status.toLowerCase() === roomFilter);
 
-    return months;
-  }, [rooms, galleries, news]);
+  const filteredBookings = bookingFilter === 'all'
+    ? bookings
+    : bookings.filter(b => b.status.toLowerCase() === bookingFilter);
 
-  // Recent Items
-  const recent = <T extends { updated_at: string }>(items: T[], n = 5) =>
-    [...items].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, n);
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <p className="text-red-600 mb-4">Login sebagai admin diperlukan.</p>
+            <a href="/login" className="inline-block bg-blue-600 text-white px-6мот py-3 rounded-md hover:bg-blue-700">
+              Login Admin
+            </a>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  const recentRooms = recent(rooms);
-  const recentGalleries = recent(galleries);
-  const recentNews = recent(news);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-10 h-10 animate-spin mx-auto mb-4 text-yellow-600" />
+          <p className="text-gray-600">Memuat dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-zinc-900">
-      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-zinc-900">Laporan Dashboard</h1>
-          <p className="text-zinc-600 mt-1">Ringkasan performa sistem: kamar, galeri, berita, dan <strong>booking</strong></p>
+    <div className="min-h-screen bg-gray-50 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Hotel className="w-8 h-8 text-yellow-600" />
+              Dashboard Hotel
+            </h1>
+            <p className="text-gray-600 mt-1">Pantau semua aktivitas hotel secara real-time</p>
+          </div>
+          <Button onClick={fetchAll} disabled={refreshing} size="sm" variant="outline">
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
-        {error && (
-          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800">
-            <p className="font-semibold">Terjadi kesalahan</p>
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-          {loading ? (
-            Array.from({ length: 10 }).map((_, i) => <StatCardSkeleton key={i} />)
-          ) : (
-            <>
-              {/* BARU: 4 Kartu Booking */}
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Tingkat Hunian</p>
-                    <p className="text-2xl font-bold text-zinc-900">{bookingStats.occupancyRate}%</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
-                    <svg className="h-5 w-5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 7h18M3 12h18M3 17h18" />
-                      <path d="M8 7v10M12 7v10M16 7v10" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Tamu Bulan Ini</p>
-                    <p className="text-2xl font-bold text-zinc-900">{bookingStats.totalGuests}</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100">
-                    <svg className="h-5 w-5 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm6 3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Rata-rata Tamu</p>
-                    <p className="text-2xl font-bold text-zinc-900">{bookingStats.avgGuestsPerBooking} org</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100">
-                    <svg className="h-5 w-5 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Pendapatan Bulan Ini</p>
-                    <p className="text-2xl font-bold text-green-600">{rupiah(bookingStats.totalRevenue)}</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100">
-                    <svg className="h-5 w-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 8c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z" />
-                      <path d="M12 14c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z" />
-                      <path d="M12 20c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* KARTU LAMA */}
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Total Kamar</p>
-                    <p className="text-2xl font-bold text-zinc-900">{roomStats.total}</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
-                    <svg className="h-5 w-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="4" width="18" height="16" rx="2" />
-                      <path d="M7 8h10M7 12h6M7 16h8" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Harga Rata-rata</p>
-                    <p className="text-2xl font-bold text-zinc-900">{rupiah(roomStats.avgPrice)}</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
-                    <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                      <line x1="9" y1="9" x2="9.01" y2="9" />
-                      <line x1="15" y1="9" x2="15.01" y2="9" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Kapasitas Rata</p>
-                    <p className="text-2xl font-bold text-zinc-900">{roomStats.avgCapacity} org</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
-                    <svg className="h-5 w-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm6 3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Total Galeri</p>
-                    <p className="text-2xl font-bold text-zinc-900">{galleries.length}</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100">
-                    <svg className="h-5 w-5 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Total Berita</p>
-                    <p className="text-2xl font-bold text-zinc-900">{newsStats.total}</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
-                    <svg className="h-5 w-5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" />
-                      <path d="M12 6v6l4 2" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-600">Published / Draft</p>
-                    <p className="text-2xl font-bold text-zinc-900">
-                      {newsStats.published} / {newsStats.draft}
-                    </p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100">
-                    <svg className="h-5 w-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M9 12l2 2 4-4" />
-                      <circle cx="12" cy="12" r="10" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Kamar</CardTitle>
+              <Bed className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalRooms}</div>
+              <p className="text-xs text-muted-foreground">{stats.availableRooms} tersedia</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Booking Menunggu</CardTitle>
+              <Calendar className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.pendingBookings}</div>
+              <p className="text-xs text-muted-foreground">Perlu konfirmasi</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pendapatan</CardTitle>
+              <DollarSign className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{rupiah(stats.totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground">Dari booking dikonfirmasi</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ulasan Pending</CardTitle>
+              <Star className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{reviews.length}</div>
+              <p className="text-xs text-muted-foreground">Menunggu moderasi</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Rating Rata-rata</CardTitle>
+              <Users className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.avgRating} ★</div>
+              <p className="text-xs text-muted-foreground">Dari {reviews.length} ulasan</p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-          {/* Room Type Distribution */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h3 className="mb-4 text-lg font-semibold">Distribusi Tipe Kamar</h3>
-            {loading ? <ChartSkeleton /> : roomPieData.length === 0 ? (
-              <p className="text-center text-zinc-500 py-8">Belum ada data</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={240}>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader><CardTitle>Distribusi Tipe Kamar</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
-                  <Pie data={roomPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                    {roomPieData.map((entry, i) => <Cell key={`cell-${i}`} fill={entry.fill} />)}
+                  <Pie data={roomTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
+                    {roomTypeData.map((_, i) => (
+                      <Cell key={`cell-${i}`} fill={['#3b82f6', '#10b981', '#f59e0b'][i % 3]} />
+                    ))}
                   </Pie>
-                  <Tooltip formatter={(v) => `${v} kamar`} />
-                  <Legend />
+                  <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-            )}
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* News Status */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h3 className="mb-4 text-lg font-semibold">Status Berita</h3>
-            {loading ? <ChartSkeleton /> : newsStats.total === 0 ? (
-              <p className="text-center text-zinc-500 py-8">Belum ada berita</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={240}>
+          <Card>
+            <CardHeader><CardTitle>Status Booking</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
-                  <Pie data={newsStatusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                    {newsStatusData.map((entry, i) => <Cell key={`cell-${i}`} fill={entry.fill} />)}
+                  <Pie data={bookingStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
+                    {bookingStatusData.map((entry, i) => (
+                      <Cell key={`cell-${i}`} fill={entry.color} />
+                    ))}
                   </Pie>
-                  <Tooltip formatter={(v) => `${v} artikel`} />
-                  <Legend />
+                  <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-            )}
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Monthly Activity */}
-          <div className="xl:col-span-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h3 className="mb-4 text-lg font-semibold">Aktivitas Bulanan (6 Bulan)</h3>
-            {loading ? <ChartSkeleton /> : (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={monthlyData}>
+          <Card className="lg:col-span-2">
+            <CardHeader><CardTitle>Tren Booking 7 Hari Terakhir</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={last7DaysBookings}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
+                  <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Legend />
-                  <Bar dataKey="room" fill={BAR_COLORS.room} name="Kamar" />
-                  <Bar dataKey="gallery" fill={BAR_COLORS.gallery} name="Galeri" />
-                  <Bar dataKey="news" fill={BAR_COLORS.news} name="Berita" />
-                </BarChart>
+                  <Line type="monotone" dataKey="count" stroke="#f59e0b" strokeWidth={2} />
+                </LineChart>
               </ResponsiveContainer>
-            )}
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Recent Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Rooms */}
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-            <div className="border-b border-zinc-200 px-5 py-3 flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Kamar Terbaru</h3>
-              <Link href="/admin/hotel/room" className="text-sm text-black hover:underline">Lihat semua</Link>
-            </div>
-            <table className="min-w-full">
-              <tbody className="divide-y divide-zinc-100">
-                {loading ? Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse"><td colSpan={4} className="px-4 py-3"><div className="h-3 w-full bg-zinc-200 rounded" /></td></tr>
-                )) : recentRooms.length === 0 ? (
-                  <tr><td className="px-6 py-8 text-center text-zinc-500">Belum ada kamar</td></tr>
-                ) : recentRooms.map(r => (
-                  <tr key={r.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-2 w-12">
-                      {r.image ? <img src={r.image} alt="" className="h-10 w-10 rounded-lg object-cover border" /> : <div className="h-10 w-10 bg-zinc-100 rounded-lg border" />}
-                    </td>
-                    <td className="px-4 py-2 text-sm font-medium">{r.number}</td>
-                    <td className="px-4 py-2"><StatusBadge status={r.type} /></td>
-                    <td className="px-4 py-2 text-xs text-zinc-600">{formatDate(r.updated_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {/* Tables */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Rooms */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Kamar</CardTitle>
+                <Select value={roomFilter} onValueChange={(v) => setRoomFilter(v as any)}>
+                  <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
+                    <SelectItem value="available">Tersedia</SelectItem>
+                    <SelectItem value="booked">Dipesan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>No. Kamar</TableHead>
+                    <TableHead>Tipe</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRooms.slice(0, 5).map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium">{r.number}</TableCell>
+                      <TableCell>{r.type}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(r.status)}>{getStatusLabel(r.status, 'room')}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {filteredRooms.length > 5 && (
+                <div className="px-6 py-3 text-center text-sm text-gray-500">
+                  +{filteredRooms.length - 5} kamar lainnya
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          {/* Recent Galleries */}
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-            <div className="border-b border-zinc-200 px-5 py-3 flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Galeri Terbaru</h3>
-              <Link href="/admin/gallery" className="text-sm text-black hover:underline">Lihat semua</Link>
-            </div>
-            <table className="min-w-full">
-              <tbody className="divide-y divide-zinc-100">
-                {loading ? Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse"><td colSpan={3} className="px-4 py-3"><div className="h-3 w-full bg-zinc-200 rounded" /></td></tr>
-                )) : recentGalleries.length === 0 ? (
-                  <tr><td className="px-6 py-8 text-center text-zinc-500">Belum ada foto</td></tr>
-                ) : recentGalleries.map(g => (
-                  <tr key={g.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-2 w-12">
-                      <div className="h-10 w-10 rounded-lg border overflow-hidden">
-                        <img src={fileURL(g.url)} alt="" className="h-full w-full object-cover" onError={e => (e.currentTarget.src = "/placeholder.svg")} />
-                      </div>
-                    </td>
-                    <td className="px-4 py-2 text-sm font-medium line-clamp-1">{g.title || "Tanpa Judul"}</td>
-                    <td className="px-4 py-2 text-xs text-zinc-600">{formatDate(g.updated_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Bookings */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Pemesanan</CardTitle>
+                <Select value={bookingFilter} onValueChange={(v) => setBookingFilter(v as any)}>
+                  <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
+                    <SelectItem value="pending">Menunggu</SelectItem>
+                    <SelectItem value="confirmed">Dikonfirmasi</SelectItem>
+                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Tamu</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredBookings.slice(0, 5).map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-mono">#{b.id}</TableCell>
+                      <TableCell>{b.name}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(b.status)}>{getStatusLabel(b.status, 'booking')}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {b.status.toLowerCase() === 'pending' && (
+                          <div className="flex gap-1">
+                            <Button size="sm" onClick={() => handleBookingAction(b.id, 'confirm')} className="h-7 w-7 p-0">
+                              <Check className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleBookingAction(b.id, 'cancel')} className="h-7 w-7 p-0">
+                              <XCircle className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
-          {/* Recent News */}
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-            <div className="border-b border-zinc-200 px-5 py-3 flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Berita Terbaru</h3>
-              <Link href="/admin/news" className="text-sm text-black hover:underline">Lihat semua</Link>
-            </div>
-            <table className="min-w-full">
-              <tbody className="divide-y divide-zinc-100">
-                {loading ? Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse"><td colSpan={3} className="px-4 py-3"><div className="h-3 w-full bg-zinc-200 rounded" /></td></tr>
-                )) : recentNews.length === 0 ? (
-                  <tr><td className="px-6 py-8 text-center text-zinc-500">Belum ada berita</td></tr>
-                ) : recentNews.map(n => (
-                  <tr key={n.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-2 w-12">
-                      <div className="h-10 w-10 rounded-lg border overflow-hidden">
-                        <img src={fileURL(n.image_url)} alt="" className="h-full w-full object-cover" onError={e => (e.currentTarget.src = "/placeholder.svg")} />
+          {/* Reviews */}
+          <Card>
+            <CardHeader><CardTitle>Ulasan Pending</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {reviews.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm">Tidak ada ulasan menunggu</div>
+              ) : (
+                <div className="space-y-3 p-4">
+                  {reviews.slice(0, 3).map((r) => (
+                    <div key={r.id} className="border-b pb-3 last:border-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{r.guest_name || 'Tamu'}</p>
+                          <p className="text-xs text-gray-600 line-clamp-2">{r.comment}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`w-3 h-3 ${i < r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="sm" onClick={() => handleApproveReview(r.id)} className="h-7 w-7 p-0">
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleDeleteReview(r.id)} className="h-7 w-7 p-0">
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-2 text-sm font-medium line-clamp-1">{n.title}</td>
-                    <td className="px-4 py-2"><StatusBadge status={n.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </main>
+
+        {/* Footer */}
+        <div className="text-center text-xs text-gray-500">
+          Dashboard diperbarui otomatis setiap 30 detik • {format(new Date(), 'dd MMMM yyyy, HH:mm', { locale: id })}
+        </div>
+      </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ api.interceptors.request.use((config) => {
   if (raw) {
     const token = raw.replace(/^"+|"+$/g, "");
     config.headers = config.headers ?? {};
-    (config.headers as any).Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -24,7 +24,7 @@ api.interceptors.request.use((config) => {
 export type Room = {
   id: number;
   number: string;
-  type: "superior" | "deluxe" | "executive" | string;
+  type: "superior" | "deluxe" | "executive";
   price: number;
   capacity: number;
   description?: string;
@@ -95,7 +95,7 @@ export default function RoomPage() {
   // Query state
   const [search, setSearch] = useState("");
   const [roomType, setRoomType] = useState("");
-  const [roomStatus, setRoomStatus] = useState(""); // BARU: Filter status
+  const [roomStatus, setRoomStatus] = useState("");
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
 
@@ -110,10 +110,10 @@ export default function RoomPage() {
   const [editing, setEditing] = useState<Room | null>(null);
   const [editNumber, setEditNumber] = useState("");
   const [editType, setEditType] = useState<Room["type"]>("superior");
-  const [editPrice, setEditPrice] = useState<string>("0");
-  const [editCapacity, setEditCapacity] = useState<string>("1");
-  const [editDescription, setEditDescription] = useState<string>("");
-  const [editStatus, setEditStatus] = useState<Room["status"]>("available"); // BARU
+  const [editPrice, setEditPrice] = useState("");
+  const [editCapacity, setEditCapacity] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editStatus, setEditStatus] = useState<Room["status"]>("available");
   const [editImage, setEditImage] = useState<File | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -125,10 +125,10 @@ export default function RoomPage() {
     setLoading(true);
     setError(null);
 
-    const hasToken = !!sessionStorage.getItem("token");
-    if (!hasToken) {
+    const token = sessionStorage.getItem("token");
+    if (!token) {
       setLoading(false);
-      setError("Tidak ada token. Silakan login kembali.");
+      setError("Sesi berakhir. Silakan login kembali.");
       return;
     }
 
@@ -137,7 +137,7 @@ export default function RoomPage() {
         params: {
           q: search || undefined,
           type: roomType || undefined,
-          status: roomStatus || undefined, // BARU: kirim status
+          status: roomStatus || undefined,
           limit,
           offset,
         },
@@ -146,7 +146,13 @@ export default function RoomPage() {
       setTotal(res.data.total ?? 0);
     } catch (err: any) {
       const status = err?.response?.status;
-      setError(status === 401 ? "Sesi berakhir/unauthorized. Silakan login kembali." : "Gagal memuat data kamar.");
+      if (status === 401) {
+        setError("Sesi berakhir. Silakan login kembali.");
+      } else if (status === 403) {
+        setError("Akses ditolak. Anda tidak memiliki izin.");
+      } else {
+        setError("Gagal memuat data kamar.");
+      }
     } finally {
       setLoading(false);
     }
@@ -170,7 +176,7 @@ export default function RoomPage() {
   // Badge status
   const getStatusBadge = (status: string) => {
     const s = ROOM_STATUSES.find(s => s.value === status);
-    if (!s) return <span className="text-xs text-zinc-500">{status}</span>;
+    if (!s || !s.value) return <span className="text-xs text-zinc-500">{status}</span>;
     return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${s.color}`}>{s.label}</span>;
   };
 
@@ -178,11 +184,11 @@ export default function RoomPage() {
   const openEdit = (r: Room) => {
     setEditing(r);
     setEditNumber(r.number);
-    setEditType(r.type as Room["type"]);
+    setEditType(r.type);
     setEditPrice(String(r.price));
     setEditCapacity(String(r.capacity));
     setEditDescription(r.description || "");
-    setEditStatus(r.status); // BARU
+    setEditStatus(r.status);
     setEditImage(null);
     setSubmitError(null);
     setIsEditOpen(true);
@@ -197,27 +203,46 @@ export default function RoomPage() {
 
   const handleUpdate = async () => {
     if (!editing) return;
+
+    // Validasi dasar
+    if (!editNumber.trim()) {
+      setSubmitError("Nomor kamar wajib diisi.");
+      return;
+    }
+    if (Number(editPrice) <= 0) {
+      setSubmitError("Harga harus lebih dari 0.");
+      return;
+    }
+    if (Number(editCapacity) < 1) {
+      setSubmitError("Kapasitas minimal 1.");
+      return;
+    }
+
     setSubmitLoading(true);
     setSubmitError(null);
 
     try {
-      const fd = new FormData();
-      fd.append("number", editNumber);
-      fd.append("type", editType);
-      fd.append("price", String(Number(editPrice) || 0));
-      fd.append("capacity", String(Number(editCapacity) || 1));
-      fd.append("description", editDescription || "");
-      fd.append("status", editStatus); // BARU: kirim status
-      if (editImage) fd.append("image", editImage);
+      const formData = new FormData();
+      formData.append("number", editNumber.trim());
+      formData.append("type", editType);
+      formData.append("price", String(Math.round(Number(editPrice))));
+      formData.append("capacity", String(Math.round(Number(editCapacity))));
+      formData.append("description", editDescription.trim());
+      formData.append("status", editStatus);
+      if (editImage) {
+        formData.append("image", editImage);
+      }
 
-      await api.put(`/api/rooms/${editing.id}`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
+      await api.put(`/api/rooms/${editing.id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       await fetchRooms();
       closeEdit();
     } catch (err: any) {
-      const msg = err?.response?.data?.error || "Gagal memperbarui kamar.";
+      const msg = err?.response?.data?.error || "Gagal memperbarui kamar. Pastikan data valid.";
       setSubmitError(msg);
     } finally {
       setSubmitLoading(false);
@@ -227,14 +252,17 @@ export default function RoomPage() {
   const handleDelete = async (r: Room) => {
     const ok = window.confirm(`Hapus kamar ${r.number}? Tindakan ini tidak bisa dibatalkan.`);
     if (!ok) return;
+
     try {
       await api.delete(`/api/rooms/${r.id}`);
-      setOffset((o) => {
-        const remaining = total - 1 - o;
-        const atEnd = remaining <= 0 && o > 0;
-        return atEnd ? Math.max(0, o - limit) : o;
-      });
-      await fetchRooms();
+      const newTotal = total - 1;
+      setTotal(newTotal);
+
+      if (rooms.length === 1 && offset > 0) {
+        setOffset(Math.max(0, offset - limit));
+      } else {
+        await fetchRooms();
+      }
     } catch (err: any) {
       alert(err?.response?.data?.error || "Gagal menghapus kamar.");
     }
@@ -294,7 +322,6 @@ export default function RoomPage() {
             ))}
           </select>
 
-          {/* BARU: Filter Status */}
           <select
             value={roomStatus}
             onChange={(e) => {
@@ -336,7 +363,7 @@ export default function RoomPage() {
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Tipe</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Harga</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Kapasitas</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Status</th> {/* BARU */}
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Status</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Diperbarui</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Aksi</th>
               </tr>
@@ -346,21 +373,19 @@ export default function RoomPage() {
                 Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
               ) : rooms.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12"> {/* 8 kolom */}
-                    <div className="text-center">
-                      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200">
-                        <svg className="h-5 w-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="4" width="18" height="16" rx="2" />
-                          <path d="M7 8h10M7 12h6M7 16h8" />
-                        </svg>
-                      </div>
-                      <p className="text-zinc-800 font-medium">Belum ada data kamar.</p>
-                      <p className="text-zinc-500 text-sm mt-1">Mulai dengan menambahkan kamar baru.</p>
-                      <div className="mt-4">
-                        <Link href="/admin/hotel/room/create" className="inline-flex items-center rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow-sm shadow-black/10 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black">
-                          + Tambah Kamar
-                        </Link>
-                      </div>
+                  <td colSpan={8} className="px-6 py-12 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200">
+                      <svg className="h-5 w-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <path d="M7 8h10M7 12h6M7 16h8" />
+                      </svg>
+                    </div>
+                    <p className="text-zinc-800 font-medium">Belum ada data kamar.</p>
+                    <p className="text-zinc-500 text-sm mt-1">Mulai dengan menambahkan kamar baru.</p>
+                    <div className="mt-4">
+                      <Link href="/admin/hotel/room/create" className="inline-flex items-center rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow-sm shadow-black/10 hover:opacity-90">
+                        + Tambah Kamar
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -374,9 +399,10 @@ export default function RoomPage() {
                           alt={`Kamar ${r.number}`}
                           className="h-16 w-16 rounded-xl object-cover border border-zinc-200"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.display = "none";
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) parent.appendChild(FallbackThumb().props.children as any);
+                            const img = e.currentTarget;
+                            img.style.display = "none";
+                            const fallback = FallbackThumb();
+                            img.parentElement?.appendChild(React.createElement(fallback.type, fallback.props));
                           }}
                         />
                       ) : (
@@ -384,27 +410,27 @@ export default function RoomPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 align-top font-medium text-zinc-900">{r.number}</td>
-                    <td className="px-4 py-3 align-top capitalize">
-                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border border-zinc-200 bg-zinc-50 text-zinc-700">
+                    <td className="px-4 py-3 align-top">
+                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border border-zinc-200 bg-zinc-50 text-zinc-700 capitalize">
                         {r.type}
                       </span>
                     </td>
                     <td className="px-4 py-3 align-top text-zinc-800">{rupiah(r.price)}</td>
                     <td className="px-4 py-3 align-top text-zinc-800">{r.capacity}</td>
-                    <td className="px-4 py-3 align-top">{getStatusBadge(r.status)}</td> {/* BARU */}
+                    <td className="px-4 py-3 align-top">{getStatusBadge(r.status)}</td>
                     <td className="px-4 py-3 align-top text-sm text-zinc-700">{formatDate(r.updated_at)}</td>
                     <td className="px-4 py-3 align-top">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => openEdit(r)}
-                          className="px-3 py-1.5 rounded-xl text-sm bg-black text-white shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black/20"
+                          className="px-3 py-1.5 rounded-xl text-sm bg-black text-white shadow-sm hover:opacity-90"
                           title="Ubah"
                         >
                           Ubah
                         </button>
                         <button
                           onClick={() => handleDelete(r)}
-                          className="px-3 py-1.5 rounded-xl text-sm border border-zinc-300 hover:bg-zinc-50 focus:outline-none"
+                          className="px-3 py-1.5 rounded-xl text-sm border border-zinc-300 hover:bg-zinc-50"
                           title="Hapus"
                         >
                           Hapus
@@ -443,7 +469,7 @@ export default function RoomPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setOffset((o) => Math.max(0, o - limit))}
+              onClick={() => setOffset(Math.max(0, offset - limit))}
               disabled={offset <= 0 || loading}
               className="px-3 py-2 rounded-xl border border-zinc-200 text-sm disabled:opacity-50 hover:bg-zinc-50"
             >
@@ -454,7 +480,7 @@ export default function RoomPage() {
               <span className="font-semibold text-zinc-900">{totalPages}</span>
             </div>
             <button
-              onClick={() => setOffset((o) => o + limit)}
+              onClick={() => setOffset(offset + limit)}
               disabled={offset + limit >= total || loading}
               className="px-3 py-2 rounded-xl border border-zinc-200 text-sm disabled:opacity-50 hover:bg-zinc-50"
             >
@@ -466,7 +492,7 @@ export default function RoomPage() {
 
       {/* EDIT MODAL */}
       {isEditOpen && editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="absolute inset-0 bg-black/40" onClick={closeEdit} />
           <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-zinc-200">
             <div className="px-6 py-4 border-b border-zinc-200 flex items-center justify-between">
@@ -478,22 +504,23 @@ export default function RoomPage() {
               </button>
             </div>
 
-            <div className="px-6 py-4 space-y-4">
+            <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
               {submitError && (
                 <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 px-3 py-2 text-sm">{submitError}</div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Nomor</label>
+                  <label className="block text-sm text-zinc-700 mb-1">Nomor Kamar</label>
                   <input
                     value={editNumber}
                     onChange={(e) => setEditNumber(e.target.value)}
                     className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    placeholder="101"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Tipe</label>
+                  <label className="block text-sm text-zinc-700 mb-1">Tipe Kamar</label>
                   <select
                     value={editType}
                     onChange={(e) => setEditType(e.target.value as Room["type"])}
@@ -505,26 +532,28 @@ export default function RoomPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Harga</label>
+                  <label className="block text-sm text-zinc-700 mb-1">Harga per Malam</label>
                   <input
                     type="number"
+                    min="0"
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
                     className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    placeholder="500000"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Kapasitas</label>
+                  <label className="block text-sm text-zinc-700 mb-1">Kapasitas (orang)</label>
                   <input
                     type="number"
-                    min={1}
+                    min="1"
                     value={editCapacity}
                     onChange={(e) => setEditCapacity(e.target.value)}
                     className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Status</label> {/* BARU */}
+                  <label className="block text-sm text-zinc-700 mb-1">Status</label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value as Room["status"])}
@@ -537,25 +566,35 @@ export default function RoomPage() {
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm text-zinc-700 mb-1">Deskripsi</label>
+                  <label className="block text-sm text-zinc-700 mb-1">Deskripsi (opsional)</label>
                   <textarea
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     rows={3}
                     className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    placeholder="Kamar luas dengan pemandangan taman..."
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm text-zinc-700 mb-1">Gambar (opsional)</label>
+                  <label className="block text-sm text-zinc-700 mb-1">Ganti Gambar (opsional)</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setEditImage(e.target.files?.[0] || null)}
-                    className="w-full text-sm"
+                    className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-black file:text-white hover:file:bg-black/90"
                   />
-                  {editing.image && (
-                    <div className="mt-2">
+                  {editing.image && !editImage && (
+                    <div className="mt-3">
+                      <p className="text-xs text-zinc-500 mb-1">Gambar saat ini:</p>
                       <img src={editing.image} alt="preview" className="h-20 w-20 rounded-xl object-cover border border-zinc-200" />
+                    </div>
+                  )}
+                  {editImage && (
+                    <div className="mt-3">
+                      <p className="text-xs text-zinc-500 mb-1">Gambar baru:</p>
+                      <div className="h-20 w-20 rounded-xl border-2 border-dashed border-zinc-300 flex items-center justify-center text-xs text-zinc-500">
+                        {editImage.name}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -573,9 +612,19 @@ export default function RoomPage() {
               <button
                 onClick={handleUpdate}
                 disabled={submitLoading}
-                className="px-4 py-2 rounded-xl bg-black text-white text-sm shadow-sm hover:opacity-90 disabled:opacity-60"
+                className="px-4 py-2 rounded-xl bg-black text-white text-sm shadow-sm hover:opacity-90 disabled:opacity-60 flex items-center gap-2"
               >
-                {submitLoading ? "Menyimpan…" : "Simpan Perubahan"}
+                {submitLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Simpan Perubahan"
+                )}
               </button>
             </div>
           </div>

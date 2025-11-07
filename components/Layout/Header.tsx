@@ -1,3 +1,4 @@
+// components/Layout/Header.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,8 +17,8 @@ import {
 interface User {
   id: number;
   email: string;
-  name: string;
-  role: 'user' | 'admin';
+  full_name: string;
+  role: 'guest' | 'admin_hotel' | 'admin_souvenir' | 'admin_book' | 'admin_cafe' | 'superadmin';
 }
 
 export default function Header() {
@@ -30,13 +31,12 @@ export default function Header() {
 
     const loadUser = () => {
       try {
-        const token = localStorage.getItem('token');
-        const raw = localStorage.getItem('user');
+        // GUNAKAN sessionStorage (SAMA DENGAN contact/page.tsx)
+        const token = sessionStorage.getItem('access_token');
+        const raw = sessionStorage.getItem('user');
 
-        if (!token || !raw) return;
-
-        if (raw === 'undefined' || raw === 'null') {
-          localStorage.removeItem('user');
+        if (!token || !raw) {
+          setUser(null);
           return;
         }
 
@@ -47,32 +47,34 @@ export default function Header() {
           typeof parsed === 'object' &&
           typeof parsed.id === 'number' &&
           typeof parsed.email === 'string' &&
-          typeof parsed.name === 'string' &&
-          (parsed.role === 'user' || parsed.role === 'admin');
+          typeof parsed.full_name === 'string' &&
+          ['guest', 'admin_hotel', 'admin_souvenir', 'admin_book', 'admin_cafe', 'superadmin'].includes(parsed.role);
 
         if (isValid) {
           setUser(parsed as User);
         } else {
-          localStorage.removeItem('user');
+          sessionStorage.removeItem('user');
+          setUser(null);
         }
       } catch (err) {
-        console.error('Invalid user JSON in localStorage:', err);
-        localStorage.removeItem('user');
+        console.error('Invalid user in sessionStorage:', err);
+        sessionStorage.removeItem('user');
+        setUser(null);
       }
     };
 
     loadUser();
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'user' || e.key === 'token') loadUser();
+      if (e.key === 'user' || e.key === 'access_token') loadUser();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('user');
     setUser(null);
     router.push('/');
   };
@@ -89,73 +91,45 @@ export default function Header() {
   const leftNav = navigation.slice(0, mid);
   const rightNav = navigation.slice(mid);
 
+  const getDashboardLink = () => {
+    if (!user) return '/auth/signin';
+    return user.role === 'guest' ? '/dashboard' : '/admin';
+  };
+
   return (
     <>
-      {/* Floating header dengan tinggi lebih tipis */}
-      <header
-        className="fixed top-3 sm:top-5 left-0 right-0 z-50 pointer-events-none"
-        role="navigation"
-        aria-label="Site"
-      >
+      <header className="fixed top-3 sm:top-5 left-0 right-0 z-50 pointer-events-none">
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
-          <div className="pointer-events-auto relative overflow-visible rounded-2xl border border-white/20 bg-black/30 backdrop-blur-xl supports-[backdrop-filter]:bg-black/20 shadow-lg shadow-black/10 hover:bg-black/40 transition-all duration-300">
-            {/* GRID: 1fr auto 1fr - dengan tinggi lebih kecil */}
+          <div className="pointer-events-auto rounded-2xl border border-white/20 bg-black/30 backdrop-blur-xl shadow-lg hover:bg-black/40 transition-all">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 py-3">
-              {/* Left: Desktop nav + mobile burger */}
+              {/* Left */}
               <div className="flex items-center">
-                <nav className="hidden md:flex w-full justify-start items-center gap-8">
+                <nav className="hidden md:flex gap-8">
                   {leftNav.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="text-white/90 hover:text-yellow-300 font-sans transition-colors duration-200 hover:scale-105 text-base"
-                    >
+                    <Link key={item.name} href={item.href} className="text-white/90 hover:text-yellow-300 transition-colors hover:scale-105 text-base">
                       {item.name}
                     </Link>
                   ))}
                 </nav>
-
-                {/* Mobile burger */}
                 <div className="md:hidden">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsMenuOpen(true)}
-                    className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white"
-                    aria-label="Open menu"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setIsMenuOpen(true)} className="border-white/30 hover:border-white/50 bg-transparent text-white/90">
                     <Menu size={18} />
                   </Button>
                 </div>
               </div>
 
-              {/* Center: LOGO TETAP BESAR dengan posisi lebih rendah */}
+              {/* Logo */}
               <div className="justify-self-center my-[-3.5em] mb-[-4em]">
-                <Link
-                  href="/"
-                  aria-label="Mutiara Balige Hotel"
-                  className="inline-flex items-center hover:scale-105 transition-transform duration-200"
-                >
-                  <Image
-                    src="/logo.png"
-                    alt="Mutiara Balige"
-                    width={320}
-                    height={100}
-                    className="h-20 w-auto sm:h-24 md:h-28 brightness-110 contrast-110"
-                    priority
-                  />
+                <Link href="/" className="inline-flex hover:scale-105 transition-transform">
+                  <Image src="/logo.png" alt="Mutiara Balige" width={320} height={100} className="h-20 w-auto sm:h-24 md:h-28 brightness-110" priority />
                 </Link>
               </div>
 
-              {/* Right: Desktop nav + user actions */}
+              {/* Right */}
               <div className="hidden md:flex items-center justify-end space-x-4">
-                <nav className="flex items-center gap-8">
+                <nav className="flex gap-8">
                   {rightNav.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="text-white/90 hover:text-yellow-300 font-sans transition-colors duration-200 hover:scale-105 text-base"
-                    >
+                    <Link key={item.name} href={item.href} className="text-white/90 hover:text-yellow-300 transition-colors hover:scale-105 text-base">
                       {item.name}
                     </Link>
                   ))}
@@ -164,31 +138,19 @@ export default function Header() {
                 {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="flex items-center space-x-2 border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white backdrop-blur-sm text-sm"
-                      >
+                      <Button variant="outline" className="flex items-center space-x-2 border-white/30 hover:border-white/50 bg-transparent text-white/90 text-sm">
                         <User size={16} />
-                        <span>{user.name}</span>
+                        <span>{user.full_name}</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent 
-                      align="end" 
-                      className="w-56 bg-black/80 backdrop-blur-xl border-white/20 text-white text-sm"
-                    >
-                      <DropdownMenuItem asChild className="hover:bg-white/10 focus:bg-white/10 py-2">
-                        <Link
-                          href={user.role === 'admin' ? '/admin' : '/dashboard'}
-                          className="flex items-center text-white/90"
-                        >
+                    <DropdownMenuContent align="end" className="w-56 bg-black/80 backdrop-blur-xl border-white/20 text-white text-sm">
+                      <DropdownMenuItem asChild>
+                        <Link href={getDashboardLink()} className="flex items-center text-white/90">
                           <Settings size={16} className="mr-3" />
-                          {user.role === 'admin' ? 'Admin Panel' : 'Dashboard'}
+                          {user.role === 'guest' ? 'Dashboard' : 'Admin Panel'}
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={handleLogout}
-                        className="flex items-center text-red-300 hover:text-red-200 hover:bg-white/10 focus:bg-white/10 py-2"
-                      >
+                      <DropdownMenuItem onClick={handleLogout} className="text-red-300 hover:text-red-200">
                         <LogOut size={16} className="mr-3" />
                         Logout
                       </DropdownMenuItem>
@@ -196,14 +158,10 @@ export default function Header() {
                   </DropdownMenu>
                 ) : (
                   <>
-                    <Button
-                      variant="outline"
-                      asChild
-                      className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-white backdrop-blur-sm text-sm px-4 py-1.5"
-                    >
+                    <Button variant="outline" asChild className="border-white/30 hover:border-white/50 bg-transparent text-white/90 text-sm">
                       <Link href="/auth/signin">Sign In</Link>
                     </Button>
-                    <Button asChild className="bg-yellow-500/90 hover:bg-yellow-500 text-white backdrop-blur-sm text-sm px-4 py-1.5">
+                    <Button asChild className="bg-yellow-500/90 hover:bg-yellow-500 text-white text-sm">
                       <Link href="/auth/signup">Sign Up</Link>
                     </Button>
                   </>
@@ -214,87 +172,40 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile Backdrop + Sidebar */}
-      <div
-        className={`fixed inset-0 z-[60] bg-black/40 transition-opacity md:hidden ${
-          isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setIsMenuOpen(false)}
-        aria-hidden={!isMenuOpen}
-      />
-      <aside
-        className={`fixed left-0 top-0 z-[61] h-dvh w-72 bg-black/95 backdrop-blur-xl shadow-2xl md:hidden transform transition-transform duration-300 ease-out ${
-          isMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Mobile navigation"
-      >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/20">
+      {/* Mobile Sidebar */}
+      <div className={`fixed inset-0 z-[60] bg-black/40 transition-opacity md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMenuOpen(false)} />
+      <aside className={`fixed left-0 top-0 z-[61] h-dvh w-72 bg-black/95 backdrop-blur-xl shadow-2xl md:hidden transform transition-transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex justify-between px-4 py-3 border-b border-white/20">
           <span className="font-semibold text-white/90">Menu</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMenuOpen(false)}
-            aria-label="Close menu"
-            className="text-white/90 hover:bg-white/10"
-          >
+          <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)} className="text-white/90">
             <X size={18} />
           </Button>
         </div>
-
         <div className="px-4 py-4 space-y-2">
           {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="block px-3 py-2 rounded-md text-white/90 hover:bg-white/10 hover:text-yellow-300 font-medium transition-colors duration-200 text-base"
-              onClick={() => setIsMenuOpen(false)}
-            >
+            <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-white/90 hover:bg-white/10 hover:text-yellow-300 text-base">
               {item.name}
             </Link>
           ))}
-
           <div className="border-t border-white/20 mt-3 pt-3 space-y-2">
             {user ? (
               <>
-                <Button 
-                  variant="outline" 
-                  asChild 
-                  className="w-full justify-start bg-transparent text-white/90 border-white/30 hover:bg-white/10 hover:text-white text-base"
-                >
-                  <Link
-                    href={user.role === 'admin' ? '/admin' : '/dashboard'}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {user.role === 'admin' ? 'Admin Panel' : 'Dashboard'}
+                <Button variant="outline" asChild className="w-full justify-start bg-transparent text-white/90 border-white/30">
+                  <Link href={getDashboardLink()} onClick={() => setIsMenuOpen(false)}>
+                    {user.role === 'guest' ? 'Dashboard' : 'Admin Panel'}
                   </Link>
                 </Button>
-                <Button
-                  onClick={() => {
-                    handleLogout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full bg-red-500/90 hover:bg-red-500 text-white backdrop-blur-sm text-base"
-                >
+                <Button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="w-full bg-red-500/90 hover:bg-red-500 text-white">
                   Logout
                 </Button>
               </>
             ) : (
               <>
-                <Button 
-                  variant="outline" 
-                  asChild 
-                  className="w-full bg-transparent text-white/90 border-white/30 hover:bg-white/10 hover:text-white text-base"
-                >
-                  <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>
-                    Sign In
-                  </Link>
+                <Button variant="outline" asChild className="w-full bg-transparent text-white/90 border-white/30">
+                  <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
                 </Button>
-                <Button asChild className="w-full bg-yellow-500/90 hover:bg-yellow-500 text-white backdrop-blur-sm text-base">
-                  <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
-                    Sign Up
-                  </Link>
+                <Button asChild className="w-full bg-yellow-500/90 hover:bg-yellow-500 text-white">
+                  <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>Sign Up</Link>
                 </Button>
               </>
             )}
