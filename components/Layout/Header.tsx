@@ -85,6 +85,7 @@ export default function Header() {
     { name: 'Gallery', href: '/user/gallery' },
     { name: 'News', href: '/user/news' },
     { name: 'Contact', href: '/user/contact' },
+    { name: 'Facilities', href: '/user/facilities' },
   ];
 
   const mid = Math.ceil(navigation.length / 2);
