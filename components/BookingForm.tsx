@@ -77,20 +77,20 @@ export default function BookingForm({ roomId, roomNumber, roomType, pricePerNigh
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h3 className="font-semibold text-lg mb-2">Informasi Kamar</h3>
-        <p className="text-sm">
-          <strong>{roomType}</strong> • No. {roomNumber}
+      <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-200 p-6 rounded-xl shadow-sm">
+        <h3 className="font-bold text-xl mb-3 text-amber-900">Informasi Kamar</h3>
+        <p className="text-base text-gray-800">
+          <strong className="text-amber-800">{roomType}</strong> • No. {roomNumber}
         </p>
-        <p className="text-sm text-green-600 font-medium">
+        <p className="text-lg text-amber-700 font-bold mt-2">
           Rp {pricePerNight.toLocaleString('id-ID')}/malam
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="name" className="flex items-center gap-2">
-            <User className="w-4 h-4" /> Nama Lengkap
+          <Label htmlFor="name" className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+            <User className="w-4 h-4 text-amber-600" /> Nama Lengkap
           </Label>
           <Input
             id="name"
@@ -98,12 +98,13 @@ export default function BookingForm({ roomId, roomNumber, roomType, pricePerNigh
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="John Doe"
+            className="border-amber-200 focus:border-amber-400 focus:ring-amber-400"
           />
         </div>
 
         <div>
-          <Label htmlFor="phone" className="flex items-center gap-2">
-            <Phone className="w-4 h-4" /> No. WhatsApp
+          <Label htmlFor="phone" className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+            <Phone className="w-4 h-4 text-amber-600" /> No. WhatsApp
           </Label>
           <Input
             id="phone"
@@ -112,13 +113,14 @@ export default function BookingForm({ roomId, roomNumber, roomType, pricePerNigh
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
             placeholder="6281234567890"
+            className="border-amber-200 focus:border-amber-400 focus:ring-amber-400"
           />
         </div>
       </div>
 
       <div>
-        <Label htmlFor="email" className="flex items-center gap-2">
-          <Mail className="w-4 h-4" /> Email (opsional)
+        <Label htmlFor="email" className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+          <Mail className="w-4 h-4 text-amber-600" /> Email (opsional)
         </Label>
         <Input
           id="email"
@@ -126,13 +128,14 @@ export default function BookingForm({ roomId, roomNumber, roomType, pricePerNigh
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
           placeholder="john@example.com"
+          className="border-amber-200 focus:border-amber-400 focus:ring-amber-400"
         />
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="check_in" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" /> Check-in
+          <Label htmlFor="check_in" className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+            <Calendar className="w-4 h-4 text-amber-600" /> Check-in
           </Label>
           <Input
             id="check_in"
@@ -141,12 +144,13 @@ export default function BookingForm({ roomId, roomNumber, roomType, pricePerNigh
             min={new Date().toISOString().split('T')[0]}
             value={form.check_in}
             onChange={(e) => setForm({ ...form, check_in: e.target.value })}
+            className="border-amber-200 focus:border-amber-400 focus:ring-amber-400"
           />
         </div>
 
         <div>
-          <Label htmlFor="check_out" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" /> Check-out
+          <Label htmlFor="check_out" className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+            <Calendar className="w-4 h-4 text-amber-600" /> Check-out
           </Label>
           <Input
             id="check_out"
@@ -155,13 +159,14 @@ export default function BookingForm({ roomId, roomNumber, roomType, pricePerNigh
             min={form.check_in || new Date().toISOString().split('T')[0]}
             value={form.check_out}
             onChange={(e) => setForm({ ...form, check_out: e.target.value })}
+            className="border-amber-200 focus:border-amber-400 focus:ring-amber-400"
           />
         </div>
       </div>
 
       <div>
-        <Label htmlFor="guests" className="flex items-center gap-2">
-          <Users className="w-4 h-4" /> Jumlah Tamu
+        <Label htmlFor="guests" className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+          <Users className="w-4 h-4 text-amber-600" /> Jumlah Tamu
         </Label>
         <Input
           id="guests"
@@ -170,12 +175,13 @@ export default function BookingForm({ roomId, roomNumber, roomType, pricePerNigh
           max="10"
           value={form.guests}
           onChange={(e) => setForm({ ...form, guests: parseInt(e.target.value) || 1 })}
+          className="border-amber-200 focus:border-amber-400 focus:ring-amber-400"
         />
       </div>
 
       <div>
-        <Label htmlFor="notes" className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4" /> Catatan (opsional)
+        <Label htmlFor="notes" className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+          <MessageSquare className="w-4 h-4 text-amber-600" /> Catatan (opsional)
         </Label>
         <Textarea
           id="notes"
@@ -183,10 +189,16 @@ export default function BookingForm({ roomId, roomNumber, roomType, pricePerNigh
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
           placeholder="Contoh: Saya ingin kamar dengan view laut..."
+          className="border-amber-200 focus:border-amber-400 focus:ring-amber-400"
         />
       </div>
 
-      <Button type="submit" className="w-full" size="lg" disabled={loading}>
+      <Button 
+        type="submit" 
+        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all" 
+        size="lg" 
+        disabled={loading}
+      >
         {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
