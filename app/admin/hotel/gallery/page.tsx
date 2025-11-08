@@ -38,7 +38,6 @@ export default function AdminGalleryPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Gallery | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -76,7 +75,6 @@ export default function AdminGalleryPage() {
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize]);
 
   function openEditModal(item: Gallery) {
@@ -112,7 +110,6 @@ export default function AdminGalleryPage() {
     setNotice(null);
 
     try {
-      // 1) Update metadata (title/caption)
       const metaRes = await fetch(`${API_BASE}/api/galleries/${editing.id}`, {
         method: 'PUT',
         headers: {
@@ -129,7 +126,6 @@ export default function AdminGalleryPage() {
         throw new Error(t?.error || `Gagal mengupdate metadata (status ${metaRes.status})`);
       }
 
-      // 2) Jika ada file baru, update gambar
       if (editImage) {
         const form = new FormData();
         form.append('image', editImage);
@@ -146,7 +142,6 @@ export default function AdminGalleryPage() {
 
       setNotice('Perubahan tersimpan.');
       closeModal();
-      // refresh list
       await loadData();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal menyimpan perubahan.');
@@ -175,7 +170,6 @@ export default function AdminGalleryPage() {
         throw new Error(t?.error || `Gagal menghapus (status ${res.status})`);
       }
       setNotice('Item galeri telah dihapus.');
-      // jika halaman jadi kosong, mundurkan page
       if (galleries.length === 1 && page > 1) {
         setPage(p => p - 1);
       } else {
@@ -187,53 +181,67 @@ export default function AdminGalleryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-black">
+    <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Manajemen Galeri</h1>
+          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+            Manajemen Galeri
+          </h1>
           <Link
             href="/admin/hotel/gallery/create"
-            className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black"
+            className="rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 px-5 py-2.5 text-sm font-bold text-black shadow-md hover:from-amber-600 hover:to-yellow-700 transition-all"
           >
             + Tambah Foto
           </Link>
         </div>
 
         {notice && (
-          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800 shadow-sm">
             {notice}
           </div>
         )}
 
         {loading ? (
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-zinc-700">Memuat galeri…</div>
+          <div className="rounded-xl border border-yellow-200 bg-amber-50 p-6 text-amber-700 font-medium text-center">
+            Memuat galeri...
+          </div>
         ) : error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-            <p className="font-semibold">Gagal</p>
-            <p className="text-sm opacity-80">{error}</p>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700">
+            <p className="font-bold text-lg">Gagal</p>
+            <p className="text-sm mt-1 opacity-90">{error}</p>
           </div>
         ) : galleries.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 p-10 text-center">
-            <p className="text-zinc-700 font-medium">Belum ada data.</p>
+          <div className="rounded-xl border border-yellow-200 p-12 text-center bg-white shadow-sm">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+              <svg className="h-8 w-8 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="m8 13 2.5-2.5 4 4L21 9" />
+                <circle cx="7" cy="8" r="1.5" />
+              </svg>
+            </div>
+            <p className="text-gray-800 font-semibold text-lg">Belum ada data galeri.</p>
+            <p className="text-gray-600 text-sm mt-1">
+              Klik <span className="font-bold text-amber-700">+ Tambah Foto</span> untuk memulai.
+            </p>
           </div>
         ) : (
           <>
-            <div className="overflow-hidden rounded-xl border border-zinc-200">
-              <table className="min-w-full divide-y divide-zinc-200 bg-white">
-                <thead className="bg-zinc-50">
+            <div className="overflow-hidden rounded-xl border border-yellow-200 bg-white shadow-lg">
+              <table className="min-w-full divide-y divide-yellow-100">
+                <thead className="bg-gradient-to-r from-yellow-50 to-amber-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Gambar</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Title</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Caption</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Aksi</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Gambar</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Title</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Caption</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-yellow-100">
                   {galleries.map((item) => (
-                    <tr key={item.id} className="hover:bg-zinc-50/60">
+                    <tr key={item.id} className="hover:bg-yellow-50 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="h-14 w-20 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
+                        <div className="h-14 w-20 overflow-hidden rounded-xl border-2 border-amber-200 bg-amber-50">
                           <img
                             src={fileURL(item.url)}
                             alt={item.title || `image-${item.id}`}
@@ -242,22 +250,22 @@ export default function AdminGalleryPage() {
                           />
                         </div>
                       </td>
-                      <td className="px-4 py-3 align-top">{item.id}</td>
-                      <td className="px-4 py-3 align-top">{item.title || '—'}</td>
+                      <td className="px-4 py-3 align-top font-medium text-amber-700">{item.id}</td>
+                      <td className="px-4 py-3 align-top font-medium text-gray-800">{item.title || '—'}</td>
                       <td className="px-4 py-3 align-top">
-                        <div className="line-clamp-3 text-sm">{item.caption || '—'}</div>
+                        <div className="line-clamp-3 text-sm text-gray-700">{item.caption || '—'}</div>
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => openEditModal(item)}
-                            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs hover:bg-zinc-50"
+                            className="px-3 py-1.5 rounded-xl text-sm bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-semibold shadow-sm hover:from-amber-600 hover:to-yellow-700 transition-all"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDelete(item.id)}
-                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100"
+                            className="px-3 py-1.5 rounded-xl text-sm border border-rose-300 text-rose-700 hover:bg-rose-50 transition-colors"
                           >
                             Hapus
                           </button>
@@ -269,24 +277,24 @@ export default function AdminGalleryPage() {
               </table>
             </div>
 
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center justify-between mt-6">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-2 rounded-xl border border-zinc-200 text-sm disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl border border-yellow-300 text-sm font-medium disabled:opacity-50 hover:bg-yellow-50 transition-colors"
               >
-                ← Sebelumnya
+                Sebelumnya
               </button>
-              <div className="text-sm text-zinc-600">
-                Halaman <span className="font-medium">{page}</span> dari{' '}
-                <span className="font-medium">{totalPages}</span>
+              <div className="text-sm text-gray-700 font-medium">
+                Halaman <span className="text-amber-700 font-bold">{page}</span> dari{' '}
+                <span className="text-amber-700 font-bold">{totalPages}</span>
               </div>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="px-3 py-2 rounded-xl border border-zinc-200 text-sm disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl border border-yellow-300 text-sm font-medium disabled:opacity-50 hover:bg-yellow-50 transition-colors"
               >
-                Selanjutnya →
+                Selanjutnya
               </button>
             </div>
           </>
@@ -296,14 +304,18 @@ export default function AdminGalleryPage() {
       {/* Modal Edit */}
       {isModalOpen && editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-5 py-3">
-              <h2 className="text-lg font-semibold">Edit Galeri #{editing.id}</h2>
-              <button onClick={closeModal} className="text-zinc-500 hover:text-zinc-700">✕</button>
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-yellow-200">
+            <div className="flex items-center justify-between border-b border-yellow-200 px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-50">
+              <h2 className="text-lg font-bold text-gray-800">Edit Galeri #{editing.id}</h2>
+              <button onClick={closeModal} className="text-gray-600 hover:text-gray-800 p-1">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className="px-5 py-4 space-y-4">
-              <div className="flex gap-4">
-                <div className="h-28 w-40 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shrink-0">
+            <div className="px-6 py-5 space-y-5">
+              <div className="flex gap-5">
+                <div className="h-32 w-44 overflow-hidden rounded-xl border-2 border-amber-200 bg-amber-50 shrink-0">
                   <img
                     src={preview ?? fileURL(editing.url)}
                     alt="preview"
@@ -312,7 +324,7 @@ export default function AdminGalleryPage() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium mb-1">Ganti Gambar (opsional)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ganti Gambar (opsional)</label>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -322,53 +334,63 @@ export default function AdminGalleryPage() {
                       if (preview) URL.revokeObjectURL(preview);
                       setPreview(f ? URL.createObjectURL(f) : null);
                     }}
-                    className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-zinc-200 file:bg-white file:px-3 file:py-2 file:text-sm file:shadow-sm hover:file:bg-zinc-50"
+                    className="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-amber-500 file:to-yellow-600 file:text-black hover:file:from-amber-600 hover:file:to-yellow-700"
                   />
-                  <p className="mt-1 text-xs text-zinc-500">Biarkan kosong jika tidak ingin mengganti gambar.</p>
+                  <p className="mt-2 text-xs text-gray-600">Biarkan kosong jika tidak ingin mengganti gambar.</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Title</label>
                 <input
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   placeholder="Judul gambar"
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50/30"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Caption</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Caption</label>
                 <textarea
                   value={editCaption}
                   onChange={(e) => setEditCaption(e.target.value)}
                   rows={3}
                   placeholder="Deskripsi singkat"
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50/30 resize-none"
                 />
               </div>
 
               {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
                   {error}
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-end gap-2 border-t px-5 py-3">
+            <div className="flex items-center justify-end gap-3 border-t border-yellow-200 px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-50">
               <button
                 onClick={closeModal}
                 disabled={saving}
-                className="rounded-xl border border-zinc-200 px-4 py-2 text-sm disabled:opacity-60"
+                className="px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow disabled:opacity-60"
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-sm font-bold shadow-md hover:from-amber-600 hover:to-yellow-700 disabled:opacity-60 transition-all flex items-center gap-2"
               >
-                {saving ? 'Menyimpan…' : 'Simpan'}
+                {saving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Simpan"
+                )}
               </button>
             </div>
           </div>

@@ -73,13 +73,12 @@ export default function AdminBookingPage() {
       const json = await res.json();
       const rawBookings = json.data || [];
 
-      // MAPPING DATA DARI BACKEND
       const mappedBookings: Booking[] = rawBookings.map((b: any) => ({
         id: b.id,
         name: b.name,
         phone: b.phone,
         email: b.email,
-        room_number: b.room.number,  // ← DARI b.room.number
+        room_number: b.room.number,
         room_type: b.room.type.charAt(0).toUpperCase() + b.room.type.slice(1),
         check_in: b.check_in,
         check_out: b.check_out,
@@ -152,11 +151,11 @@ export default function AdminBookingPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Menunggu</Badge>;
+        return <Badge className="bg-yellow-100 text-amber-800 hover:bg-yellow-200 font-medium">Menunggu</Badge>;
       case 'confirmed':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Dikonfirmasi</Badge>;
+        return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 font-medium">Dikonfirmasi</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">Dibatalkan</Badge>;
+        return <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 font-medium">Dibatalkan</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -164,33 +163,33 @@ export default function AdminBookingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-amber-50">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-yellow-600" />
-          <p className="text-gray-600">Memuat data booking...</p>
+          <RefreshCw className="w-10 h-10 animate-spin mx-auto mb-4 text-amber-600" />
+          <p className="text-gray-700 font-medium">Memuat data booking...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Card className="shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50">
+        <Card className="shadow-xl border border-yellow-200/50 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-yellow-50 via-amber-50 to-yellow-50 border-b border-yellow-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                  <Hotel className="w-6 h-6 text-yellow-600" />
+                <CardTitle className="text-2xl md:text-3xl font-bold flex items-center gap-3 text-gray-800">
+                  <Hotel className="w-7 h-7 text-amber-600" />
                   Manajemen Booking
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-600 mt-1">
                   Kelola semua pemesanan kamar hotel secara real-time
                 </CardDescription>
               </div>
               <div className="flex items-center gap-3">
                 <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-40 border-yellow-300 focus:ring-yellow-400">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -205,6 +204,7 @@ export default function AdminBookingPage() {
                   variant="outline"
                   onClick={fetchBookings}
                   disabled={refreshing}
+                  className="border-yellow-300 text-amber-700 hover:bg-yellow-50"
                 >
                   <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                   Refresh
@@ -214,36 +214,36 @@ export default function AdminBookingPage() {
           </CardHeader>
           <CardContent className="p-0">
             {filteredBookings.length === 0 ? (
-              <div className="text-center py-16 text-gray-500">
-                <Hotel className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>Tidak ada booking ditemukan.</p>
+              <div className="text-center py-20 text-gray-500">
+                <Hotel className="w-16 h-16 mx-auto mb-4 text-yellow-200" />
+                <p className="text-lg font-medium">Tidak ada booking ditemukan.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50">
-                      <TableHead className="font-bold">ID</TableHead>
-                      <TableHead className="font-bold">Pelanggan</TableHead>
-                      <TableHead className="font-bold">Kamar</TableHead>
-                      <TableHead className="font-bold">Tanggal</TableHead>
-                      <TableHead className="text-right font-bold">Total</TableHead>
-                      <TableHead className="font-bold">Status</TableHead>
-                      <TableHead className="text-center font-bold">Aksi</TableHead>
+                    <TableRow className="bg-gradient-to-r from-yellow-50 to-amber-50">
+                      <TableHead className="font-bold text-gray-800">ID</TableHead>
+                      <TableHead className="font-bold text-gray-800">Pelanggan</TableHead>
+                      <TableHead className="font-bold text-gray-800">Kamar</TableHead>
+                      <TableHead className="font-bold text-gray-800">Tanggal</TableHead>
+                      <TableHead className="text-right font-bold text-gray-800">Total</TableHead>
+                      <TableHead className="font-bold text-gray-800">Status</TableHead>
+                      <TableHead className="text-center font-bold text-gray-800">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredBookings.map((booking) => (
-                      <TableRow key={booking.id} className="hover:bg-yellow-50 transition-colors">
-                        <TableCell className="font-mono text-sm">#{booking.id}</TableCell>
+                      <TableRow key={booking.id} className="hover:bg-yellow-50/50 transition-colors border-b border-yellow-100">
+                        <TableCell className="font-mono text-sm text-amber-700 font-semibold">#{booking.id}</TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="flex items-center gap-1 font-medium">
-                              <User className="w-3.5 h-3.5 text-gray-600" />
+                            <div className="flex items-center gap-1 font-medium text-gray-800">
+                              <User className="w-3.5 h-3.5 text-amber-600" />
                               {booking.name}
                             </div>
                             <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Phone className="w-3.5 h-3.5" />
+                              <Phone className="w-3.5 h-3.5 text-amber-600" />
                               {booking.phone}
                             </div>
                             {booking.email && (
@@ -255,14 +255,14 @@ export default function AdminBookingPage() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{booking.room_type}</div>
+                            <div className="font-medium text-gray-800">{booking.room_type}</div>
                             <div className="text-sm text-gray-600">No. {booking.room_number}</div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5 text-green-600" />
+                            <div className="flex items-center gap-1 text-emerald-700">
+                              <Calendar className="w-3.5 h-3.5" />
                               {format(new Date(booking.check_in), 'dd MMM yyyy')}
                             </div>
                             <div className="flex items-center gap-1 text-gray-600">
@@ -275,7 +275,7 @@ export default function AdminBookingPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="font-semibold text-green-600 flex items-center justify-end gap-1">
+                          <div className="font-semibold text-emerald-700 flex items-center justify-end gap-1">
                             <DollarSign className="w-4 h-4" />
                             {booking.total_price.toLocaleString('id-ID')}
                           </div>
@@ -287,7 +287,7 @@ export default function AdminBookingPage() {
                               <>
                                 <Button
                                   size="sm"
-                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black shadow-md"
                                   onClick={() => handleAction(booking.id, 'confirm')}
                                 >
                                   <CheckCircle2 className="w-4 h-4" />
@@ -295,6 +295,7 @@ export default function AdminBookingPage() {
                                 <Button
                                   size="sm"
                                   variant="destructive"
+                                  className="bg-rose-500 hover:bg-rose-600"
                                   onClick={() => handleAction(booking.id, 'cancel')}
                                 >
                                   <XCircle className="w-4 h-4" />
@@ -302,10 +303,10 @@ export default function AdminBookingPage() {
                               </>
                             )}
                             {booking.status === 'confirmed' && (
-                              <Badge className="bg-green-100 text-green-800">Sudah Dikonfirmasi</Badge>
+                              <Badge className="bg-emerald-100 text-emerald-800 font-medium">Sudah Dikonfirmasi</Badge>
                             )}
                             {booking.status === 'cancelled' && (
-                              <Badge className="bg-red-100 text-red-800">Dibatalkan</Badge>
+                              <Badge className="bg-rose-100 text-rose-800 font-medium">Dibatalkan</Badge>
                             )}
                           </div>
                         </TableCell>
@@ -315,13 +316,13 @@ export default function AdminBookingPage() {
                 </Table>
               </div>
             )}
-            <div className="px-6 py-3 bg-gray-50 border-t flex items-center justify-between text-xs text-gray-500">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
+            <div className="px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-t border-yellow-200 flex items-center justify-between text-sm text-gray-700">
+              <div className="flex items-center gap-1 font-medium">
+                <Clock className="w-4 h-4 text-amber-600" />
                 Auto-refresh setiap 10 detik
               </div>
-              <div>
-                Total: <strong>{filteredBookings.length}</strong> booking
+              <div className="font-semibold">
+                Total: <span className="text-amber-700">{filteredBookings.length}</span> booking
               </div>
             </div>
           </CardContent>

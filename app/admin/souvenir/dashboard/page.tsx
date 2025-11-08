@@ -38,7 +38,8 @@ interface Stats {
   oldestProduct: Product | null;
 }
 
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'];
+// Warna emas premium untuk chart
+const GOLD_COLORS = ['#F59E0B', '#FBBF24', '#FCD34D', '#FEF3C7', '#FDE68A', '#FACC15', '#EAB308', '#CA8A04'];
 
 export default function DashboardSouvenirPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -113,7 +114,6 @@ export default function DashboardSouvenirPage() {
   const filteredProducts = useMemo(() => {
     let filtered = products;
 
-    // Search
     if (search) {
       filtered = filtered.filter(p =>
         p.nama.toLowerCase().includes(search.toLowerCase()) ||
@@ -121,20 +121,16 @@ export default function DashboardSouvenirPage() {
       );
     }
 
-    // Category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(p => p.category_id === Number(selectedCategory));
     }
 
-    // Stock
     if (stockFilter === 'in-stock') filtered = filtered.filter(p => p.stok > 0);
     if (stockFilter === 'low') filtered = filtered.filter(p => p.stok > 0 && p.stok <= 10);
     if (stockFilter === 'empty') filtered = filtered.filter(p => p.stok === 0);
 
-    // Price
     filtered = filtered.filter(p => p.harga >= priceRange[0] && p.harga <= priceRange[1]);
 
-    // Date Range
     if (dateRange === 'last30') {
       const threshold = subMonths(new Date(), 1);
       filtered = filtered.filter(p => new Date(p.created_at) >= threshold);
@@ -242,9 +238,11 @@ export default function DashboardSouvenirPage() {
 
   if (loading) {
     return (
-      <div className={`flex items-center justify-center min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600"></div>
-        <span className="ml-3 text-lg">Memuat Dashboard...</span>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-white to-amber-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-amber-600 border-t-transparent"></div>
+          <p className="mt-4 text-lg font-medium text-gray-700">Memuat Dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -252,43 +250,45 @@ export default function DashboardSouvenirPage() {
   if (error) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg">
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-6 py-4 rounded-xl shadow-sm">
           <strong>Error:</strong> {error}
-          {error.includes('login') && <Link href="/login" className="underline ml-2">Login ulang</Link>}
+          {error.includes('login') && <Link href="/login" className="underline ml-2 font-medium">Login ulang</Link>}
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'} transition-colors`}>
+    <div className={`min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50 transition-colors`}>
       <div className="p-6 max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard Souvenir</h1>
-            <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-600 bg-clip-text text-transparent">
+              Dashboard Souvenir
+            </h1>
+            <p className="text-sm mt-1 text-gray-600">
               Analisis mendalam produk & kategori • Terakhir diperbarui: {format(new Date(), 'HH:mm')}
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`p-2 rounded-lg ${autoRefresh ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+              className={`p-2 rounded-xl transition-all ${autoRefresh ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-black shadow-md' : 'bg-white text-gray-700 border border-yellow-300'}`}
               title="Auto Refresh"
             >
               <RefreshCw className={`w-5 h-5 ${autoRefresh ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-lg bg-gray-200 text-gray-700"
+              className="p-2 rounded-xl bg-white text-gray-700 border border-yellow-300 shadow-sm hover:shadow-md transition-all"
             >
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {darkMode ? <Sun className="w-5 h-5 text-amber-600" /> : <Moon className="w-5 h-5 text-gray-600" />}
             </button>
             <button
               onClick={exportCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-semibold rounded-xl hover:from-amber-600 hover:to-yellow-700 shadow-md transition-all"
             >
               <Download className="w-4 h-4" /> CSV
             </button>
@@ -298,20 +298,20 @@ export default function DashboardSouvenirPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Produk', value: stats.totalProducts, color: 'blue' },
-            { label: 'Kategori', value: stats.totalCategories, color: 'green' },
-            { label: 'Total Stok', value: stats.totalStock.toLocaleString(), color: 'purple' },
-            { label: 'Rata-rata Harga', value: `Rp ${stats.avgPrice.toLocaleString()}`, color: 'yellow' },
+            { label: 'Total Produk', value: stats.totalProducts, icon: 'package', color: 'amber' },
+            { label: 'Kategori', value: stats.totalCategories, icon: 'folder', color: 'yellow' },
+            { label: 'Total Stok', value: stats.totalStock.toLocaleString(), icon: 'box', color: 'emerald' },
+            { label: 'Rata-rata Harga', value: `Rp ${stats.avgPrice.toLocaleString()}`, icon: 'dollar', color: 'gold' },
           ].map((s, i) => (
-            <div key={i} className={`p-5 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <p className="text-sm opacity-70">{s.label}</p>
-              <p className="text-2xl font-bold mt-1">{s.value}</p>
+            <div key={i} className="p-5 bg-white rounded-xl shadow-sm border border-yellow-200 hover:shadow-md transition-shadow">
+              <p className="text-sm text-gray-600">{s.label}</p>
+              <p className="text-2xl font-bold mt-1 text-gray-800">{s.value}</p>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div className={`p-4 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className="p-5 bg-white rounded-xl shadow-sm border border-yellow-200">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
@@ -320,13 +320,13 @@ export default function DashboardSouvenirPage() {
                 placeholder="Cari produk..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className={`w-full pl-10 pr-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
+                className="w-full pl-10 pr-3 py-2 rounded-lg border border-yellow-300 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-amber-50/50"
               />
             </div>
             <select
               value={selectedCategory}
               onChange={e => setSelectedCategory(e.target.value)}
-              className={`px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
+              className="px-3 py-2 rounded-lg border border-yellow-300 focus:ring-2 focus:ring-amber-400 bg-amber-50/50"
             >
               <option value="all">Semua Kategori</option>
               {categories.map(cat => (
@@ -336,7 +336,7 @@ export default function DashboardSouvenirPage() {
             <select
               value={stockFilter}
               onChange={e => setStockFilter(e.target.value as any)}
-              className={`px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
+              className="px-3 py-2 rounded-lg border border-yellow-300 focus:ring-2 focus:ring-amber-400 bg-amber-50/50"
             >
               <option value="all">Semua Stok</option>
               <option value="in-stock">Ada Stok</option>
@@ -349,15 +349,15 @@ export default function DashboardSouvenirPage() {
                 placeholder="Min"
                 value={priceRange[0]}
                 onChange={e => setPriceRange([Number(e.target.value), priceRange[1]])}
-                className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
+                className="w-full px-3 py-2 rounded-lg border border-yellow-300 focus:ring-2 focus:ring-amber-400 bg-amber-50/50"
               />
-              <span className="text-sm">—</span>
+              <span className="text-sm text-gray-600">—</span>
               <input
                 type="number"
                 placeholder="Max"
                 value={priceRange[1]}
                 onChange={e => setPriceRange([priceRange[0], Number(e.target.value)])}
-                className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
+                className="w-full px-3 py-2 rounded-lg border border-yellow-300 focus:ring-2 focus:ring-amber-400 bg-amber-50/50"
               />
             </div>
             <button
@@ -365,7 +365,7 @@ export default function DashboardSouvenirPage() {
                 setSearch(''); setSelectedCategory('all'); setStockFilter('all'); setPriceRange([0, 1000000]); setDateRange('all');
                 setCustomStart(''); setCustomEnd('');
               }}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+              className="px-4 py-2 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-lg hover:from-rose-600 hover:to-red-700 font-medium text-sm shadow-md transition-all"
             >
               Reset Filter
             </button>
@@ -374,57 +374,61 @@ export default function DashboardSouvenirPage() {
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <h3 className="text-lg font-semibold mb-4">Distribusi Produk per Kategori</h3>
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-yellow-200">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">Distribusi Produk per Kategori</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie data={productsByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                   {productsByCategory.map((_, i) => (
-                    <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
+                    <Cell key={`cell-${i}`} fill={GOLD_COLORS[i % GOLD_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #fde68a', borderRadius: '8px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
 
-          <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <h3 className="text-lg font-semibold mb-4">Tren Penambahan Produk</h3>
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-yellow-200">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">Tren Penambahan Produk</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#fde68a" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#3B82F6" strokeWidth={2} />
+                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #fde68a', borderRadius: '8px' }} />
+                <Line type="monotone" dataKey="count" stroke="#F59E0B" strokeWidth={3} dot={{ fill: '#F59E0B' }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Heatmap Stok */}
-        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <h3 className="text-lg font-semibold mb-4">Heatmap Stok per Kategori</h3>
+        <div className="p-6 bg-white rounded-xl shadow-sm border border-yellow-200">
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">Heatmap Stok per Kategori</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {stockHeatmap.map((h, i) => (
-              <div key={i} className={`p-4 rounded-lg border ${darkMode ? 'border-gray-700' : 'border-gray-200'} ${h.avg > 50 ? 'bg-green-100' : h.avg > 20 ? 'bg-yellow-100' : 'bg-red-100'}`}>
-                <p className="font-medium">{h.name}</p>
-                <p className="text-sm">Total Stok: <strong>{h.total}</strong></p>
-                <p className="text-sm">Rata-rata: <strong>{h.avg}</strong></p>
-                <p className="text-xs opacity-70">{h.count} produk</p>
+              <div key={i} className={`p-4 rounded-lg border ${
+                h.avg > 50 ? 'bg-emerald-50 border-emerald-300' : 
+                h.avg > 20 ? 'bg-yellow-50 border-yellow-300' : 
+                'bg-rose-50 border-rose-300'
+              } shadow-sm`}>
+                <p className="font-semibold text-gray-800">{h.name}</p>
+                <p className="text-sm text-gray-600">Total Stok: <strong>{h.total}</strong></p>
+                <p className="text-sm text-gray-600">Rata-rata: <strong>{h.avg}</strong></p>
+                <p className="text-xs text-gray-500">{h.count} produk</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Table */}
-        <div className={`rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden`}>
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold">Daftar Produk (Detail)</h3>
+        <div className="bg-white rounded-xl shadow-sm border border-yellow-200 overflow-hidden">
+          <div className="p-4 border-b border-yellow-200 bg-gradient-to-r from-yellow-50 to-amber-50">
+            <h3 className="text-lg font-semibold text-gray-800">Daftar Produk (Detail)</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <thead className="bg-gradient-to-r from-amber-50 to-yellow-50">
                 <tr>
                   {['nama', 'harga', 'stok', 'created_at'].map(col => (
                     <th
@@ -433,44 +437,60 @@ export default function DashboardSouvenirPage() {
                         setSortBy(col as any);
                         setSortOrder(sortBy === col ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc');
                       }}
-                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-yellow-100 transition-colors text-amber-800"
                     >
                       {col === 'nama' ? 'Nama' : col === 'harga' ? 'Harga' : col === 'stok' ? 'Stok' : 'Dibuat'}
-                      {sortBy === col && (sortOrder === 'asc' ? ' ↑' : ' ↓')}
+                      {sortBy === col && <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
                     </th>
                   ))}
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Kategori</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Gambar</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Kategori</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Gambar</th>
                 </tr>
               </thead>
-              <tbody className={`${darkMode ? 'bg-gray-800' : 'bg-white'} divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+              <tbody className="divide-y divide-yellow-100">
                 {paginatedProducts.map(p => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium">{p.nama}</td>
-                    <td className="px-4 py-3 text-sm">Rp {p.harga.toLocaleString()}</td>
+                  <tr key={p.id} className="hover:bg-yellow-50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-800">{p.nama}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-emerald-700">Rp {p.harga.toLocaleString()}</td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`px-2 py-1 text-xs rounded-full ${p.stok > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                        p.stok > 0 
+                          ? p.stok > 10 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-amber-100 text-amber-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}>
                         {p.stok}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs">{format(new Date(p.created_at), 'dd MMM yyyy')}</td>
-                    <td className="px-4 py-3 text-sm">{p.category?.nama || '-'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{format(new Date(p.created_at), 'dd MMM yyyy')}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{p.category?.nama || '-'}</td>
                     <td className="px-4 py-3 text-sm">
-                      {p.gambar ? 'Ada' : 'Tidak'}
+                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${p.gambar ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {p.gambar ? 'Ada' : 'Tidak'}
+                      </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-3 flex items-center justify-between border-t">
-            <p className="text-sm">Halaman {page} dari {totalPages}</p>
+          <div className="px-4 py-3 flex items-center justify-between border-t border-yellow-200 bg-amber-50/50">
+            <p className="text-sm text-gray-700">Halaman <strong>{page}</strong> dari <strong>{totalPages}</strong></p>
             <div className="flex gap-2">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-lg bg-gray-200 disabled:opacity-50">
-                <ChevronLeft className="w-4 h-4" />
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))} 
+                disabled={page === 1} 
+                className="p-2 rounded-lg bg-white border border-yellow-300 disabled:opacity-50 hover:bg-yellow-50 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 text-amber-700" />
               </button>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-lg bg-gray-200 disabled:opacity-50">
-                <ChevronRight className="w-4 h-4" />
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+                disabled={page === totalPages} 
+                className="p-2 rounded-lg bg-white border border-yellow-300 disabled:opacity-50 hover:bg-yellow-50 transition-colors"
+              >
+                <ChevronRight className="w-4 h-4 text-amber-700" />
               </button>
             </div>
           </div>

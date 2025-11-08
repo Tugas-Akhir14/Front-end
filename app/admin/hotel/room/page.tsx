@@ -39,13 +39,13 @@ export type RoomsResponse = {
   total: number;
 };
 
-// STATUS OPTIONS
+// STATUS OPTIONS (Dengan warna emas & pastel)
 const ROOM_STATUSES = [
   { label: "Semua Status", value: "" },
-  { label: "Tersedia", value: "available", color: "bg-green-100 text-green-800" },
-  { label: "Dipesan", value: "booked", color: "bg-blue-100 text-blue-800" },
-  { label: "Maintenance", value: "maintenance", color: "bg-orange-100 text-orange-800" },
-  { label: "Sedang Dibersihkan", value: "cleaning", color: "bg-purple-100 text-purple-800" },
+  { label: "Tersedia", value: "available", color: "bg-emerald-50 text-emerald-800 border border-emerald-200" },
+  { label: "Dipesan", value: "booked", color: "bg-blue-50 text-blue-800 border border-blue-200" },
+  { label: "Maintenance", value: "maintenance", color: "bg-amber-50 text-amber-800 border border-amber-200" },
+  { label: "Sedang Dibersihkan", value: "cleaning", color: "bg-purple-50 text-purple-800 border border-purple-200" },
 ];
 
 const ROOM_TYPES: Array<{ label: string; value: string }> = [
@@ -78,34 +78,31 @@ function SkeletonRow() {
   return (
     <tr className="animate-pulse">
       <td className="px-4 py-4">
-        <div className="h-16 w-16 rounded-xl bg-zinc-200" />
+        <div className="h-16 w-16 rounded-xl bg-amber-100" />
       </td>
-      <td className="px-4 py-4"><div className="h-3 w-12 rounded bg-zinc-200" /></td>
-      <td className="px-4 py-4"><div className="h-3 w-28 rounded bg-zinc-200" /></td>
-      <td className="px-4 py-4"><div className="h-3 w-24 rounded bg-zinc-200" /></td>
-      <td className="px-4 py-4"><div className="h-3 w-20 rounded bg-zinc-200" /></td>
-      <td className="px-4 py-4"><div className="h-3 w-32 rounded bg-zinc-200" /></td>
-      <td className="px-4 py-4"><div className="h-3 w-20 rounded bg-zinc-200" /></td>
-      <td className="px-4 py-4"><div className="h-8 w-28 rounded bg-zinc-200" /></td>
+      <td className="px-4 py-4"><div className="h-3 w-12 rounded bg-amber-100" /></td>
+      <td className="px-4 py-4"><div className="h-3 w-28 rounded bg-amber-100" /></td>
+      <td className="px-4 py-4"><div className="h-3 w-24 rounded bg-amber-100" /></td>
+      <td className="px-4 py-4"><div className="h-3 w-20 rounded bg-amber-100" /></td>
+      <td className="px-4 py-4"><div className="h-3 w-32 rounded bg-amber-100" /></td>
+      <td className="px-4 py-4"><div className="h-3 w-20 rounded bg-amber-100" /></td>
+      <td className="px-4 py-4"><div className="h-8 w-28 rounded bg-amber-100" /></td>
     </tr>
   );
 }
 
 export default function RoomPage() {
-  // Query state
   const [search, setSearch] = useState("");
   const [roomType, setRoomType] = useState("");
   const [roomStatus, setRoomStatus] = useState("");
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
 
-  // Data state
   const [rooms, setRooms] = useState<Room[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Edit modal state
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editing, setEditing] = useState<Room | null>(null);
   const [editNumber, setEditNumber] = useState("");
@@ -162,10 +159,9 @@ export default function RoomPage() {
     fetchRooms();
   }, [search, roomType, roomStatus, limit, offset]);
 
-  // Fallback gambar
   const FallbackThumb = () => (
-    <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50">
-      <svg className="h-5 w-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-dashed border-amber-300 bg-amber-50">
+      <svg className="h-6 w-6 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <rect x="3" y="4" width="18" height="14" rx="2" />
         <path d="m8 13 2.5-2.5 4 4L21 9" />
         <circle cx="7" cy="8" r="1.5" />
@@ -173,14 +169,12 @@ export default function RoomPage() {
     </div>
   );
 
-  // Badge status
   const getStatusBadge = (status: string) => {
     const s = ROOM_STATUSES.find(s => s.value === status);
-    if (!s || !s.value) return <span className="text-xs text-zinc-500">{status}</span>;
-    return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${s.color}`}>{s.label}</span>;
+    if (!s || !s.value) return <span className="text-xs text-gray-600">{status}</span>;
+    return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${s.color}`}>{s.label}</span>;
   };
 
-  // Handlers
   const openEdit = (r: Room) => {
     setEditing(r);
     setEditNumber(r.number);
@@ -204,7 +198,6 @@ export default function RoomPage() {
   const handleUpdate = async () => {
     if (!editing) return;
 
-    // Validasi dasar
     if (!editNumber.trim()) {
       setSubmitError("Nomor kamar wajib diisi.");
       return;
@@ -234,9 +227,7 @@ export default function RoomPage() {
       }
 
       await api.put(`/api/rooms/${editing.id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       await fetchRooms();
@@ -269,18 +260,20 @@ export default function RoomPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900">
+    <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50">
       {/* Header */}
-      <header className="border-b border-zinc-200 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-[var(--app-header-h)] z-10">
+      <header className="border-b border-yellow-200 bg-gradient-to-r from-yellow-50 to-amber-50 sticky top-[var(--app-header-h)] z-10 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Manajemen Kamar</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+                Manajemen Kamar
+              </h1>
             </div>
             <div className="flex items-center gap-2">
               <Link
                 href="/admin/hotel/room/create"
-                className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow-sm shadow-black/10 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black"
+                className="rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 px-5 py-2.5 text-sm font-semibold text-black shadow-md hover:from-amber-600 hover:to-yellow-700 transition-all"
               >
                 + Tambah Kamar
               </Link>
@@ -290,20 +283,20 @@ export default function RoomPage() {
       </header>
 
       {/* Content */}
-      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8 pt-[var(--app-header-h)]">
+      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Toolbar */}
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <div className="relative w-full sm:w-72">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <div className="relative w-full sm:w-80">
             <input
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setOffset(0);
               }}
-              placeholder="Cari nomor/desk…"
-              className="w-full rounded-xl bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 placeholder:text-zinc-400"
+              placeholder="Cari nomor/deskripsi..."
+              className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-gray-500"
             />
-            <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.3-4.3" />
             </svg>
@@ -315,7 +308,7 @@ export default function RoomPage() {
               setRoomType(e.target.value);
               setOffset(0);
             }}
-            className="rounded-xl bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+            className="rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             {ROOM_TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
@@ -328,7 +321,7 @@ export default function RoomPage() {
               setRoomStatus(e.target.value);
               setOffset(0);
             }}
-            className="rounded-xl bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+            className="rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             {ROOM_STATUSES.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
@@ -336,7 +329,7 @@ export default function RoomPage() {
           </select>
 
           <div className="ml-auto flex items-center gap-2">
-            <label className="text-sm text-zinc-600">Per halaman</label>
+            <label className="text-sm text-gray-700 font-medium">Per halaman</label>
             <select
               value={limit}
               onChange={(e) => {
@@ -344,7 +337,7 @@ export default function RoomPage() {
                 setLimit(l);
                 setOffset(0);
               }}
-              className="rounded-xl bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+              className="rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
               {[5, 10, 20, 50].map((n) => (
                 <option key={n} value={n}>{n}</option>
@@ -354,36 +347,36 @@ export default function RoomPage() {
         </div>
 
         {/* List */}
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-zinc-200">
-            <thead className="bg-zinc-50/80">
+        <div className="overflow-hidden rounded-2xl border border-yellow-200 bg-white shadow-lg">
+          <table className="min-w-full divide-y divide-yellow-100">
+            <thead className="bg-gradient-to-r from-yellow-50 to-amber-50">
               <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Gambar</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">No. Kamar</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Tipe</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Harga</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Kapasitas</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Status</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Diperbarui</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Aksi</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Gambar</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">No. Kamar</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Tipe</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Harga</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Kapasitas</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Diperbarui</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-yellow-100">
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
               ) : rooms.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200">
-                      <svg className="h-5 w-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <td colSpan={8} className="px-6 py-16 text-center">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+                      <svg className="h-8 w-8 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="3" y="4" width="18" height="16" rx="2" />
                         <path d="M7 8h10M7 12h6M7 16h8" />
                       </svg>
                     </div>
-                    <p className="text-zinc-800 font-medium">Belum ada data kamar.</p>
-                    <p className="text-zinc-500 text-sm mt-1">Mulai dengan menambahkan kamar baru.</p>
-                    <div className="mt-4">
-                      <Link href="/admin/hotel/room/create" className="inline-flex items-center rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow-sm shadow-black/10 hover:opacity-90">
+                    <p className="text-gray-800 font-semibold text-lg">Belum ada data kamar.</p>
+                    <p className="text-gray-600 text-sm mt-1">Mulai dengan menambahkan kamar baru.</p>
+                    <div className="mt-5">
+                      <Link href="/admin/hotel/room/create" className="inline-flex items-center rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 px-5 py-2.5 text-sm font-semibold text-black shadow-md hover:from-amber-600 hover:to-yellow-700">
                         + Tambah Kamar
                       </Link>
                     </div>
@@ -391,13 +384,13 @@ export default function RoomPage() {
                 </tr>
               ) : (
                 rooms.map((r) => (
-                  <tr key={r.id} className="hover:bg-zinc-50/60">
+                  <tr key={r.id} className="hover:bg-yellow-50 transition-colors">
                     <td className="px-4 py-3 align-top">
                       {r.image ? (
                         <img
                           src={r.image}
                           alt={`Kamar ${r.number}`}
-                          className="h-16 w-16 rounded-xl object-cover border border-zinc-200"
+                          className="h-16 w-16 rounded-xl object-cover border-2 border-amber-200 shadow-sm"
                           onError={(e) => {
                             const img = e.currentTarget;
                             img.style.display = "none";
@@ -409,28 +402,28 @@ export default function RoomPage() {
                         <FallbackThumb />
                       )}
                     </td>
-                    <td className="px-4 py-3 align-top font-medium text-zinc-900">{r.number}</td>
+                    <td className="px-4 py-3 align-top font-bold text-amber-700">{r.number}</td>
                     <td className="px-4 py-3 align-top">
-                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border border-zinc-200 bg-zinc-50 text-zinc-700 capitalize">
+                      <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 capitalize">
                         {r.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 align-top text-zinc-800">{rupiah(r.price)}</td>
-                    <td className="px-4 py-3 align-top text-zinc-800">{r.capacity}</td>
+                    <td className="px-4 py-3 align-top font-medium text-emerald-700">{rupiah(r.price)}</td>
+                    <td className="px-4 py-3 align-top text-gray-800">{r.capacity}</td>
                     <td className="px-4 py-3 align-top">{getStatusBadge(r.status)}</td>
-                    <td className="px-4 py-3 align-top text-sm text-zinc-700">{formatDate(r.updated_at)}</td>
+                    <td className="px-4 py-3 align-top text-sm text-gray-600">{formatDate(r.updated_at)}</td>
                     <td className="px-4 py-3 align-top">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => openEdit(r)}
-                          className="px-3 py-1.5 rounded-xl text-sm bg-black text-white shadow-sm hover:opacity-90"
+                          className="px-3 py-1.5 rounded-xl text-sm bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-semibold shadow-sm hover:from-amber-600 hover:to-yellow-700 transition-all"
                           title="Ubah"
                         >
                           Ubah
                         </button>
                         <button
                           onClick={() => handleDelete(r)}
-                          className="px-3 py-1.5 rounded-xl text-sm border border-zinc-300 hover:bg-zinc-50"
+                          className="px-3 py-1.5 rounded-xl text-sm border border-rose-300 text-rose-700 hover:bg-rose-50 transition-colors"
                           title="Hapus"
                         >
                           Hapus
@@ -446,43 +439,43 @@ export default function RoomPage() {
 
         {/* Error */}
         {error && !loading && (
-          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 text-red-800 p-4">
+          <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 p-5 shadow-sm">
             <div className="flex items-start gap-3">
-              <svg className="h-5 w-5 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="h-6 w-6 mt-0.5 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                 <line x1="12" y1="9" x2="12" y2="13" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
               <div>
-                <p className="font-semibold">Terjadi kesalahan</p>
-                <p className="text-sm opacity-90">{error}</p>
+                <p className="font-bold">Terjadi kesalahan</p>
+                <p className="text-sm mt-1">{error}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Pagination */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
-          <div className="text-sm text-zinc-600">
-            Menampilkan <span className="font-medium text-zinc-900">{rooms.length}</span> dari{" "}
-            <span className="font-medium text-zinc-900">{total}</span> kamar
+        <div className="flex flex-wrap items-center justify-between gap-4 mt-6">
+          <div className="text-sm text-gray-700">
+            Menampilkan <span className="font-bold text-amber-700">{rooms.length}</span> dari{" "}
+            <span className="font-bold text-amber-700">{total}</span> kamar
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setOffset(Math.max(0, offset - limit))}
               disabled={offset <= 0 || loading}
-              className="px-3 py-2 rounded-xl border border-zinc-200 text-sm disabled:opacity-50 hover:bg-zinc-50"
+              className="px-4 py-2.5 rounded-xl border border-yellow-300 text-sm font-medium disabled:opacity-50 hover:bg-yellow-50 transition-colors"
             >
               ← Sebelumnya
             </button>
-            <div className="text-sm text-zinc-600">
-              Halaman <span className="font-semibold text-zinc-900">{page}</span> dari{" "}
-              <span className="font-semibold text-zinc-900">{totalPages}</span>
+            <div className="text-sm text-gray-700 font-medium">
+              Halaman <span className="text-amber-700 font-bold">{page}</span> dari{" "}
+              <span className="text-amber-700 font-bold">{totalPages}</span>
             </div>
             <button
               onClick={() => setOffset(offset + limit)}
               disabled={offset + limit >= total || loading}
-              className="px-3 py-2 rounded-xl border border-zinc-200 text-sm disabled:opacity-50 hover:bg-zinc-50"
+              className="px-4 py-2.5 rounded-xl border border-yellow-300 text-sm font-medium disabled:opacity-50 hover:bg-yellow-50 transition-colors"
             >
               Selanjutnya →
             </button>
@@ -492,39 +485,38 @@ export default function RoomPage() {
 
       {/* EDIT MODAL */}
       {isEditOpen && editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="absolute inset-0 bg-black/40" onClick={closeEdit} />
-          <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-zinc-200">
-            <div className="px-6 py-4 border-b border-zinc-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Ubah Kamar #{editing.number}</h3>
-              <button onClick={closeEdit} className="p-2 rounded-xl hover:bg-zinc-100">
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/30">
+          <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-yellow-200">
+            <div className="px-6 py-4 border-b border-yellow-200 bg-gradient-to-r from-yellow-50 to-amber-50 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-800">Ubah Kamar #{editing.number}</h3>
+              <button onClick={closeEdit} className="p-2 rounded-xl hover:bg-amber-100 transition-colors">
+                <svg className="h-5 w-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6 6 18M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
               {submitError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 px-3 py-2 text-sm">{submitError}</div>
+                <div className="rounded-xl border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3 text-sm font-medium">{submitError}</div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Nomor Kamar</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nomor Kamar</label>
                   <input
                     value={editNumber}
                     onChange={(e) => setEditNumber(e.target.value)}
-                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                     placeholder="101"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Tipe Kamar</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tipe Kamar</label>
                   <select
                     value={editType}
                     onChange={(e) => setEditType(e.target.value as Room["type"])}
-                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                   >
                     <option value="superior">Superior</option>
                     <option value="deluxe">Deluxe</option>
@@ -532,32 +524,32 @@ export default function RoomPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Harga per Malam</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Harga per Malam</label>
                   <input
                     type="number"
                     min="0"
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
-                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                     placeholder="500000"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Kapasitas (orang)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Kapasitas (orang)</label>
                   <input
                     type="number"
                     min="1"
                     value={editCapacity}
                     onChange={(e) => setEditCapacity(e.target.value)}
-                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-700 mb-1">Status</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Status</label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value as Room["status"])}
-                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                   >
                     <option value="available">Tersedia</option>
                     <option value="booked">Dipesan</option>
@@ -566,33 +558,33 @@ export default function RoomPage() {
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm text-zinc-700 mb-1">Deskripsi (opsional)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi (opsional)</label>
                   <textarea
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     rows={3}
-                    className="w-full rounded-xl bg-white border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
                     placeholder="Kamar luas dengan pemandangan taman..."
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm text-zinc-700 mb-1">Ganti Gambar (opsional)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ganti Gambar (opsional)</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setEditImage(e.target.files?.[0] || null)}
-                    className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-black file:text-white hover:file:bg-black/90"
+                    className="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-amber-500 file:to-yellow-600 file:text-black hover:file:from-amber-600 hover:file:to-yellow-700"
                   />
                   {editing.image && !editImage && (
-                    <div className="mt-3">
-                      <p className="text-xs text-zinc-500 mb-1">Gambar saat ini:</p>
-                      <img src={editing.image} alt="preview" className="h-20 w-20 rounded-xl object-cover border border-zinc-200" />
+                    <div className="mt-4">
+                      <p className="text-xs text-gray-600 mb-2">Gambar saat ini:</p>
+                      <img src={editing.image} alt="preview" className="h-24 w-24 rounded-xl object-cover border-2 border-amber-200 shadow-sm" />
                     </div>
                   )}
                   {editImage && (
-                    <div className="mt-3">
-                      <p className="text-xs text-zinc-500 mb-1">Gambar baru:</p>
-                      <div className="h-20 w-20 rounded-xl border-2 border-dashed border-zinc-300 flex items-center justify-center text-xs text-zinc-500">
+                    <div className="mt-4">
+                      <p className="text-xs text-gray-600 mb-2">Gambar baru:</p>
+                      <div className="h-24 w-24 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 flex items-center justify-center text-xs text-amber-700 font-medium p-2">
                         {editImage.name}
                       </div>
                     </div>
@@ -601,10 +593,10 @@ export default function RoomPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-zinc-200 flex items-center justify-end gap-2">
+            <div className="px-6 py-4 border-t border-yellow-200 bg-gradient-to-r from-yellow-50 to-amber-50 flex items-center justify-end gap-3">
               <button
                 onClick={closeEdit}
-                className="px-4 py-2 rounded-xl border border-zinc-300 text-sm hover:bg-zinc-50"
+                className="px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium hover:bg-gray-100 transition-colors"
                 disabled={submitLoading}
               >
                 Batal
@@ -612,7 +604,7 @@ export default function RoomPage() {
               <button
                 onClick={handleUpdate}
                 disabled={submitLoading}
-                className="px-4 py-2 rounded-xl bg-black text-white text-sm shadow-sm hover:opacity-90 disabled:opacity-60 flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-sm font-bold shadow-md hover:from-amber-600 hover:to-yellow-700 disabled:opacity-60 flex items-center gap-2 transition-all"
               >
                 {submitLoading ? (
                   <>

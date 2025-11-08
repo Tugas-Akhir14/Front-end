@@ -30,13 +30,13 @@ function formatDate(value?: string | null) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const base = "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border";
+  const base = "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border";
   const styles =
     status === "published"
-      ? "bg-green-50 text-green-700 border-green-200"
+      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
       : status === "draft"
-      ? "bg-gray-50 text-gray-700 border-gray-200"
-      : "bg-zinc-50 text-zinc-700 border-zinc-200";
+      ? "bg-amber-50 text-amber-800 border-amber-200"
+      : "bg-gray-50 text-gray-700 border-gray-200";
   return <span className={`${base} ${styles}`}>{status}</span>;
 }
 
@@ -90,56 +90,56 @@ function EditModal({ item, onClose, onSuccess }: { item: News; onClose: () => vo
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-        <h2 className="text-xl font-bold mb-4">Edit Berita</h2>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl border border-yellow-200">
+        <h2 className="text-xl font-bold mb-4 text-gray-800">Edit Berita</h2>
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium">
             {error}
           </div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium mb-1">Judul</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Judul</label>
             <input
               required
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50/30"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Slug</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Slug</label>
             <input
               required
               value={form.slug}
               onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50/30"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Konten</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Konten</label>
             <textarea
               required
               rows={5}
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50/30 resize-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Status</label>
             <select
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value })}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50/30"
             >
               <option value="draft">Draft</option>
               <option value="published">Published</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Gambar (opsional)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Gambar (opsional)</label>
             <input
               type="file"
               accept="image/*"
@@ -150,11 +150,11 @@ function EditModal({ item, onClose, onSuccess }: { item: News; onClose: () => vo
                   setPreview(URL.createObjectURL(file));
                 }
               }}
-              className="w-full text-sm"
+              className="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-amber-500 file:to-yellow-600 file:text-black hover:file:from-amber-600 hover:file:to-yellow-700"
             />
             {preview && (
-              <div className="mt-2">
-                <img src={preview} alt="Preview" className="h-32 w-full object-cover rounded-lg border" />
+              <div className="mt-3">
+                <img src={preview} alt="Preview" className="h-40 w-full object-cover rounded-xl border-2 border-amber-200 shadow-sm" />
               </div>
             )}
           </div>
@@ -162,16 +162,26 @@ function EditModal({ item, onClose, onSuccess }: { item: News; onClose: () => vo
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 bg-zinc-100 rounded-lg hover:bg-zinc-200"
+              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:opacity-90 disabled:opacity-50"
+              className="px-6 py-2.5 text-sm font-bold text-black bg-gradient-to-r from-amber-500 to-yellow-600 rounded-xl hover:from-amber-600 hover:to-yellow-700 disabled:opacity-60 shadow-md transition-all flex items-center gap-2"
             >
-              {loading ? "Menyimpan..." : "Simpan"}
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan"
+              )}
             </button>
           </div>
         </form>
@@ -211,30 +221,40 @@ function DeleteModal({ item, onClose, onSuccess }: { item: News; onClose: () => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full p-6">
-        <h2 className="text-xl font-bold mb-2">Hapus Berita?</h2>
-        <p className="text-sm text-zinc-600 mb-4">
-          Apakah Anda yakin ingin menghapus berita <strong>{item.title}</strong>? Tindakan ini tidak dapat dibatalkan.
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-yellow-200">
+        <h2 className="text-xl font-bold mb-2 text-gray-800">Hapus Berita?</h2>
+        <p className="text-sm text-gray-600 mb-5">
+          Apakah Anda yakin ingin menghapus berita <strong className="text-amber-700">{item.title}</strong>? Tindakan ini tidak dapat dibatalkan.
         </p>
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          <div className="mb-5 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium">
             {error}
           </div>
         )}
         <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-zinc-700 bg-zinc-100 rounded-lg hover:bg-zinc-200"
+            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
           >
             Batal
           </button>
           <button
             onClick={handleDelete}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+            className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-rose-500 to-red-600 rounded-xl hover:from-rose-600 hover:to-red-700 disabled:opacity-60 shadow-md transition-all flex items-center gap-2"
           >
-            {loading ? "Menghapus..." : "Hapus"}
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+                Menghapus...
+              </>
+            ) : (
+              "Hapus"
+            )}
           </button>
         </div>
       </div>
@@ -253,7 +273,6 @@ export default function AdminNewsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal states
   const [editItem, setEditItem] = useState<News | null>(null);
   const [deleteItem, setDeleteItem] = useState<News | null>(null);
 
@@ -297,21 +316,23 @@ export default function AdminNewsPage() {
   }, [fetchNews]);
 
   const handleSuccess = () => {
-    fetchNews(); // refresh list
+    fetchNews();
   };
 
   return (
-    <div className="min-h-screen bg-white text-black">
+    <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Manajemen Berita</h1>
+            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+              Manajemen Berita
+            </h1>
           </div>
           <div className="flex items-center gap-3">
             <Link
               href="/admin/hotel/news/create"
-              className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white shadow hover:opacity-90"
+              className="rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 px-5 py-2.5 text-sm font-bold text-black shadow-md hover:from-amber-600 hover:to-yellow-700 transition-all"
             >
               + Tambah Berita
             </Link>
@@ -319,63 +340,69 @@ export default function AdminNewsPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <input
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(1); }}
-            placeholder="Cari judul/konten…"
-            className="w-full sm:w-64 rounded-xl bg-zinc-50 border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            placeholder="Cari judul/konten..."
+            className="w-full sm:w-80 rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-gray-500"
           />
           <select
             value={status}
             onChange={(e) => { setStatus(e.target.value as any); setPage(1); }}
-            className="rounded-xl bg-zinc-50 border border-zinc-200 px-3 py-2 text-sm"
+            className="rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             <option value="">Semua status</option>
             <option value="published">Published</option>
             <option value="draft">Draft</option>
           </select>
-          <div className="ml-auto text-sm text-zinc-600">
-            Total: <span className="font-medium">{total}</span> <span className="text-zinc-400">(10/halaman)</span>
+          <div className="ml-auto text-sm text-gray-700 font-medium">
+            Total: <span className="text-amber-700 font-bold">{total}</span> <span className="text-gray-500">(10/halaman)</span>
           </div>
         </div>
 
         {/* Loading / Error / Empty */}
         {loading ? (
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-zinc-700">
-            Memuat berita…
+          <div className="rounded-xl border border-yellow-200 bg-amber-50 p-6 text-amber-700 font-medium text-center">
+            Memuat berita...
           </div>
         ) : error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-            <p className="font-semibold">Gagal memuat berita</p>
-            <p className="text-sm opacity-80">{error}</p>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700">
+            <p className="font-bold text-lg">Gagal memuat berita</p>
+            <p className="text-sm mt-1 opacity-90">{error}</p>
           </div>
         ) : news.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 p-10 text-center">
-            <p className="text-zinc-700 font-medium">Belum ada berita.</p>
-            <p className="text-zinc-500 text-sm mt-1">
-              Klik tombol <span className="font-semibold">Tambah Berita</span> untuk membuat berita baru.
+          <div className="rounded-xl border border-yellow-200 p-12 text-center bg-white shadow-sm">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+              <svg className="h-8 w-8 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2a3 3 0 0 0-3 3v1h6V5a3 3 0 0 0-3-3h-6a3 3 0 0 0-3 3v1h6V5a3 3 0 0 1 3-3z" />
+                <path d="M3 10h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10z" />
+              </svg>
+            </div>
+            <p className="text-gray-800 font-semibold text-lg">Belum ada berita.</p>
+            <p className="text-gray-600 text-sm mt-1">
+              Klik tombol <span className="font-bold text-amber-700">Tambah Berita</span> untuk membuat berita baru.
             </p>
           </div>
         ) : (
           <>
-            <div className="overflow-hidden rounded-xl border border-zinc-200">
-              <table className="min-w-full divide-y divide-zinc-200 bg-white">
-                <thead className="bg-zinc-50">
+            <div className="overflow-hidden rounded-xl border border-yellow-200 bg-white shadow-lg">
+              <table className="min-w-full divide-y divide-yellow-100">
+                <thead className="bg-gradient-to-r from-yellow-50 to-amber-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Cover</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Judul & Slug</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Dipublikasikan</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Diperbarui</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-600">Aksi</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Cover</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Judul & Slug</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Dipublikasikan</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Diperbarui</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-yellow-100">
                   {news.map((item) => (
-                    <tr key={item.id} className="hover:bg-zinc-50/60">
+                    <tr key={item.id} className="hover:bg-yellow-50 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="h-14 w-20 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
+                        <div className="h-14 w-20 overflow-hidden rounded-xl border-2 border-amber-200 bg-amber-50">
                           <img
                             src={item.image_url || "/placeholder.svg"}
                             alt={item.title}
@@ -385,26 +412,26 @@ export default function AdminNewsPage() {
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex flex-col">
-                          <span className="font-medium text-zinc-900 line-clamp-1">{item.title}</span>
-                          <span className="text-xs text-zinc-500">/{item.slug || "—"}</span>
+                          <span className="font-bold text-gray-800 line-clamp-1">{item.title}</span>
+                          <span className="text-xs text-amber-700">/{item.slug || "—"}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">
                         <StatusBadge status={item.status} />
                       </td>
-                      <td className="px-4 py-3 align-top text-sm text-zinc-700">{formatDate(item.published_at)}</td>
-                      <td className="px-4 py-3 align-top text-sm text-zinc-700">{formatDate(item.updated_at)}</td>
+                      <td className="px-4 py-3 align-top text-sm text-gray-700">{formatDate(item.published_at)}</td>
+                      <td className="px-4 py-3 align-top text-sm text-gray-600">{formatDate(item.updated_at)}</td>
                       <td className="px-4 py-3 align-top text-sm">
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                           <button
                             onClick={() => setEditItem(item)}
-                            className="text-indigo-600 hover:text-indigo-800 font-medium"
+                            className="text-amber-700 hover:text-amber-800 font-bold transition-colors"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => setDeleteItem(item)}
-                            className="text-red-600 hover:text-red-800 font-medium"
+                            className="text-rose-600 hover:text-rose-700 font-bold transition-colors"
                           >
                             Hapus
                           </button>
@@ -417,24 +444,24 @@ export default function AdminNewsPage() {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center justify-between mt-6">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-2 rounded-xl border border-zinc-200 text-sm disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl border border-yellow-300 text-sm font-medium disabled:opacity-50 hover:bg-yellow-50 transition-colors"
               >
-                ← Sebelumnya
+                Sebelumnya
               </button>
-              <div className="text-sm text-zinc-600">
-                Halaman <span className="font-medium">{page}</span> dari{" "}
-                <span className="font-medium">{totalPages}</span>
+              <div className="text-sm text-gray-700 font-medium">
+                Halaman <span className="text-amber-700 font-bold">{page}</span> dari{" "}
+                <span className="text-amber-700 font-bold">{totalPages}</span>
               </div>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="px-3 py-2 rounded-xl border border-zinc-200 text-sm disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl border border-yellow-300 text-sm font-medium disabled:opacity-50 hover:bg-yellow-50 transition-colors"
               >
-                Selanjutnya →
+                Selanjutnya
               </button>
             </div>
           </>
