@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import Footer from '@/components/Layout/Footer';
 import Header from '@/components/Layout/Header';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 // ===== Types =====
 type Facility = {
@@ -35,6 +37,7 @@ type Facility = {
   image: string;
   icon: React.ComponentType<any>;
   features: string[];
+  url: string;
   operatingHours: string;
   location: string;
   category: 'wellness' | 'dining' | 'business' | 'recreation' | 'service' | 'premium';
@@ -44,70 +47,40 @@ type Facility = {
 const facilitiesData: Facility[] = [
   {
     id: 1,
-    name: 'Infinity Pool & Spa',
+    name: 'Souvenir',
     description: 'Experience ultimate relaxation with our stunning infinity pool overlooking the city skyline and full-service Mutiara spa treatments. Our wellness facility offers a serene escape with professional therapists, heated pools, and private cabanas for complete privacy and comfort.',
     image: 'https://images.pexels.com/photos/2613948/pexels-photo-2613948.jpeg',
     icon: Waves,
     features: ['Heated Infinity Pool', 'Professional Spa Treatments', 'Poolside Bar', 'Private Cabanas', 'Therapy Jacuzzi', 'Steam Room', 'Sauna'],
     operatingHours: '6:00 AM - 10:00 PM',
     location: 'Level 5, West Wing',
-    category: 'wellness'
+    category: 'wellness',
+    url: '/user/facilities/souvenir',
   },
   {
     id: 2,
-    name: 'Fine Dining Restaurant',
+    name: 'Book Store',
     description: 'Award-winning culinary experience with international cuisine prepared by our world-class chefs in an elegant setting. Featuring seasonal menus, extensive wine collections, and private dining rooms for special occasions.',
     image: 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
     icon: Utensils,
     features: ['International Buffet', 'À La Carte Menu', 'Wine Pairing', 'Chef Table Experience', 'Private Dining Rooms', 'Live Cooking Stations'],
     operatingHours: '6:00 AM - 11:00 PM',
     location: 'Lobby Level, Main Building',
-    category: 'dining'
+    category: 'dining',
+    url: '/user/facilities/book',
   },
   {
     id: 3,
-    name: 'Executive Fitness Center',
+    name: 'Cafe',
     description: 'State-of-the-art fitness facility with premium equipment, personal training, and wellness programs. Our 24/7 fitness center includes dedicated zones for cardio, strength training, yoga, and functional fitness.',
     image: 'https://images.pexels.com/photos/1954524/pexels-photo-1954524.jpeg',
     icon: Dumbbell,
     features: ['24/7 Access', 'Personal Trainers', 'Yoga Studio', 'Cardio Zone', 'Weight Training', 'Group Classes', 'Wellness Coaching'],
     operatingHours: '24 Hours',
     location: 'Level 4, East Wing',
-    category: 'wellness'
+    category: 'wellness',
+    url: '/user/facilities/cafe',
   },
-  {
-    id: 4,
-    name: 'Business Center & Meeting Rooms',
-    description: 'Fully equipped business facilities with modern technology for productive meetings and corporate events. Ideal for conferences, board meetings, and private working sessions with comprehensive support services.',
-    image: 'https://images.pexels.com/photos/1170412/pexels-photo-1170412.jpeg',
-    icon: Users,
-    features: ['High-Speed Internet', 'Audio-Visual Equipment', 'Conference Rooms', 'Printing Services', 'Video Conferencing', 'Secretarial Services'],
-    operatingHours: '7:00 AM - 9:00 PM',
-    location: 'Level 3, Business Wing',
-    category: 'business'
-  },
-  {
-    id: 5,
-    name: 'Valet & Concierge Services',
-    description: 'Premium service experience with dedicated concierge team and complimentary valet parking. Our professional staff is available 24/7 to assist with transportation, reservations, and personalized local experiences.',
-    image: 'https://images.pexels.com/photos/4488280/pexels-photo-4488280.jpeg',
-    icon: Car,
-    features: ['24/7 Valet Service', 'Personal Concierge', 'Transportation Arrangements', 'Luggage Service', 'Local Guidance', 'Event Planning'],
-    operatingHours: '24 Hours',
-    location: 'Main Entrance',
-    category: 'service'
-  },
-  {
-    id: 6,
-    name: 'Royal Lounge & Bar',
-    description: 'Exclusive lounge area with premium beverages, live music, and sophisticated ambiance for elite guests. Featuring crafted cocktails, fine wines, and elegant entertainment in a luxurious setting.',
-    image: 'https://images.pexels.com/photos/3397937/pexels-photo-3397937.jpeg',
-    icon: Crown,
-    features: ['Premium Cocktails', 'Live Music', 'Private Booths', 'Cigar Lounge', 'Butler Service', 'Wine Tasting'],
-    operatingHours: '4:00 PM - 1:00 AM',
-    location: 'Penthouse Level',
-    category: 'premium'
-  }
 ];
 
 // ===== Category Config (emas & putih) =====
@@ -355,10 +328,18 @@ export default function Facilities() {
                         </div>
                       </div>
 
-                      <button className="group bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-600 text-black font-bold px-8 py-4 rounded-full text-lg transition-all duration-300 shadow-lg hover:shadow-amber-200 border-2 border-yellow-500 flex items-center space-x-3">
-                        <span>Explore Facility</span>
-                        <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                      </button>
+                      
+                      <Button
+                        asChild
+                        className="group bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-600 text-black font-bold px-8 py-4 rounded-full text-lg transition-all duration-300 shadow-lg hover:shadow-amber-200 border-2 border-yellow-500"
+                      >
+                        <Link href={facility.url} aria-label="Explore Facility">
+                          <span className="flex items-center gap-3">
+                            <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                            Explore Facility
+                          </span>
+                        </Link>
+                      </Button>
                     </div>
                   </div>
                 );
