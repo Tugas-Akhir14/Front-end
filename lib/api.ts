@@ -26,13 +26,12 @@ export type RegisterResponse = {
 
 const API_URL = 'http://localhost:8080';
 
-// lib/api.ts
 export const api = async (endpoint: string, options: RequestInit = {}) => {
   const rawToken = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
-  const token = rawToken?.replace(/^"+|"+$/g, '') || null; // HAPUS KUTIP!
+  const token = rawToken?.replace(/^"+|"+$/g, '') || null;
 
   const headers = new Headers(options.headers || {});
-  if (!headers.has('Accept')) headers.set('Accept', 'application/json');
+  headers.set('Accept', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -45,10 +44,10 @@ export const api = async (endpoint: string, options: RequestInit = {}) => {
       cache: 'no-store',
     });
 
-    // TAMBAH LOG UNTUK DEBUG
-    console.log('[API] Request:', endpoint, options.method);
-    console.log('[API] Response status:', res.status);
+    console.log('[API] Request:', endpoint, options.method || 'GET');
+    console.log('[API] Status:', res.status);
 
+    // === 401: Token kadaluarsa / tidak valid ===
     if (res.status === 401) {
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
@@ -56,12 +55,31 @@ export const api = async (endpoint: string, options: RequestInit = {}) => {
       return null;
     }
 
-    return res;
-  } catch (err) {
-    console.error('[API] Network error:', err);
-    return null;
+    // === PARSE JSON ===
+    let data;
+    const text = await res.text();
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (e) {
+      console.error('[API] JSON Parse Error:', text);
+      throw new Error('Server mengembalikan data tidak valid');
+    }
+
+    console.log('[API] Response Data:', data);
+
+    // === ERROR DARI SERVER ===
+    if (!res.ok) {
+      const msg = data?.error || data?.message || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+
+    return data; // ← INI YANG PENTING: RETURN JSON, BUKAN Response!
+  } catch (err: any) {
+    console.error('[API] Error:', err);
+    throw err; // Biarkan error naik ke UI
   }
 };
-// lib/api.ts
+
+// Helper untuk PATCH
 export const approveAdmin = (id: number) =>
   api(`/admins/approve/${id}`, { method: 'PATCH' });

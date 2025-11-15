@@ -34,6 +34,7 @@ type Review = {
 // Vision & Mission publik
 type VisionMission = {
   vision: string;
+  
   missions: string[];     // diserialisasi dari datatypes.JSON -> array
   active?: boolean;
   updated_at?: string;
@@ -137,13 +138,18 @@ export default function Home() {
     }).format(price);
   };
 
-  const formatTypeName = (type: string) => {
+  // PERBAIKAN LENGKAP: AMAN DARI UNDEFINED, NULL, KOSONG, CASE-INSENSITIVE
+  const formatTypeName = (type?: string): string => {
+    const normalized = type?.trim().toLowerCase();
+    if (!normalized) return 'Room';
+
     const map: Record<string, string> = {
       superior: 'Superior Room',
       deluxe: 'Deluxe Room',
       executive: 'Executive Suite',
     };
-    return map[type] || type.charAt(0).toUpperCase() + type.slice(1) + ' Room';
+
+    return map[normalized] || normalized.charAt(0).toUpperCase() + normalized.slice(1) + ' Room';
   };
 
   const getFeatures = (room: Room): string[] => {
@@ -308,14 +314,14 @@ export default function Home() {
             ) : vmError ? (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 border-2 border-red-200 mb-4">
-                  <span className="text-2xl text-red-500">⚠</span>
+                  <span className="text-2xl text-red-500">Warning</span>
                 </div>
                 <p className="text-gray-600">{vmError}</p>
               </div>
             ) : !vm ? (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-50 border-2 border-amber-200 mb-4">
-                  <span className="text-2xl text-amber-600">📋</span>
+                  <span className="text-2xl text-amber-600">Document</span>
                 </div>
                 <p className="text-gray-600">Visi & misi belum diatur.</p>
               </div>
@@ -368,14 +374,14 @@ export default function Home() {
                     ) : (
                       <div className="text-center py-8">
                         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 border-2 border-amber-200 mb-3">
-                          <span className="text-xl text-amber-600">📝</span>
+                          <span className="text-xl text-amber-600">Note</span>
                         </div>
                         <p className="text-gray-600">Belum ada daftar misi.</p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
-              </div>
+  </div>
             )}
           </div>
         </section>  
@@ -750,3 +756,4 @@ export default function Home() {
     </>
   );
 }
+

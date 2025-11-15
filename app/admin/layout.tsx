@@ -81,6 +81,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
       items: [
         { icon: 'grid', label: 'Dashboard', href: '/admin/hotel/dashboard' },
         { icon: 'plug-in', label: 'Rooms', href: '/admin/hotel/room', badge: 'NEW' },
+        { icon: 'grid', label: 'Type', href: '/admin/hotel/type', badge: 'NEW' },
         { icon: 'box', label: 'News', href: '/admin/hotel/news', badge: 'NEW' },
         { icon: 'time', label: 'Booking', href: '/admin/hotel/booking', badge: 'NEW' },
         { icon: 'calendar', label: 'Gallery', href: '/admin/hotel/gallery' },

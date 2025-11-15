@@ -21,15 +21,22 @@ api.interceptors.request.use((config) => {
 // =====================
 // Types – SESUAI DENGAN BACKEND
 // =====================
+export type RoomType = {
+  id: number;
+  type: "superior" | "deluxe" | "executive";
+  Price: number;           // <--- Diubah dari `price` ke `Price`
+  description?: string;
+};
+
 export type Room = {
   id: number;
   number: string;
-  type: "superior" | "deluxe" | "executive";
-  price: number;
+  room_type_id: number;
+  room_type: RoomType;
   capacity: number;
   description?: string;
   image?: string | null;
-  status: "available" | "booked" | "maintenance" | "cleaning";
+  status: "available" | "booked" | "cleaning";
   created_at: string;
   updated_at: string;
 };
@@ -39,20 +46,14 @@ export type RoomsResponse = {
   total: number;
 };
 
-// STATUS OPTIONS (Dengan warna emas & pastel)
+// =====================
+// ROOM TYPES & STATUSES
+// =====================
 const ROOM_STATUSES = [
   { label: "Semua Status", value: "" },
   { label: "Tersedia", value: "available", color: "bg-emerald-50 text-emerald-800 border border-emerald-200" },
   { label: "Dipesan", value: "booked", color: "bg-blue-50 text-blue-800 border border-blue-200" },
-  { label: "Maintenance", value: "maintenance", color: "bg-amber-50 text-amber-800 border border-amber-200" },
   { label: "Sedang Dibersihkan", value: "cleaning", color: "bg-purple-50 text-purple-800 border border-purple-200" },
-];
-
-const ROOM_TYPES: Array<{ label: string; value: string }> = [
-  { label: "Semua Tipe", value: "" },
-  { label: "Superior", value: "superior" },
-  { label: "Deluxe", value: "deluxe" },
-  { label: "Executive", value: "executive" },
 ];
 
 function rupiah(n: number) {
@@ -77,9 +78,7 @@ function formatDate(value?: string | null) {
 function SkeletonRow() {
   return (
     <tr className="animate-pulse">
-      <td className="px-4 py-4">
-        <div className="h-16 w-16 rounded-xl bg-amber-100" />
-      </td>
+      <td className="px-4 py-4"><div className="h-16 w-16 rounded-xl bg-amber-100" /></td>
       <td className="px-4 py-4"><div className="h-3 w-12 rounded bg-amber-100" /></td>
       <td className="px-4 py-4"><div className="h-3 w-28 rounded bg-amber-100" /></td>
       <td className="px-4 py-4"><div className="h-3 w-24 rounded bg-amber-100" /></td>
@@ -103,11 +102,13 @@ export default function RoomPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(true);
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editing, setEditing] = useState<Room | null>(null);
   const [editNumber, setEditNumber] = useState("");
-  const [editType, setEditType] = useState<Room["type"]>("superior");
-  const [editPrice, setEditPrice] = useState("");
+  const [editRoomTypeId, setEditRoomTypeId] = useState("");
   const [editCapacity, setEditCapacity] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState<Room["status"]>("available");
@@ -118,16 +119,28 @@ export default function RoomPage() {
   const page = useMemo(() => Math.floor(offset / limit) + 1, [offset, limit]);
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total, limit]);
 
+  // =====================
+  // FETCH ROOM TYPES
+  // =====================
+  useEffect(() => {
+    api.get<{ data: RoomType[] }>("/api/room-types")
+      .then(res => setRoomTypes(res.data.data || []))
+      .catch(() => {
+        setRoomTypes([
+          { id: 1, type: "superior", Price: 750000 },     // <--- Price
+          { id: 2, type: "deluxe", Price: 1200000 },      // <--- Price
+          { id: 3, type: "executive", Price: 2000000 },   // <--- Price
+        ]);
+      })
+      .finally(() => setLoadingTypes(false));
+  }, []);
+
+  // =====================
+  // FETCH ROOMS
+  // =====================
   const fetchRooms = async () => {
     setLoading(true);
     setError(null);
-
-    const token = sessionStorage.getItem("token");
-    if (!token) {
-      setLoading(false);
-      setError("Sesi berakhir. Silakan login kembali.");
-      return;
-    }
 
     try {
       const res = await api.get<RoomsResponse>("/api/rooms", {
@@ -143,13 +156,9 @@ export default function RoomPage() {
       setTotal(res.data.total ?? 0);
     } catch (err: any) {
       const status = err?.response?.status;
-      if (status === 401) {
-        setError("Sesi berakhir. Silakan login kembali.");
-      } else if (status === 403) {
-        setError("Akses ditolak. Anda tidak memiliki izin.");
-      } else {
-        setError("Gagal memuat data kamar.");
-      }
+      if (status === 401) setError("Sesi berakhir. Silakan login kembali.");
+      else if (status === 403) setError("Akses ditolak. Anda tidak memiliki izin.");
+      else setError("Gagal memuat data kamar.");
     } finally {
       setLoading(false);
     }
@@ -159,6 +168,9 @@ export default function RoomPage() {
     fetchRooms();
   }, [search, roomType, roomStatus, limit, offset]);
 
+  // =====================
+  // UI HELPERS
+  // =====================
   const FallbackThumb = () => (
     <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-dashed border-amber-300 bg-amber-50">
       <svg className="h-6 w-6 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -175,11 +187,13 @@ export default function RoomPage() {
     return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${s.color}`}>{s.label}</span>;
   };
 
+  // =====================
+  // EDIT MODAL
+  // =====================
   const openEdit = (r: Room) => {
     setEditing(r);
     setEditNumber(r.number);
-    setEditType(r.type);
-    setEditPrice(String(r.price));
+    setEditRoomTypeId(String(r.room_type_id));
     setEditCapacity(String(r.capacity));
     setEditDescription(r.description || "");
     setEditStatus(r.status);
@@ -202,10 +216,6 @@ export default function RoomPage() {
       setSubmitError("Nomor kamar wajib diisi.");
       return;
     }
-    if (Number(editPrice) <= 0) {
-      setSubmitError("Harga harus lebih dari 0.");
-      return;
-    }
     if (Number(editCapacity) < 1) {
       setSubmitError("Kapasitas minimal 1.");
       return;
@@ -217,14 +227,11 @@ export default function RoomPage() {
     try {
       const formData = new FormData();
       formData.append("number", editNumber.trim());
-      formData.append("type", editType);
-      formData.append("price", String(Math.round(Number(editPrice))));
+      formData.append("room_type_id", editRoomTypeId);
       formData.append("capacity", String(Math.round(Number(editCapacity))));
       formData.append("description", editDescription.trim());
       formData.append("status", editStatus);
-      if (editImage) {
-        formData.append("image", editImage);
-      }
+      if (editImage) formData.append("image", editImage);
 
       await api.put(`/api/rooms/${editing.id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -233,7 +240,7 @@ export default function RoomPage() {
       await fetchRooms();
       closeEdit();
     } catch (err: any) {
-      const msg = err?.response?.data?.error || "Gagal memperbarui kamar. Pastikan data valid.";
+      const msg = err?.response?.data?.error || "Gagal memperbarui kamar.";
       setSubmitError(msg);
     } finally {
       setSubmitLoading(false);
@@ -241,7 +248,7 @@ export default function RoomPage() {
   };
 
   const handleDelete = async (r: Room) => {
-    const ok = window.confirm(`Hapus kamar ${r.number}? Tindakan ini tidak bisa dibatalkan.`);
+    const ok = window.confirm(`HapusOperational kamar ${r.number}? Tindakan ini tidak bisa dibatalkan.`);
     if (!ok) return;
 
     try {
@@ -289,10 +296,7 @@ export default function RoomPage() {
           <div className="relative w-full sm:w-80">
             <input
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setOffset(0);
-              }}
+              onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
               placeholder="Cari nomor/deskripsi..."
               className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-gray-500"
             />
@@ -304,26 +308,23 @@ export default function RoomPage() {
 
           <select
             value={roomType}
-            onChange={(e) => {
-              setRoomType(e.target.value);
-              setOffset(0);
-            }}
+            onChange={(e) => { setRoomType(e.target.value); setOffset(0); }}
             className="rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
-            {ROOM_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
+            <option value="">Semua Tipe</option>
+            {roomTypes.map(rt => (
+              <option key={rt.id} value={rt.type}>
+                {rt.type.charAt(0).toUpperCase() + rt.type.slice(1)}
+              </option>
             ))}
           </select>
 
           <select
             value={roomStatus}
-            onChange={(e) => {
-              setRoomStatus(e.target.value);
-              setOffset(0);
-            }}
+            onChange={(e) => { setRoomStatus(e.target.value); setOffset(0); }}
             className="rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
-            {ROOM_STATUSES.map((s) => (
+            {ROOM_STATUSES.map(s => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
@@ -332,16 +333,10 @@ export default function RoomPage() {
             <label className="text-sm text-gray-700 font-medium">Per halaman</label>
             <select
               value={limit}
-              onChange={(e) => {
-                const l = Number(e.target.value) || 10;
-                setLimit(l);
-                setOffset(0);
-              }}
+              onChange={(e) => { const l = Number(e.target.value) || 10; setLimit(l); setOffset(0); }}
               className="rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
-              {[5, 10, 20, 50].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
+              {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
         </div>
@@ -405,10 +400,12 @@ export default function RoomPage() {
                     <td className="px-4 py-3 align-top font-bold text-amber-700">{r.number}</td>
                     <td className="px-4 py-3 align-top">
                       <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 capitalize">
-                        {r.type}
+                        {r.room_type.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 align-top font-medium text-emerald-700">{rupiah(r.price)}</td>
+                    <td className="px-4 py-3 align-top font-medium text-emerald-700">
+                      {rupiah(r.room_type.Price)} {/* <--- Gunakan Price */}
+                    </td>
                     <td className="px-4 py-3 align-top text-gray-800">{r.capacity}</td>
                     <td className="px-4 py-3 align-top">{getStatusBadge(r.status)}</td>
                     <td className="px-4 py-3 align-top text-sm text-gray-600">{formatDate(r.updated_at)}</td>
@@ -466,7 +463,7 @@ export default function RoomPage() {
               disabled={offset <= 0 || loading}
               className="px-4 py-2.5 rounded-xl border border-yellow-300 text-sm font-medium disabled:opacity-50 hover:bg-yellow-50 transition-colors"
             >
-              ← Sebelumnya
+              Previous
             </button>
             <div className="text-sm text-gray-700 font-medium">
               Halaman <span className="text-amber-700 font-bold">{page}</span> dari{" "}
@@ -477,7 +474,7 @@ export default function RoomPage() {
               disabled={offset + limit >= total || loading}
               className="px-4 py-2.5 rounded-xl border border-yellow-300 text-sm font-medium disabled:opacity-50 hover:bg-yellow-50 transition-colors"
             >
-              Selanjutnya →
+              Next
             </button>
           </div>
         </div>
@@ -514,25 +511,16 @@ export default function RoomPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tipe Kamar</label>
                   <select
-                    value={editType}
-                    onChange={(e) => setEditType(e.target.value as Room["type"])}
+                    value={editRoomTypeId}
+                    onChange={(e) => setEditRoomTypeId(e.target.value)}
                     className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                   >
-                    <option value="superior">Superior</option>
-                    <option value="deluxe">Deluxe</option>
-                    <option value="executive">Executive</option>
+                    {roomTypes.map(rt => (
+                      <option key={rt.id} value={rt.id}>
+                        {rt.type.charAt(0).toUpperCase() + rt.type.slice(1)} — {rupiah(rt.Price)} {/* <--- Gunakan Price */}
+                      </option>
+                    ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Harga per Malam</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={editPrice}
-                    onChange={(e) => setEditPrice(e.target.value)}
-                    className="w-full rounded-xl bg-white border border-yellow-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    placeholder="500000"
-                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Kapasitas (orang)</label>
@@ -553,7 +541,6 @@ export default function RoomPage() {
                   >
                     <option value="available">Tersedia</option>
                     <option value="booked">Dipesan</option>
-                    <option value="maintenance">Maintenance</option>
                     <option value="cleaning">Sedang Dibersihkan</option>
                   </select>
                 </div>

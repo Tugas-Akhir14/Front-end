@@ -1,4 +1,3 @@
-// app/admin/hotel/booking/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -55,6 +54,7 @@ export default function AdminBookingPage() {
         description: 'Silakan login terlebih dahulu.',
         variant: 'destructive',
       });
+      setLoading(false);
       return;
     }
 
@@ -71,7 +71,7 @@ export default function AdminBookingPage() {
       }
 
       const json = await res.json();
-      const rawBookings = json.data || [];
+      const rawBookings = json.data?.data || [];
 
       const mappedBookings: Booking[] = rawBookings.map((b: any) => ({
         id: b.id,
@@ -79,7 +79,7 @@ export default function AdminBookingPage() {
         phone: b.phone,
         email: b.email,
         room_number: b.room.number,
-        room_type: b.room.type.charAt(0).toUpperCase() + b.room.type.slice(1),
+        room_type: b.room.room_type.type.charAt(0).toUpperCase() + b.room.room_type.type.slice(1),
         check_in: b.check_in,
         check_out: b.check_out,
         guests: b.guests,

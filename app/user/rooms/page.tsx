@@ -1,444 +1,418 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Star,
-  Wifi,
-  Car,
-  Coffee,
-  Tv,
-  Dumbbell,
-  Waves,
-  Utensils,
-  Users,
-  Square,
-  Sparkles,
-} from 'lucide-react';
-import Header from '@/components/Layout/Header';
-import Footer from '@/components/Layout/Footer';
+import axios from 'axios';
 
-// ===== Types from API =====
-type RoomAPI = {
-  id: number;
-  number: string;
-  type: 'superior' | 'deluxe' | 'executive' | string;
-  price: number;
-  capacity: number;
-  description: string;
-  image: string;
-  status: 'available' | 'booked' | 'maintenance' | 'cleaning' | string;
-  created_at: string;
-  updated_at: string;
-};
+// === AXIOS + TOKEN + AUTO-UNWRAP { data: ... } ===
+const api = axios.create({ baseURL: 'http://localhost:8080' });
 
-// ===== Badge Status Config =====
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; bg: string; text: string; border?: string }
-> = {
-  available: {
-    label: 'Available',
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-700',
-    border: 'border-emerald-200',
-  },
-  booked: {
-    label: 'Booked',
-    bg: 'bg-rose-50',
-    text: 'text-rose-700',
-    border: 'border-rose-200',
-  },
-  maintenance: {
-    label: 'Maintenance',
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
-    border: 'border-amber-200',
-  },
-  cleaning: {
-    label: 'Cleaning',
-    bg: 'bg-sky-50',
-    text: 'text-sky-700',
-    border: 'border-sky-200',
-  },
-};
-
-// ===== Fallback Status =====
-const getStatusConfig = (status: string) => {
-  const key = status?.toLowerCase();
-  return STATUS_CONFIG[key] || {
-    label: status || 'Unknown',
-    bg: 'bg-gray-50',
-    text: 'text-gray-700',
-    border: 'border-gray-200',
-  };
-};
-
-// ===== Helpers =====
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8080';
-
-const toTitle = (t: string) => {
-  switch (t?.toLowerCase()) {
-    case 'superior':
-      return 'Superior Room';
-    case 'deluxe':
-      return 'Deluxe Room';
-    case 'executive':
-      return 'Executive Suite';
-    default:
-      return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Room';
+api.interceptors.request.use((config) => {
+  const raw = sessionStorage.getItem('token');
+  if (raw) {
+    const token = raw.replace(/^"+|"+$/g, "");
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
+
+// PERBAIKAN: Otomatis unwrap { data: [...] } → langsung array
+api.interceptors.response.use(
+  (res) => {
+    const payload = res.data;
+    if (payload && typeof payload === 'object' && 'data' in payload && !Array.isArray(payload)) {
+      return payload.data; // ← UNWRAP!
+    }
+    return payload;
+  },
+  (err) => Promise.reject(new Error(err.response?.data?.error || err.message))
+);
+
+// === AUTH ===
+const useAuth = () => {
+  if (typeof window === 'undefined') return { user: null };
+  const user = sessionStorage.getItem('user');
+  return { user: user ? JSON.parse(user) : null };
 };
 
-const formatRupiah = (n: number) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(n);
+// === FORMAT & HITUNG ===
+const formatRupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
 
-// Preset tipe kamar
-const TYPE_PRESETS: Record<
-  string,
-  { features: string[]; amenities: React.ComponentType[]; size: string }
-> = {
-  superior: {
-    features: ['Queen Size Bed', 'Free Wi-Fi', 'Smart TV', 'Coffee Maker', 'Private Bathroom'],
-    amenities: [Wifi, Tv, Coffee],
-    size: '24 m²',
-  },
-  deluxe: {
-    features: ['King Size Bed', 'Sitting Area', 'Mini Bar', 'Work Desk', 'City View'],
-    amenities: [Wifi, Tv, Coffee, Utensils],
-    size: '32 m²',
-  },
-  executive: {
-    features: ['Super King Bed', 'Living Room', 'Jacuzzi', 'Balcony', 'Butler Service'],
-    amenities: [Wifi, Tv, Coffee, Utensils, Waves, Dumbbell, Car],
-    size: '45 m²',
-  },
+const calculateNights = (checkIn: string, checkOut: string) => {
+  if (!checkIn || !checkOut) return 0;
+  const inDate = new Date(checkIn);
+  const outDate = new Date(checkOut);
+  const diff = Math.ceil((outDate.getTime() - inDate.getTime()) / (1000 * 3600 * 24));
+  return Math.max(1, diff);
 };
 
-const buildPreset = (type: string) => {
-  const key = type?.toLowerCase();
-  if (TYPE_PRESETS[key]) return TYPE_PRESETS[key];
-  return {
-    features: ['Comfortable Bed', 'Free Wi-Fi', 'Smart TV', 'Private Bathroom'],
-    amenities: [Wifi, Tv],
-    size: '28 m²',
-  };
+const isValidDateRange = (checkIn: string, checkOut: string) => {
+  if (!checkIn || !checkOut) return false;
+  const inDate = new Date(checkIn);
+  const outDate = new Date(checkOut);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return inDate >= today && outDate > inDate;
 };
 
-const hotelFeatures = [
-  { icon: Wifi, title: 'Free High-Speed Wi-Fi', description: 'Stay connected with our complimentary high-speed internet' },
-  { icon: Car, title: 'Valet Parking', description: 'Complimentary valet parking service for all guests' },
-  { icon: Utensils, title: 'Fine Dining', description: 'Award-winning restaurants with international cuisine' },
-  { icon: Dumbbell, title: 'Fitness Center', description: '24/7 state-of-the-art fitness facility' },
-  { icon: Waves, title: 'Pool & Spa', description: 'Infinity pool and full-service Mutiara spa' },
-  { icon: Star, title: '5-Star Service', description: 'Dedicated staff ensuring exceptional experience' },
-];
-
-// ===== KOMPONEN UTAMA =====
-export default function Rooms() {
+export default function RoomBookingPage() {
+  const { user } = useAuth();
   const router = useRouter();
-  const [rooms, setRooms] = useState<RoomAPI[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      try {
-        setLoading(true);
-        setErr(null);
-        const res = await fetch(`${API_BASE}/public/rooms`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const data: RoomAPI[] = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-        if (alive) setRooms(data);
-      } catch (e: any) {
-        if (alive) setErr(e?.message ?? 'Gagal mengambil data kamar');
-      } finally {
-        if (alive) setLoading(false);
+    if (!user) router.push('/auth/signin');
+  }, [user, router]);
+
+  const [loading, setLoading] = useState(false);
+  const [availability, setAvailability] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [form, setForm] = useState({
+    check_in: '',
+    check_out: '',
+    type: '',
+    total_rooms: 1,
+    guests: 1,
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
+    notes: '',
+  });
+
+  // === CEK KETERSEDIAAN ===
+  const handleCheck = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setAvailability(null);
+
+    // Validasi tanggal
+    if (!isValidDateRange(form.check_in, form.check_out)) {
+      setError('Check-in harus hari ini atau setelahnya, dan check-out harus setelah check-in.');
+      setLoading(false);
+      return;
+    }
+
+    // Validasi tipe
+    if (!form.type) {
+      setError('Pilih tipe kamar terlebih dahulu.');
+      setLoading(false);
+      return;
+    }
+
+    // Validasi jumlah kamar
+    if (form.total_rooms < 1) {
+      setError('Jumlah kamar minimal 1.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams();
+      params.append('check_in', form.check_in);
+      params.append('check_out', form.check_out);
+      params.append('type', form.type.toLowerCase());
+
+      console.log('REQUEST:', `/public/availability?${params.toString()}`);
+
+      const data = await api.get(`/public/availability?${params.toString()}`); // ← LANGSUNG ARRAY
+
+      console.log('RECEIVED DATA:', data);
+
+      // HARUS ARRAY
+      if (!Array.isArray(data)) {
+        console.error('NOT ARRAY:', typeof data, data);
+        setError('Respons server tidak valid (bukan array).');
+        setLoading(false);
+        return;
       }
-    };
-    load();
-    return () => {
-      alive = false;
-    };
-  }, []);
 
-  const cards = useMemo(() => {
-    return rooms.map((r) => {
-      const preset = buildPreset(r.type);
-      const statusConfig = getStatusConfig(r.status);
-      return {
-        id: r.id,
-        number: r.number,
-        name: `${toTitle(r.type)} • No. ${r.number}`,
-        priceLabel: `${formatRupiah(r.price)}/malam`,
-        image: r.image || '/placeholder-room.jpg',
-        description: r.description || 'Comfortable room with thoughtful amenities.',
-        features: preset.features,
-        size: preset.size,
-        guests: `${r.capacity} Guests`,
-        amenities: preset.amenities,
-        status: r.status,
-        statusLabel: statusConfig.label,
-        statusStyle: {
-          bg: statusConfig.bg,
-          text: statusConfig.text,
-          border: statusConfig.border,
-        },
-      };
-    });
-  }, [rooms]);
+      if (data.length === 0) {
+        setError('Tidak ada kamar tersedia untuk tanggal dan tipe ini.');
+        setLoading(false);
+        return;
+      }
 
-  const handleBookNow = (roomId: number, status: string) => {
-    if (status?.toLowerCase() === 'available') {
-      router.push(`/user/book?room=${roomId}`);
+      // CARI TIPE YANG COCOK
+      const result = data.find((item: any) =>
+        item.type && item.type.toLowerCase() === form.type.toLowerCase()
+      );
+
+      if (!result) {
+        setError(`Tipe kamar "${form.type}" tidak ditemukan.`);
+        setLoading(false);
+        return;
+      }
+
+      if (result.available_rooms === 0) {
+        setError(`Maaf, semua kamar tipe ${form.type} sudah dipesan.`);
+        setLoading(false);
+        return;
+      }
+
+      if (result.available_rooms < form.total_rooms) {
+        setError(`Hanya ${result.available_rooms} kamar tersedia. Anda meminta ${form.total_rooms}.`);
+        setLoading(false);
+        return;
+      }
+
+      setAvailability(result);
+    } catch (err: any) {
+      console.error('ERROR:', err);
+      setError(err.message || 'Gagal memeriksa ketersediaan');
+    } finally {
+      setLoading(false);
     }
   };
 
+  // === BOOKING ===
+  const handleBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const payload = {
+        room_type: form.type.toLowerCase(),
+        total_rooms: form.total_rooms,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        check_in: form.check_in,
+        check_out: form.check_out,
+        guests: form.guests,
+        notes: form.notes.trim(),
+      };
+
+      console.log('BOOKING PAYLOAD:', payload);
+
+      const res = await api.post('/public/guest-bookings', payload);
+
+      console.log('BOOKING RESPONSE:', res);
+
+      const waUrl = res.whatsapp_url;
+      if (waUrl) {
+        window.open(waUrl, '_blank');
+      }
+
+      alert('Booking berhasil! Silakan konfirmasi via WhatsApp.');
+      router.push('/');
+    } catch (err: any) {
+      console.error('BOOKING ERROR:', err);
+      setError(err.message || 'Gagal melakukan booking');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-amber-800 text-xl">Redirecting...</div>
+      </div>
+    );
+  }
+
+  const nights = calculateNights(form.check_in, form.check_out);
+  const pricePerNight = availability?.price_per_night || 0;
+  const estimatedTotal = nights * pricePerNight * form.total_rooms;
+
   return (
-    <>
-      <Header />
-      <main className="bg-white">
-        {/* Hero Section - Elegant White & Gold */}
-        <section className="relative h-96 bg-gradient-to-br from-white via-amber-50 to-white overflow-hidden">
-          {/* Decorative Elements */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute top-10 left-10 w-64 h-64 bg-amber-400 rounded-full blur-3xl" />
-            <div className="absolute bottom-10 right-10 w-96 h-96 bg-amber-300 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-yellow-50 text-gray-800 p-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+          Pesan Kamar Hotel
+        </h1>
+
+        {error && (
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-300 text-rose-700 rounded-xl text-center font-medium">
+            {error}
           </div>
-          
-          <div className="relative z-10 flex h-full items-center justify-center">
-            <div className="text-center max-w-4xl px-4">
-              <div className="flex justify-center mb-6">
-                <Sparkles className="w-12 h-12 text-amber-500" />
-              </div>
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 bg-clip-text text-transparent">
-                Mutiara Rooms
-              </h1>
-              <p className="text-xl md:text-2xl text-gray-600 font-light">
-                Discover the perfect accommodation for your luxurious stay
-              </p>
-              <div className="mt-8 h-1 w-32 mx-auto bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
+        )}
+
+        {/* === FORM UTAMA === */}
+        <form onSubmit={handleCheck} className="bg-white p-8 rounded-2xl border border-amber-200 shadow-xl space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <label className="block font-semibold text-amber-800 mb-2">Check In</label>
+              <input
+                type="date"
+                required
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full p-3 bg-amber-50 border border-amber-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                value={form.check_in}
+                onChange={(e) => setForm({ ...form, check_in: e.target.value })}
+              />
             </div>
-          </div>
-        </section>
-
-        {/* Rooms Grid Section */}
-        <section className="py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-20">
-              <div className="inline-block mb-4">
-                <span className="text-sm font-semibold text-amber-600 tracking-widest uppercase">Our Collection</span>
-              </div>
-              <h2 className="text-5xl font-bold text-gray-900 mb-6">Accommodation Options</h2>
-              <p className="text-xl text-gray-500 max-w-2xl mx-auto font-light">
-                Choose from our carefully curated selection of rooms and suites
-              </p>
+            <div>
+              <label className="block font-semibold text-amber-800 mb-2">Check Out</label>
+              <input
+                type="date"
+                required
+                min={form.check_in || new Date().toISOString().split('T')[0]}
+                className="w-full p-3 bg-amber-50 border border-amber-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                value={form.check_out}
+                onChange={(e) => setForm({ ...form, check_out: e.target.value })}
+              />
             </div>
-
-            {/* Loading / Error */}
-            {loading && (
-              <div className="text-center py-20">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500" />
-                <p className="mt-4 text-gray-500">Memuat kamar...</p>
-              </div>
-            )}
-            {err && !loading && (
-              <div className="text-center py-20 text-rose-600 bg-rose-50 rounded-lg p-8">
-                Error: {err}
-              </div>
-            )}
-
-            {!loading && !err && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                {cards.map((room) => (
-                  <Card
-                    key={room.id}
-                    className="overflow-hidden hover:shadow-2xl transition-all duration-500 border border-gray-100 bg-white group"
-                  >
-                    <div className="relative h-80 overflow-hidden">
-                      <img
-                        src={room.image}
-                        alt={room.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = '/placeholder-room.jpg';
-                        }}
-                      />
-                      
-                      {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                      {/* STATUS BADGE */}
-                      <div
-                        className={`absolute top-5 right-5 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider border backdrop-blur-sm ${room.statusStyle.bg} ${room.statusStyle.text} ${room.statusStyle.border ?? ''} shadow-lg`}
-                      >
-                        {room.statusLabel}
-                      </div>
-
-                      {/* Harga Badge */}
-                      <div className="absolute top-5 left-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white px-5 py-2.5 rounded-full font-bold text-lg shadow-xl backdrop-blur-sm">
-                        {room.priceLabel}
-                      </div>
-
-                      {/* Nomor Kamar */}
-                      <div className="absolute top-20 left-5 bg-white/95 text-gray-900 px-4 py-1.5 rounded-full text-sm font-bold shadow-lg">
-                        Room {room.number}
-                      </div>
-
-                      {/* Size & Guests */}
-                      <div className="absolute bottom-5 left-5 bg-white/95 text-gray-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg backdrop-blur-sm">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-1.5">
-                            <Square className="w-4 h-4 text-amber-600" />
-                            <span>{room.size}</span>
-                          </div>
-                          <div className="w-px h-4 bg-gray-300" />
-                          <div className="flex items-center space-x-1.5">
-                            <Users className="w-4 h-4 text-amber-600" />
-                            <span>{room.guests}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <CardContent className="p-8 bg-white">
-                      <div className="flex justify-between items-start mb-5">
-                        <h3 className="text-2xl font-bold text-gray-900">{room.name}</h3>
-                        <div className="flex space-x-0.5">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-5 h-5 text-amber-400 fill-current" />
-                          ))}
-                        </div>
-                      </div>
-
-                      <p className="text-gray-600 mb-8 text-base leading-relaxed">{room.description}</p>
-
-                      <div className="mb-8">
-                        <h4 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Room Features</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          {room.features.map((feature, idx) => (
-                            <div key={idx} className="flex items-center text-gray-600 text-sm">
-                              <span className="w-1.5 h-1.5 bg-amber-400 rounded-full mr-3 flex-shrink-0" />
-                              <span>{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex justify-between items-center mb-8 pb-8 border-b border-gray-100">
-                        <div className="flex space-x-3">
-                          {room.amenities.map((AmenityIcon, idx) => {
-                            const Icon = AmenityIcon as React.ComponentType<{ className?: string }>;
-                            return (
-                              <div key={idx} className="p-2.5 bg-amber-50 rounded-xl hover:bg-amber-100 transition-colors">
-                                <Icon className="w-5 h-5 text-amber-600" />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="flex gap-4">
-                        <Button
-                          className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-6 text-base font-semibold transition-all shadow-lg hover:shadow-xl disabled:from-gray-300 disabled:to-gray-400"
-                          onClick={() => handleBookNow(room.id, room.status)}
-                          disabled={room.status?.toLowerCase() !== 'available'}
-                        >
-                          {room.status?.toLowerCase() === 'available' ? 'Book Now' : 'Not Available'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1 border-2 border-amber-500 text-amber-600 hover:bg-amber-50 py-6 text-base font-semibold transition-all"
-                          asChild
-                        >
-                          <Link href={`/rooms/${room.id}`}>View Details</Link>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            {!loading && !err && rooms.length === 0 && (
-              <div className="text-center py-20 text-gray-400 bg-gray-50 rounded-lg">
-                Tidak ada kamar tersedia saat ini.
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Hotel Features */}
-        <section className="py-24 bg-gradient-to-br from-amber-50 via-white to-amber-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-20">
-              <div className="inline-block mb-4">
-                <span className="text-sm font-semibold text-amber-600 tracking-widest uppercase">Premium Amenities</span>
-              </div>
-              <h2 className="text-5xl font-bold text-gray-900 mb-6">Hotel Amenities</h2>
-              <p className="text-xl text-gray-500 max-w-2xl mx-auto font-light">
-                Enjoy world-class amenities and services
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {hotelFeatures.map((feature, index) => {
-                const Icon = feature.icon;
-                return (
-                  <Card key={index} className="text-center p-8 hover:shadow-xl transition-all duration-300 border border-amber-100 bg-white group hover:-translate-y-1">
-                    <CardContent className="pt-6">
-                      <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <Icon className="w-10 h-10 text-amber-600" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                      <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="py-24 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 text-white relative overflow-hidden">
-          {/* Decorative Elements */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />
-          </div>
-          
-          <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-            <Sparkles className="w-16 h-16 mx-auto mb-6 opacity-90" />
-            <h2 className="text-5xl font-bold mb-6">Ready to Book?</h2>
-            <p className="text-xl mb-10 opacity-95 font-light max-w-2xl mx-auto">
-              Experience Mutiara luxury and comfort. Reserve your perfect room today and create unforgettable memories.
-            </p>
-            <div className="flex justify-center gap-6">
-              <Button size="lg" className="bg-white text-amber-600 hover:bg-gray-50 px-10 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all" asChild>
-                <Link href="/user/book">Book Your Stay</Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-2 border-white text-white hover:bg-white hover:text-amber-600 px-10 py-6 text-lg font-semibold transition-all"
-                asChild
+            <div>
+              <label className="block font-semibold text-amber-800 mb-2">Tipe Kamar</label>
+              <select
+                required
+                className="w-full p-3 bg-amber-50 border border-amber-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
               >
-                <Link href="/contact">Contact Us</Link>
-              </Button>
+                <option value="">Pilih Tipe Kamar</option>
+                <option value="superior">Superior</option>
+                <option value="deluxe">Deluxe</option>
+                <option value="executive">Executive</option>
+              </select>
+            </div>
+            <div>
+              <label className="block font-semibold text-amber-800 mb-2">Jumlah Kamar</label>
+              <input
+                type="number"
+                min="1"
+                max="10"
+                required
+                value={form.total_rooms}
+                onChange={(e) => setForm({ ...form, total_rooms: Math.max(1, parseInt(e.target.value) || 1) })}
+                className="w-full p-3 bg-amber-50 border border-amber-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
             </div>
           </div>
-        </section>
-      </main>
-      <Footer />
-    </>
+
+          {/* ESTIMASI HARGA */}
+          {nights > 0 && form.type && (
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-6 rounded-xl border border-amber-200">
+              <h3 className="font-bold text-amber-800 mb-3">Estimasi Biaya</h3>
+              <div className="grid md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-gray-600">Jumlah Malam</p>
+                  <p className="font-bold">{nights} malam</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Harga per Malam</p>
+                  <p className="font-bold text-emerald-700">
+                    {availability ? formatRupiah(pricePerNight) : 'Memeriksa...'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Jumlah Kamar</p>
+                  <p className="font-bold">{form.total_rooms}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Total Estimasi</p>
+                  <p className="font-bold text-2xl text-emerald-700">
+                    {availability ? formatRupiah(estimatedTotal) : '—'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold py-4 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all disabled:opacity-50 shadow-md"
+          >
+            {loading ? 'Memeriksa Ketersediaan...' : 'Cek Ketersediaan'}
+          </button>
+        </form>
+
+        {/* === HASIL CEK & FORM BOOKING === */}
+        {availability && (
+          <form onSubmit={handleBook} className="mt-8 bg-white p-8 rounded-2xl border border-emerald-200 shadow-xl space-y-6">
+            <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-6 rounded-xl border border-emerald-200 text-center">
+              <p className="text-2xl font-bold capitalize text-emerald-800">
+                {availability.type}
+              </p>
+              <p className="text-emerald-600 font-semibold text-lg">
+                {availability.available_rooms} kamar tersedia
+              </p>
+              <p className="text-sm text-gray-600">
+                {formatRupiah(availability.price_per_night)} / malam
+              </p>
+              <p className="mt-2 text-lg font-bold text-emerald-700">
+                Total: {formatRupiah(nights * availability.price_per_night * form.total_rooms)}
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block font-semibold text-emerald-800 mb-2">Jumlah Tamu</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={form.guests}
+                  onChange={(e) => setForm({ ...form, guests: Math.max(1, parseInt(e.target.value) || 1) })}
+                  className="w-full p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-emerald-800 mb-2">Nama Lengkap</label>
+                <input
+                  required
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  placeholder="John Doe"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-emerald-800 mb-2">No. HP (WhatsApp)</label>
+                <input
+                  required
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="w-full p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  placeholder="628123456789"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-emerald-800 mb-2">Email (opsional)</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  placeholder="email@contoh.com"
+                />
+              </div>
+            </div>
+
+            <textarea
+              placeholder="Catatan (opsional)"
+              rows={3}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              className="w-full p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+            />
+
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setAvailability(null);
+                  setError(null);
+                }}
+                className="flex-1 bg-gray-200 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-300 transition"
+              >
+                Ubah Pencarian
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold py-3 rounded-xl hover:from-emerald-600 hover:to-green-700 disabled:opacity-50 shadow-md transition-all"
+              >
+                {loading ? 'Memproses...' : 'Pesan via WhatsApp'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }

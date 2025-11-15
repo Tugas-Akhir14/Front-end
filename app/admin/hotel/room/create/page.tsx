@@ -3,23 +3,29 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-type RoomType = "superior" | "deluxe" | "executive";
+type RoomType = {
+  id: number;
+  type: "superior" | "deluxe" | "executive";
+  price: number;
+  description?: string;
+};
 
 export default function RoomCreatePage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(true);
 
   // Form state
   const [number, setNumber] = useState("");
-  const [type, setType] = useState<RoomType>("superior");
-  const [price, setPrice] = useState<string>("");
+  const [roomTypeId, setRoomTypeId] = useState<string>("");
   const [capacity, setCapacity] = useState<string>("1");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState<File | null>(null);
 
-  // Token: samain dengan halaman list (sessionStorage["token"])
+  // Token
   const [token, setToken] = useState<string | null>(null);
   useEffect(() => {
     const raw =
@@ -27,17 +33,36 @@ export default function RoomCreatePage() {
       localStorage.getItem("access_token") ||
       localStorage.getItem("token") ||
       null;
-    // bersihkan kutip tak berguna
     const cleaned = raw ? raw.replace(/^"+|"+$/g, "") : null;
     setToken(cleaned);
   }, []);
 
+  // Ambil daftar room types
+  useEffect(() => {
+    async function fetchRoomTypes() {
+      if (!token) return;
+      try {
+        const res = await fetch("http://localhost:8080/api/room-types", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Gagal mengambil tipe kamar");
+        const json = await res.json();
+        setRoomTypes(json.data || []);
+        if (json.data?.length > 0) {
+          setRoomTypeId(String(json.data[0].id));
+        }
+      } catch (err: any) {
+        setError("Gagal memuat tipe kamar: " + err.message);
+      } finally {
+        setLoadingTypes(false);
+      }
+    }
+    fetchRoomTypes();
+  }, [token]);
+
   function validate(): string | null {
     if (!number.trim()) return "Nomor kamar wajib diisi.";
-    if (!type) return "Tipe kamar wajib dipilih.";
-    const priceNum = Number(price);
-    if (!price || Number.isNaN(priceNum) || priceNum <= 0)
-      return "Harga harus berupa angka > 0.";
+    if (!roomTypeId) return "Tipe kamar wajib dipilih.";
     const capacityNum = Number(capacity);
     if (!capacity || Number.isNaN(capacityNum) || capacityNum <= 0)
       return "Kapasitas harus berupa angka > 0.";
@@ -46,12 +71,7 @@ export default function RoomCreatePage() {
 
   function onImageChange(file: File | null) {
     setImage(file);
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreview(url);
-    } else {
-      setPreview(null);
-    }
+    setPreview(file ? URL.createObjectURL(file) : null);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -71,20 +91,21 @@ export default function RoomCreatePage() {
     try {
       setSubmitting(true);
 
-      // FormData untuk multipart/form-data
       const form = new FormData();
+      // SESUAI DENGAN form:"..." di backend
       form.append("number", number.trim());
-      form.append("type", type);
-      form.append("price", String(Math.trunc(Number(price))));     // pastikan integer
-      form.append("capacity", String(Math.trunc(Number(capacity))));// pastikan integer
-      form.append("description", description || "");
-      if (image) form.append("image", image, image.name);
+      form.append("room_type_id", roomTypeId);
+      form.append("capacity", String(Math.trunc(Number(capacity))));
+      form.append("description", description.trim());
+      if (image) {
+        form.append("image", image, image.name);
+      }
 
       const res = await fetch("http://localhost:8080/api/rooms", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          // JANGAN set Content-Type di sini
+          // JANGAN SET Content-Type → FormData otomatis set boundary
         },
         body: form,
       });
@@ -98,134 +119,160 @@ export default function RoomCreatePage() {
         throw new Error(msg);
       }
 
-      // sukses: balik ke list
       router.push("/admin/hotel/room");
     } catch (err: any) {
-      setError(err?.message || "Terjadi kesalahan tak bernama.");
+      setError(err?.message || "Terjadi kesalahan.");
     } finally {
       setSubmitting(false);
     }
   }
 
+  if (loadingTypes) {
+    return (
+      <div className="mx-auto max-w-2xl p-6">
+        <div className="animate-pulse">
+          <div className="h-8 w-48 bg-amber-200 rounded mb-4"></div>
+          <div className="space-y-4">
+            <div className="h-10 bg-amber-100 rounded"></div>
+            <div className="h-10 bg-amber-100 rounded"></div>
+            <div className="h-10 bg-amber-100 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="text-2xl font-semibold mb-4">Tambah Kamar</h1>
+    <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50 py-8">
+      <div className="mx-auto max-w-2xl rounded-2xl bg-white p-8 shadow-xl border border-yellow-200">
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent mb-6">
+          Tambah Kamar Baru
+        </h1>
 
-      {error && (
-        <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-red-700">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 p-4 shadow-sm">
+            <p className="font-medium">{error}</p>
+          </div>
+        )}
 
-      {!token && (
-        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-800">
-          Token tidak ditemukan. Pastikan sudah login dan token tersimpan di{" "}
-          <span className="font-mono">sessionStorage["token"]</span> atau{" "}
-          <span className="font-mono">localStorage</span>.
-        </div>
-      )}
+        {!token && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 p-4">
+            <p>Token tidak ditemukan. Pastikan sudah login.</p>
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="mb-1 block text-sm">Nomor Kamar</label>
-          <input
-            type="text"
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            className="w-full rounded-md border p-2 outline-none"
-            placeholder="Contoh: 101"
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Nomor Kamar
+            </label>
+            <input
+              type="text"
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
+              className="w-full rounded-xl border border-yellow-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              placeholder="101"
+              required
+            />
+          </div>
 
-        <div>
-          <label className="mb-1 block text-sm">Tipe</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as RoomType)}
-            className="w-full rounded-md border p-2"
-          >
-            <option value="superior">Superior</option>
-            <option value="deluxe">Deluxe</option>
-            <option value="executive">Executive</option>
-          </select>
-        </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Tipe Kamar
+            </label>
+            <select
+              value={roomTypeId}
+              onChange={(e) => setRoomTypeId(e.target.value)}
+              className="w-full rounded-xl border border-yellow-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              required
+            >
+              {roomTypes.map((rt) => (
+                <option key={rt.id} value={rt.id}>
+                  {rt.type.charAt(0).toUpperCase() + rt.type.slice(1)} — {rupiah(rt.price)}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div>
-          <label className="mb-1 block text-sm">Harga</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            min="0"
-            step="1" // backend kamu integer, jangan 0.01
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded-md border p-2 outline-none"
-            placeholder="Contoh: 750000"
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Kapasitas (orang)
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+              className="w-full rounded-xl border border-yellow-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              placeholder="2"
+              required
+            />
+          </div>
 
-        <div>
-          <label className="mb-1 block text-sm">Kapasitas</label>
-          <input
-            type="number"
-            min="1"
-            step="1"
-            value={capacity}
-            onChange={(e) => setCapacity(e.target.value)}
-            className="w-full rounded-md border p-2 outline-none"
-            placeholder="Contoh: 2"
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Deskripsi (opsional)
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              className="w-full rounded-xl border border-yellow-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+              placeholder="Kamar luas dengan pemandangan taman..."
+            />
+          </div>
 
-        <div>
-          <label className="mb-1 block text-sm">Deskripsi</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-md border p-2 outline-none"
-            rows={4}
-            placeholder="Tulis deskripsi kamar..."
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Gambar (opsional)
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => onImageChange(e.target.files?.[0] ?? null)}
+              className="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-amber-500 file:to-yellow-600 file:text-black hover:file:from-amber-600 hover:file:to-yellow-700"
+            />
+            {preview && (
+              <div className="mt-4">
+                <p className="text-xs text-gray-600 mb-2">Pratinjau:</p>
+                <img
+                  src={preview}
+                  alt="preview"
+                  className="h-40 w-full rounded-xl object-cover border-2 border-amber-200 shadow-sm"
+                />
+              </div>
+            )}
+          </div>
 
-        <div>
-          <label className="mb-1 block text-sm">Gambar (opsional)</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => onImageChange(e.target.files?.[0] ?? null)}
-            className="w-full rounded-md border p-2"
-          />
-          {preview && (
-            <div className="mt-3">
-              <p className="text-sm mb-1">Pratinjau:</p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={preview}
-                alt="preview"
-                className="h-40 w-auto rounded-md border object-cover"
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-60"
-          >
-            {submitting ? "Menyimpan..." : "Simpan"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="rounded-md border px-4 py-2"
-          >
-            Batal
-          </button>
-        </div>
-      </form>
+          <div className="flex items-center gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={submitting || loadingTypes}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold shadow-md hover:from-amber-600 hover:to-yellow-700 disabled:opacity-60 flex items-center gap-2 transition-all"
+            >
+              {submitting ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Kamar"
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+            >
+              Batal
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -235,5 +282,13 @@ async function safeJson(res: Response) {
     return await res.json();
   } catch {
     return null;
+  }
+}
+
+function rupiah(n: number) {
+  try {
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+  } catch {
+    return `Rp ${n}`;
   }
 }
