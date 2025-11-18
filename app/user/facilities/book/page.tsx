@@ -1,4 +1,7 @@
 // app/user/facilities/book/page.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, ShoppingBag, ArrowLeft, Star, Award, Bookmark, TrendingUp, Library, Sparkles } from "lucide-react";
@@ -16,17 +19,108 @@ interface Book {
   };
 }
 
-async function getBooks() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/public/books`, {
-    cache: "no-store",
-  });
-  if (!res.ok) return [];
-  return res.json();
-}
+export default function BookStorePage() {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function BookStorePage() {
-  const books: Book[] = await getBooks();
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080';
+
+  useEffect(() => {
+    async function fetchBooks() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const res = await fetch(`${baseUrl}/public/books`, {
+          cache: "no-store",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        setBooks(data);
+      } catch (err) {
+        console.error('Error fetching books:', err);
+        setError('Gagal memuat data buku');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchBooks();
+  }, [baseUrl]);
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+  const handleAddToCart = (book: Book) => {
+    if (book.stok > 0) {
+      // Implement your add to cart logic here
+      alert(`Buku "${book.nama}" ditambahkan ke keranjang!`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="fixed top-4 left-4 z-50">
+          <Link
+            href="/user/facilities"
+            className="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-gray-700 hover:text-amber-600 border border-amber-100"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-semibold">Kembali</span>
+          </Link>
+        </div>
+
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat data buku...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="fixed top-4 left-4 z-50">
+          <Link
+            href="/user/facilities"
+            className="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-gray-700 hover:text-amber-600 border border-amber-100"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-semibold">Kembali</span>
+          </Link>
+        </div>
+
+        <div className="min-h-screen flex items-center justify-center px-6">
+          <div className="text-center max-w-md">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-10 h-10 text-red-500" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-3">Gagal Memuat Data</h1>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button 
+              onClick={handleRefresh}
+              className="bg-amber-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-amber-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -152,6 +246,12 @@ export default async function BookStorePage() {
               <BookOpen className="w-20 h-20 mx-auto mb-6 text-amber-500" />
               <p className="text-xl font-bold text-gray-900 mb-2">Tidak ada buku tersedia</p>
               <p className="text-gray-600">Koleksi buku sedang dalam proses pembaruan</p>
+              <button 
+                onClick={handleRefresh}
+                className="mt-6 bg-amber-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-amber-600 transition-all duration-300"
+              >
+                Refresh Halaman
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -177,6 +277,10 @@ export default async function BookStorePage() {
                           className="object-cover group-hover:scale-110 transition-transform duration-500"
                           sizes="(max-width: 768px) 100vw, 25vw"
                           unoptimized
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full">
@@ -199,6 +303,15 @@ export default async function BookStorePage() {
                         <div className="absolute top-3 left-3">
                           <div className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
                             Stok Terbatas!
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Out of Stock Badge */}
+                      {book.stok === 0 && (
+                        <div className="absolute top-3 left-3">
+                          <div className="bg-gray-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                            Habis
                           </div>
                         </div>
                       )}
@@ -230,13 +343,24 @@ export default async function BookStorePage() {
                             Rp {book.harga.toLocaleString("id-ID")}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            Stok: <span className={`font-bold ${book.stok > 20 ? 'text-green-600' : book.stok > 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                            Stok: <span className={`font-bold ${
+                              book.stok > 20 ? 'text-green-600' : 
+                              book.stok > 0 ? 'text-amber-600' : 'text-red-600'
+                            }`}>
                               {book.stok}
                             </span>
                           </p>
                         </div>
                         
-                        <button className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white p-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110">
+                        <button 
+                          onClick={() => handleAddToCart(book)}
+                          className={`p-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 ${
+                            book.stok > 0 
+                              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white cursor-pointer'
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                          disabled={book.stok === 0}
+                        >
                           <ShoppingBag className="w-5 h-5" />
                         </button>
                       </div>
@@ -301,7 +425,10 @@ export default async function BookStorePage() {
             Temukan buku favorit Anda dan kembangkan wawasan dengan koleksi terbaik kami
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <button className="bg-white text-amber-600 px-8 py-3 rounded-xl font-bold hover:bg-amber-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+            <button 
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="bg-white text-amber-600 px-8 py-3 rounded-xl font-bold hover:bg-amber-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
               Lihat Semua Buku
             </button>
             <button className="bg-amber-700 text-white px-8 py-3 rounded-xl font-bold hover:bg-amber-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">

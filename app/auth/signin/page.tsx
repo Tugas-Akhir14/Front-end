@@ -87,19 +87,18 @@ export default function SignIn() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
           
-          {/* Header with icon */}
+          {/* Header with enlarged logo */}
           <div className="text-center mb-8">
-            
-          <div className="inline-flex items-center justify-center w-16 h-16  rounded-2xl mb-4 shadow-lg">
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              width={64}
-              height={64}
-              className="object-contain"
-              priority
-            />
-          </div>
+            <div className="inline-flex items-center justify-center w-24 h-24 mb-4">
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                width={96}
+                height={96}
+                className="object-contain"
+                priority
+              />
+            </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
               Welcome Back
             </h1>

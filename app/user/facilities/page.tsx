@@ -83,49 +83,49 @@ const facilitiesData: Facility[] = [
   },
 ];
 
-// ===== Category Config (emas & putih) =====
+// ===== Category Config (hitam & emas) =====
 const CATEGORY_CONFIG: Record<string, { label: string; bg: string; text: string; border: string; hover: string }> = {
   wellness: {
     label: 'Wellness',
-    bg: 'bg-gradient-to-r from-emerald-50 to-teal-50',
-    text: 'text-emerald-700',
-    border: 'border-emerald-300',
-    hover: 'hover:shadow-emerald-100'
+    bg: 'bg-gradient-to-r from-emerald-900/50 to-teal-900/50',
+    text: 'text-emerald-400',
+    border: 'border-emerald-600',
+    hover: 'hover:shadow-emerald-500/20'
   },
   dining: {
     label: 'Dining',
-    bg: 'bg-gradient-to-r from-amber-50 to-orange-50',
-    text: 'text-amber-700',
-    border: 'border-amber-300',
-    hover: 'hover:shadow-amber-100'
+    bg: 'bg-gradient-to-r from-amber-900/50 to-orange-900/50',
+    text: 'text-amber-400',
+    border: 'border-amber-600',
+    hover: 'hover:shadow-amber-500/20'
   },
   business: {
     label: 'Business',
-    bg: 'bg-gradient-to-r from-blue-50 to-indigo-50',
-    text: 'text-blue-700',
-    border: 'border-blue-300',
-    hover: 'hover:shadow-blue-100'
+    bg: 'bg-gradient-to-r from-blue-900/50 to-indigo-900/50',
+    text: 'text-blue-400',
+    border: 'border-blue-600',
+    hover: 'hover:shadow-blue-500/20'
   },
   recreation: {
     label: 'Recreation',
-    bg: 'bg-gradient-to-r from-purple-50 to-pink-50',
-    text: 'text-purple-700',
-    border: 'border-purple-300',
-    hover: 'hover:shadow-purple-100'
+    bg: 'bg-gradient-to-r from-purple-900/50 to-pink-900/50',
+    text: 'text-purple-400',
+    border: 'border-purple-600',
+    hover: 'hover:shadow-purple-500/20'
   },
   service: {
     label: 'Service',
-    bg: 'bg-gradient-to-r from-gray-100 to-slate-100',
-    text: 'text-gray-700',
-    border: 'border-gray-300',
-    hover: 'hover:shadow-gray-100'
+    bg: 'bg-gradient-to-r from-gray-800 to-slate-800',
+    text: 'text-gray-400',
+    border: 'border-gray-600',
+    hover: 'hover:shadow-gray-500/20'
   },
   premium: {
     label: 'Premium',
-    bg: 'bg-gradient-to-r from-yellow-100 to-amber-100',
-    text: 'text-amber-800',
-    border: 'border-yellow-400',
-    hover: 'hover:shadow-yellow-100'
+    bg: 'bg-gradient-to-r from-amber-900/50 to-yellow-900/50',
+    text: 'text-amber-300',
+    border: 'border-yellow-500',
+    hover: 'hover:shadow-yellow-500/20'
   }
 };
 
@@ -151,12 +151,12 @@ export default function Facilities() {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-black min-h-screen">
       <main>
         <Header />  
         
-        {/* Hero Section - Putih & Emas */}
-        <section className="relative h-[600px] bg-gradient-to-br from-white via-amber-50 to-yellow-50 overflow-hidden">
+        {/* Hero Section - Hitam & Emas */}
+        <section className="relative h-[600px] bg-gradient-to-br from-black via-gray-900 to-amber-950 overflow-hidden">
           {/* Subtle gold pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
@@ -167,43 +167,43 @@ export default function Facilities() {
 
           {/* Background Image */}
           <div
-            className="absolute inset-0 w-full h-full bg-cover bg-center opacity-30 transition-transform duration-700 hover:scale-105"
-            style={{ backgroundImage: 'ur[](https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg)' }}
+            className="absolute inset-0 w-full h-full bg-cover bg-center opacity-20 transition-transform duration-700 hover:scale-105"
+            style={{ backgroundImage: 'url(https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg)' }}
           />
 
           {/* Gold glows */}
-          <div className="absolute top-20 right-10 w-64 h-64 bg-yellow-400/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 left-10 w-80 h-80 bg-amber-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.7s' }}></div>
+          <div className="absolute top-20 right-10 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 left-10 w-80 h-80 bg-yellow-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.7s' }}></div>
 
           <div className="relative z-20 flex h-full items-center justify-center">
             <div className="text-center max-w-5xl px-4 space-y-8">
               <div className="inline-block mb-4">
-                <div className="flex items-center justify-center space-x-3 bg-white/80 backdrop-blur-md px-6 py-3 rounded-full border-2 border-yellow-400/50 shadow-lg">
-                  <span className="text-amber-700 text-sm font-bold tracking-widest uppercase">Premium Experience</span>
+                <div className="flex items-center justify-center space-x-3 bg-black/80 backdrop-blur-md px-6 py-3 rounded-full border-2 border-amber-500/50 shadow-lg">
+                  <span className="text-amber-300 text-sm font-bold tracking-widest uppercase">Premium Experience</span>
                 </div>
               </div>
 
               <h1 className="text-6xl md:text-8xl font-bold mb-8 leading-tight">
-                <span className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 bg-clip-text text-transparent">
                   Facilities
                 </span>
               </h1>
 
-              <p className="text-xl md:text-2xl mb-10 text-gray-700 font-light max-w-3xl mx-auto leading-relaxed">
+              <p className="text-xl md:text-2xl mb-10 text-gray-300 font-light max-w-3xl mx-auto leading-relaxed">
                 Discover our world-class amenities designed to elevate your stay into an extraordinary experience
               </p>
 
               <div className="flex justify-center mb-10">
-                <div className="h-px w-64 bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
+                <div className="h-px w-64 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
               </div>
             </div>
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-50 to-transparent z-20"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent z-20"></div>
         </section>
 
         {/* Category Filter */}
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-gray-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-wrap justify-center gap-4">
               {categories.map((category) => {
@@ -213,13 +213,13 @@ export default function Facilities() {
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`flex items-center space-x-3 px-6 py-4 rounded-full border-2 transition-all duration-300 font-semibold shadow-md ${
+                    className={`flex items-center space-x-3 px-6 py-4 rounded-full border-2 transition-all duration-300 font-semibold shadow-md backdrop-blur-sm ${
                       isActive
-                        ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-black border-yellow-500 shadow-yellow-200'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-400 hover:shadow-lg hover:bg-yellow-50'
+                        ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-black border-amber-500 shadow-amber-500/30'
+                        : 'bg-gray-800 text-gray-300 border-gray-600 hover:border-amber-500 hover:shadow-lg hover:bg-amber-950/30'
                     }`}
                   >
-                    <IconComponent className={`w-5 h-5 ${isActive ? 'text-black' : 'text-gray-600'}`} />
+                    <IconComponent className={`w-5 h-5 ${isActive ? 'text-black' : 'text-amber-400'}`} />
                     <span>{category.name}</span>
                   </button>
                 );
@@ -229,20 +229,20 @@ export default function Facilities() {
         </section>
 
         {/* Facilities Layout */}
-        <section className="py-24 bg-gradient-to-b from-gray-50 to-white">
+        <section className="py-24 bg-gradient-to-b from-black via-gray-900 to-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-20">
               <div className="inline-block mb-4">
-                <div className="flex items-center space-x-2 text-yellow-500">
-                  <div className="h-px w-12 bg-gradient-to-r from-transparent to-yellow-400"></div>
+                <div className="flex items-center space-x-2 text-amber-500">
+                  <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-500"></div>
                   <Star className="w-5 h-5 fill-current" />
-                  <div className="h-px w-12 bg-gradient-to-l from-transparent to-yellow-400"></div>
+                  <div className="h-px w-12 bg-gradient-to-l from-transparent to-amber-500"></div>
                 </div>
               </div>
-              <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 bg-clip-text text-transparent">
+              <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 bg-clip-text text-transparent">
                 Premium Amenities
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
                 Experience unparalleled luxury with our exclusive facilities and services
               </p>
             </div>
@@ -260,31 +260,31 @@ export default function Facilities() {
                   >
                     {/* Image Section */}
                     <div className="lg:w-1/2 relative group">
-                      <div className="relative h-96 rounded-2xl overflow-hidden shadow-xl">
+                      <div className="relative h-96 rounded-2xl overflow-hidden shadow-2xl shadow-amber-500/10">
                         <img
                           src={facility.image}
                           alt={facility.name}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-50"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
 
                         {/* Category Badge */}
-                        <div className={`absolute top-6 left-6 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest border-2 ${categoryConfig.bg} ${categoryConfig.text} ${categoryConfig.border} shadow-lg backdrop-blur-sm`}>
+                        <div className={`absolute top-6 left-6 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest border-2 backdrop-blur-sm ${categoryConfig.bg} ${categoryConfig.text} ${categoryConfig.border} shadow-lg`}>
                           {categoryConfig.label}
                         </div>
 
                         {/* Operating Hours */}
-                        <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm text-gray-800 px-4 py-3 rounded-lg border border-yellow-400/50 shadow-md">
+                        <div className="absolute bottom-6 left-6 bg-black/80 backdrop-blur-sm text-amber-200 px-4 py-3 rounded-lg border border-amber-500/50 shadow-md">
                           <div className="flex items-center space-x-2">
-                            <Clock className="w-4 h-4 text-amber-600" />
+                            <Clock className="w-4 h-4 text-amber-400" />
                             <span className="text-sm font-medium">{facility.operatingHours}</span>
                           </div>
                         </div>
 
                         {/* Location */}
-                        <div className="absolute bottom-6 right-6 bg-white/90 backdrop-blur-sm text-gray-800 px-4 py-3 rounded-lg border border-yellow-400/50 shadow-md">
+                        <div className="absolute bottom-6 right-6 bg-black/80 backdrop-blur-sm text-amber-200 px-4 py-3 rounded-lg border border-amber-500/50 shadow-md">
                           <div className="flex items-center space-x-2">
-                            <MapPin className="w-4 h-4 text-amber-600" />
+                            <MapPin className="w-4 h-4 text-amber-400" />
                             <span className="text-sm font-medium">{facility.location}</span>
                           </div>
                         </div>
@@ -294,44 +294,43 @@ export default function Facilities() {
                     {/* Content Section */}
                     <div className="lg:w-1/2">
                       <div className="flex items-center space-x-3 mb-6">
-                        <div className="p-3 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-xl border border-yellow-400 shadow-sm">
-                          <IconComponent className="w-8 h-8 text-amber-600" />
+                        <div className="p-3 bg-gradient-to-br from-amber-900/50 to-yellow-900/50 rounded-xl border border-amber-600 shadow-sm backdrop-blur-sm">
+                          <IconComponent className="w-8 h-8 text-amber-400" />
                         </div>
-                        <h3 className="text-4xl font-bold text-gray-800">{facility.name}</h3>
+                        <h3 className="text-4xl font-bold text-amber-200">{facility.name}</h3>
                       </div>
 
                       <div className="flex items-center space-x-2 mb-6">
                         <div className="flex space-x-1">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-5 h-5 text-yellow-500 fill-current" />
+                            <Star key={i} className="w-5 h-5 text-amber-500 fill-current" />
                           ))}
                         </div>
-                        <span className="text-amber-700 text-sm font-medium">5.0 Excellence</span>
+                        <span className="text-amber-400 text-sm font-medium">5.0 Excellence</span>
                       </div>
 
-                      <p className="text-gray-600 text-lg leading-relaxed mb-8">
+                      <p className="text-gray-300 text-lg leading-relaxed mb-8">
                         {facility.description}
                       </p>
 
                       <div className="mb-8">
-                        <h4 className="font-bold text-amber-700 mb-4 text-lg uppercase tracking-wider flex items-center">
-                          <Eye className="w-5 h-5 mr-2 text-amber-600" />
+                        <h4 className="font-bold text-amber-400 mb-4 text-lg uppercase tracking-wider flex items-center">
+                          <Eye className="w-5 h-5 mr-2 text-amber-500" />
                           Key Features
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {facility.features.map((feature, idx) => (
-                            <div key={idx} className="flex items-center text-gray-600 text-base">
-                              <span className="w-2 h-2 bg-yellow-500 rounded-full mr-3 shadow-sm"></span>
+                            <div key={idx} className="flex items-center text-gray-300 text-base">
+                              <span className="w-2 h-2 bg-amber-500 rounded-full mr-3 shadow-sm"></span>
                               {feature}
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      
                       <Button
                         asChild
-                        className="group bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-600 text-black font-bold px-8 py-4 rounded-full text-lg transition-all duration-300 shadow-lg hover:shadow-amber-200 border-2 border-yellow-500"
+                        className="group bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-bold px-8 py-4 rounded-full text-lg transition-all duration-300 shadow-lg hover:shadow-amber-500/30 border-2 border-amber-400 transform hover:scale-105"
                       >
                         <Link href={facility.url} aria-label="Explore Facility">
                           <span className="flex items-center gap-3">
@@ -347,7 +346,7 @@ export default function Facilities() {
             </div>
 
             {filteredFacilities.length === 0 && (
-              <div className="text-center text-gray-500 py-16">
+              <div className="text-center text-gray-400 py-16">
                 <p className="text-lg">No facilities found for the selected category.</p>
               </div>
             )}
@@ -355,31 +354,31 @@ export default function Facilities() {
         </section>
 
         {/* Stats Section */}
-        <section className="py-24 bg-gradient-to-b from-white to-gray-50">
+        <section className="py-24 bg-gradient-to-b from-gray-900 to-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              <div className="p-8 bg-white rounded-2xl border border-yellow-200 shadow-md">
-                <div className="w-20 h-20 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-yellow-400">
-                  <Sparkles className="w-10 h-10 text-amber-600" />
+              <div className="p-8 bg-gray-900 rounded-2xl border border-amber-700 shadow-2xl shadow-amber-500/10 backdrop-blur-sm">
+                <div className="w-20 h-20 bg-gradient-to-br from-amber-900/50 to-yellow-900/50 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-amber-600">
+                  <Sparkles className="w-10 h-10 text-amber-400" />
                 </div>
-                <h3 className="text-3xl font-bold text-gray-800 mb-2">6+</h3>
-                <p className="text-gray-600 text-lg">Premium Facilities</p>
+                <h3 className="text-3xl font-bold text-amber-300 mb-2">6+</h3>
+                <p className="text-gray-300 text-lg">Premium Facilities</p>
               </div>
 
-              <div className="p-8 bg-white rounded-2xl border border-yellow-200 shadow-md">
-                <div className="w-20 h-20 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-yellow-400">
-                  <Clock className="w-10 h-10 text-amber-600" />
+              <div className="p-8 bg-gray-900 rounded-2xl border border-amber-700 shadow-2xl shadow-amber-500/10 backdrop-blur-sm">
+                <div className="w-20 h-20 bg-gradient-to-br from-amber-900/50 to-yellow-900/50 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-amber-600">
+                  <Clock className="w-10 h-10 text-amber-400" />
                 </div>
-                <h3 className="text-3xl font-bold text-gray-800 mb-2">24/7</h3>
-                <p className="text-gray-600 text-lg">Service Availability</p>
+                <h3 className="text-3xl font-bold text-amber-300 mb-2">24/7</h3>
+                <p className="text-gray-300 text-lg">Service Availability</p>
               </div>
 
-              <div className="p-8 bg-white rounded-2xl border border-yellow-200 shadow-md">
-                <div className="w-20 h-20 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-yellow-400">
-                  <Heart className="w-10 h-10 text-amber-600" />
+              <div className="p-8 bg-gray-900 rounded-2xl border border-amber-700 shadow-2xl shadow-amber-500/10 backdrop-blur-sm">
+                <div className="w-20 h-20 bg-gradient-to-br from-amber-900/50 to-yellow-900/50 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-amber-600">
+                  <Heart className="w-10 h-10 text-amber-400" />
                 </div>
-                <h3 className="text-3xl font-bold text-gray-800 mb-2">100%</h3>
-                <p className="text-gray-600 text-lg">Guest Satisfaction</p>
+                <h3 className="text-3xl font-bold text-amber-300 mb-2">100%</h3>
+                <p className="text-gray-300 text-lg">Guest Satisfaction</p>
               </div>
             </div>
           </div>
