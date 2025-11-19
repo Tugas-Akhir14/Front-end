@@ -107,7 +107,7 @@ export default function Home() {
     fetchRooms();
   }, []);
 
-  // ================== Fetch Vision & Mission (baru) ==================
+  // ================== Fetch Vision & Mission (baru)   
   useEffect(() => {
     const fetchVm = async () => {
       try {
@@ -216,9 +216,11 @@ export default function Home() {
                 <Button 
                   size="lg" 
                   className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white border-2 border-amber-400 hover:border-amber-500 px-10 py-6 text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 rounded-full"
-                >
+                >  
+                <Link href={"user/rooms"}>
                   <Calendar className="w-5 h-5 mr-2" />
                   Book Now
+                </Link>
                 </Button>
                 <Button
                   asChild
@@ -226,7 +228,7 @@ export default function Home() {
                   variant="outline"
                   className="border-2 border-amber-400 text-amber-300 hover:bg-amber-950 hover:text-amber-200 text-lg px-10 py-6 font-bold transition-all duration-300 transform hover:scale-105 rounded-full bg-black/50 backdrop-blur-sm"
                 >
-                  <Link href="/user/rooms">
+                  <Link href="/user/">
                     <MapPin className="w-5 h-5 mr-2" />
                     Explore Rooms
                   </Link>
@@ -742,7 +744,9 @@ export default function Home() {
             </p>
             <div className="space-x-4 space-y-4 sm:space-y-0">
               <Button size="lg" className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white border-2 border-amber-400 hover:border-amber-500 text-lg px-8 py-3 font-semibold transition-all duration-300 shadow-lg hover:shadow-amber-500/30">
+                <Link href="user/rooms">
                 Book Your Stay
+                </Link>
               </Button>
               <Button size="lg" variant="outline" className="border-2 border-amber-500 text-amber-300 hover:bg-amber-950 hover:text-amber-200 text-lg px-8 py-3 font-semibold transition-all duration-300 bg-black/50 backdrop-blur-sm">
                 Contact Us
