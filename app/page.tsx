@@ -138,7 +138,7 @@ export default function Home() {
     }).format(price);
   };
 
-  // PERBAIKAN LENGKAP: AMAN DARI UNDEFINED, NULL, KOSONG, CASE-INSENSITIVE
+
   const formatTypeName = (type?: string): string => {
     const normalized = type?.trim().toLowerCase();
     if (!normalized) return 'Room';

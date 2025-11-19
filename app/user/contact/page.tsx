@@ -1,87 +1,124 @@
-// app/user/contact/page.tsx
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Mail, Phone, MapPin, Facebook, Instagram, Twitter,
-  Star, Send, MessageSquare, LogIn, Loader2
+  Star, Send, LogIn, Loader2, Edit2, Trash2, Check, MessageSquare
 } from 'lucide-react';
 
-// === WARNA AKSES ===
-const GOLD = '#d4af37';
+interface Admin {
+  id: number;
+  full_name?: string;
+  email: string;
+}
 
-// === KOMPONEN TERPISAH: Review Section ===
+interface Review {
+  id: number;
+  rating: number;
+  comment: string;
+  guest_name?: string;
+  created_at: string;
+  updated_at?: string;
+  admin?: Admin | null;
+}
+
 function ReviewSection() {
+  // Auth
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('Tamu');
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+
+  // Form
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [guestName, setGuestName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loadingAuth, setLoadingAuth] = useState(true);
-  const [userName, setUserName] = useState('');
-  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // My Reviews Only
+  const [myReviews, setMyReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editRating, setEditRating] = useState(0);
+  const [editComment, setEditComment] = useState('');
 
   const MIN_COMMENT = 10;
 
+  // Cek login
   useEffect(() => {
-    const checkAuth = () => {
+    const check = () => {
       const token = sessionStorage.getItem('token');
-      const userData = sessionStorage.getItem('user');
-
-      if (token && userData) {
+      const userStr = sessionStorage.getItem('user');
+      if (token && userStr) {
         try {
-          const user = JSON.parse(userData);
+          const user = JSON.parse(userStr);
           setIsLoggedIn(true);
-          setUserName(user.full_name || 'Tamu');
-          setUserRole(user.role || null);
-        } catch (e) {
+          setUserName(user.full_name || user.email.split('@')[0]);
+          setUserRole(user.role);
+          setUserId(user.id);
+        } catch {
           setIsLoggedIn(false);
         }
-      } else {
-        setIsLoggedIn(false);
       }
       setLoadingAuth(false);
     };
-
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
+    check();
+    window.addEventListener('storage', check);
+    return () => window.removeEventListener('storage', check);
   }, []);
 
+  // Load hanya ulasan milik sendiri
+  const loadMyReviews = async () => {
+    if (!isLoggedIn || !userId) return;
+
+    setLoadingReviews(true);
+    try {
+      const token = sessionStorage.getItem('token');
+      const res = await fetch('/public/reviews/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setMyReviews(Array.isArray(data) ? data : []);
+      } else {
+        setMyReviews([]);
+      }
+    } catch (e) {
+      console.error('Failed to load my reviews:', e);
+      setMyReviews([]);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  // Load ulasan setiap kali login berubah atau setelah CRUD
+  useEffect(() => {
+    if (isLoggedIn && userRole === 'guest') {
+      loadMyReviews();
+    }
+  }, [isLoggedIn, userRole]);
+
+  // Submit ulasan baru
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const token = sessionStorage.getItem('token');
-    if (!token) {
-      setMessage({ type: 'error', text: 'Sesi login hilang. Silakan login ulang.' });
-      return;
-    }
+    if (!token || userRole !== 'guest') return;
+    if (rating === 0 || comment.trim().length < MIN_COMMENT) return;
 
-    if (userRole !== 'guest') {
-      setMessage({ type: 'error', text: 'Hanya tamu (guest) yang dapat mengirim ulasan.' });
-      return;
-    }
-
-    if (rating === 0) {
-      setMessage({ type: 'error', text: 'Pilih rating bintang' });
-      return;
-    }
-    if (comment.trim().length < MIN_COMMENT) {
-      setMessage({ type: 'error', text: `Komentar minimal ${MIN_COMMENT} karakter` });
-      return;
-    }
-
-    setLoading(true);
+    setSubmitting(true);
     setMessage(null);
 
     try {
@@ -89,7 +126,7 @@ function ReviewSection() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           rating,
@@ -98,411 +135,313 @@ function ReviewSection() {
         }),
       });
 
-      const data = await res.json();
-
-      if (res.ok && data?.success) {
-        setMessage({ type: 'success', text: 'Ulasan terkirim! Menunggu moderasi.' });
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Ulasan berhasil dikirim!' });
         setRating(0);
         setComment('');
         setGuestName('');
+        loadMyReviews(); // Refresh hanya milik sendiri
       } else {
-        let errorMsg = data?.error || 'Gagal kirim ulasan';
-        if (res.status === 401) errorMsg = 'Token tidak valid. Silakan login ulang.';
-        else if (res.status === 403) errorMsg = 'Hanya tamu yang dapat mengirim ulasan.';
-        else if (res.status === 429) errorMsg = 'Anda baru saja mengirim ulasan. Tunggu 3 menit.';
-        setMessage({ type: 'error', text: errorMsg });
+        const data = await res.json();
+        setMessage({ type: 'error', text: data.error || 'Gagal mengirim ulasan' });
       }
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Koneksi error. Coba lagi.' });
+    } catch {
+      setMessage({ type: 'error', text: 'Koneksi error, coba lagi' });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  // === Rating Stars Component ===
+  // Edit
+  const startEdit = (review: Review) => {
+    setEditingId(review.id);
+    setEditRating(review.rating);
+    setEditComment(review.comment);
+  };
+
+  const saveEdit = async (id: number) => {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`/public/reviews/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          rating: editRating,
+          comment: editComment.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setEditingId(null);
+        loadMyReviews();
+        setMessage({ type: 'success', text: 'Ulasan berhasil diperbarui!' });
+      } else {
+        setMessage({ type: 'error', text: 'Gagal update ulasan' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Koneksi error' });
+    }
+  };
+
+  // Delete
+  const handleDelete = async (id: number) => {
+    if (!confirm('Yakin ingin menghapus ulasan ini?')) return;
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await fetch(`/public/reviews/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      loadMyReviews();
+      setMessage({ type: 'success', text: 'Ulasan berhasil dihapus' });
+    } catch {
+      setMessage({ type: 'error', text: 'Gagal menghapus ulasan' });
+    }
+  };
+
+  // Rating Stars
   const RatingStars = ({ value, onChange, readonly = false }: {
     value: number;
     onChange?: (v: number) => void;
     readonly?: boolean;
   }) => (
-    <div className="flex gap-2" role="radiogroup" aria-label={`Rating ${value} dari 5 bintang`}>
-      {[1, 2, 3, 4, 5].map((star) => {
-        const active = star <= value;
-        return (
-          <button
-            key={star}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            aria-label={`${star} bintang`}
-            disabled={readonly || loading}
-            onClick={() => !readonly && onChange?.(star)}
-            className={`relative transition-all duration-300 ${readonly ? '' : 'hover:scale-125 cursor-pointer focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded-md'} ${active ? 'drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]' : ''}`}
-          >
-            <Star
-              className={`w-10 h-10 transition-all duration-300 ${active ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} ${readonly ? '' : 'hover:text-yellow-400'}`}
-            />
-          </button>
-        );
-      })}
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <button
+          key={i}
+          type="button"
+          disabled={readonly}
+          onClick={() => !readonly && onChange?.(i)}
+          className={`transition-all ${readonly ? '' : 'hover:scale-125 cursor-pointer'}`}
+        >
+          <Star className={`w-8 h-8 ${i <= value ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+        </button>
+      ))}
     </div>
   );
 
-  // === Loading Skeleton ===
-  if (loadingAuth) {
-    return (
-      <Card className="bg-white border border-gray-200 shadow-lg p-8">
-        <Skeleton className="h-8 w-48 mb-4 bg-gray-200" />
-        <Skeleton className="h-4 w-64 mb-8 bg-gray-200" />
-        <Skeleton className="h-32 w-full rounded-xl bg-gray-100" />
-      </Card>
-    );
-  }
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
-  // === Belum Login ===
-  if (!isLoggedIn) {
-    return (
-      <Card className="bg-white border border-gray-200 shadow-xl relative overflow-hidden group">
-        <div className="absolute top-0 left-0 w-24 h-24 border-t-2 border-l-2 border-yellow-400/40 transition-all duration-500 group-hover:border-yellow-500"></div>
-        <div className="absolute bottom-0 right-0 w-24 h-24 border-b-2 border-r-2 border-yellow-400/40 transition-all duration-500 group-hover:border-yellow-500"></div>
-
-        <CardHeader className="pb-8 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="p-4 bg-yellow-50 rounded-full border border-yellow-300">
-              <Star className="w-12 h-12 text-yellow-500 fill-yellow-500" />
-            </div>
-            <CardTitle className="text-4xl font-bold text-gray-800">
-              Login untuk Memberi Ulasan
-            </CardTitle>
-            <p className="text-gray-600 max-w-md">
-              Hanya tamu terdaftar yang bisa meninggalkan ulasan bintang & komentar.
-            </p>
-          </div>
-        </CardHeader>
-
-        <CardContent className="flex justify-center pb-12">
-          <Button
-            onClick={() => (window.location.href = '/auth/signin')}
-            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold text-xl px-12 py-7 shadow-lg shadow-yellow-300 transition-all duration-300 flex items-center gap-3 group"
-          >
-            <LogIn className="w-6 h-6 group-hover:scale-110 transition-transform" />
-            Masuk Sekarang
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // === BUKAN GUEST: TIDAK BOLEH KIRIM ===
-  if (isLoggedIn && userRole !== 'guest') {
-    return (
-      <Card className="bg-white border border-red-200 shadow-xl relative overflow-hidden group">
-        <div className="absolute top-0 left-0 w-24 h-24 border-t-2 border-l-2 border-red-400/40 transition-all duration-500 group-hover:border-red-500"></div>
-        <div className="absolute bottom-0 right-0 w-24 h-24 border-b-2 border-r-2 border-red-400/40 transition-all duration-500 group-hover:border-red-500"></div>
-
-        <CardHeader className="pb-8 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="p-4 bg-red-50 rounded-full border border-red-300">
-              <Star className="w-12 h-12 text-red-500" />
-            </div>
-            <CardTitle className="text-4xl font-bold text-red-600">
-              Akses Ditolak
-            </CardTitle>
-            <p className="text-gray-600 max-w-md">
-              Hanya akun <span className="text-yellow-600 font-semibold">tamu (guest)</span> yang dapat mengirim ulasan.
-            </p>
-          </div>
-        </CardHeader>
-
-        <CardContent className="flex justify-center pb-12">
-          <Button
-            onClick={() => {
-              sessionStorage.clear();
-              window.location.href = '/auth/signin';
-            }}
-            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-xl px-12 py-7 shadow-lg shadow-red-300 transition-all duration-300 flex items-center gap-3 group"
-          >
-            <LogIn className="w-6 h-6 group-hover:scale-110 transition-transform" />
-            Logout & Ganti Akun
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // === Sudah Login & Guest: Form Ulasan ===
-  return (
-    <Card className="bg-white border border-gray-200 shadow-xl relative overflow-hidden group">
-      <div className="absolute top-0 left-0 w-24 h-24 border-t-2 border-l-2 border-yellow-400/40 transition-all duration-500 group-hover:border-yellow-500"></div>
-      <div className="absolute bottom-0 right-0 w-24 h-24 border-b-2 border-r-2 border-yellow-400/40 transition-all duration-500 group-hover:border-yellow-500"></div>
-
-      <CardHeader className="space-y-2 pb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-300">
-              <Star className="w-7 h-7 text-yellow-500 fill-yellow-500" />
-            </div>
-            <CardTitle className="text-3xl font-bold text-gray-800">
-              Tinggalkan Ulasan Anda
-            </CardTitle>
-          </div>
-          <div className="text-sm text-yellow-600 font-medium">
-            Halo, {userName}!
-          </div>
-        </div>
-        <p className="text-gray-600 text-sm">Bagikan pengalaman menginap Anda bersama kami</p>
-      </CardHeader>
-
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-7" noValidate>
-          {/* Rating */}
-          <div className="p-6 bg-gray-50 rounded-xl border border-yellow-200">
-            <Label className="text-yellow-700 text-lg font-semibold flex items-center gap-2 mb-4">
-              Berikan Rating <span className="text-red-500">*</span>
-            </Label>
-            <div className="flex justify-center">
-              <RatingStars value={rating} onChange={setRating} />
-            </div>
-            {rating > 0 && (
-              <p className="text-center text-yellow-600 mt-4 font-medium animate-fadeIn">
-                {rating === 5 ? 'Luar Biasa!' : rating === 4 ? 'Sangat Baik!' : rating === 3 ? 'Baik' : rating === 2 ? 'Cukup' : 'Kurang'}
-              </p>
-            )}
-          </div>
-
-          {/* Komentar */}
-          <div>
-            <Label htmlFor="comment" className="text-yellow-700 text-lg font-semibold flex items-center gap-2 mb-3">
-              Komentar <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={6}
-              placeholder="Ceritakan pengalaman Anda di sini..."
-              className="mt-1 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/30 resize-none"
-              disabled={loading}
-            />
-            <div className="flex justify-between items-center mt-2 text-xs">
-              <p className="text-gray-500">Minimal {MIN_COMMENT} karakter</p>
-              <p className={comment.trim().length >= MIN_COMMENT ? 'text-green-600' : 'text-gray-500'}>
-                {comment.trim().length}/{MIN_COMMENT}
-              </p>
-            </div>
-          </div>
-
-          {/* Nama (opsional) */}
-          <div>
-            <Label htmlFor="name" className="text-yellow-700 text-lg font-semibold flex items-center gap-2 mb-3">
-              Nama <span className="text-gray-500 text-sm">(opsional)</span>
-            </Label>
-            <Input
-              id="name"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              placeholder="Nama Anda"
-              className="bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/30 h-12"
-              disabled={loading}
-            />
-          </div>
-
-          {/* Submit */}
-          <Button
-            type="submit"
-            disabled={loading || rating === 0 || comment.trim().length < MIN_COMMENT}
-            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-6 text-lg shadow-lg shadow-yellow-300 relative overflow-hidden group disabled:opacity-70"
-          >
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Mengirim...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                  Kirim Ulasan
-                </>
-              )}
-            </span>
-          </Button>
-
-          {/* Message */}
-          {message && (
-            <div className={`text-center p-4 rounded-xl mt-2 animate-fadeIn text-sm font-medium ${
-              message.type === 'success'
-                ? 'bg-gradient-to-r from-green-50 to-green-100 text-green-700 border border-green-300'
-                : 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-300'
-            }`}>
-              {message.text}
-            </div>
-          )}
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
-
-// === MAIN PAGE ===
-export default function ContactPage() {
-  const encodedAddress = useMemo(
-    () => encodeURIComponent('Sibola Hotangsas, Balige, Toba, North Sumatra'),
-    []
-  );
-
-  const googleMapsEmbed = useMemo(
-    () => `https://www.google.com/maps?q=${encodedAddress}&output=embed`,
-    [encodedAddress]
-  );
+  if (loadingAuth) return <Skeleton className="h-96 w-full rounded-xl" />;
 
   return (
     <>
-      <Header />
-      <main className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 text-gray-900 pt-32 pb-16">
-        {/* Hero Section */}
-        <section className="relative py-20 overflow-hidden">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-20 left-10 w-72 h-72 bg-yellow-100 rounded-full blur-3xl opacity-30 animate-pulse"></div>
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-yellow-50 rounded-full blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
-          </div>
+      {/* FORM ULASAN */}
+      {!isLoggedIn ? (
+        <Card className="shadow-xl border-yellow-200 text-center py-16">
+          <CardHeader>
+            <MessageSquare className="w-20 h-20 mx-auto text-yellow-500 mb-4" />
+            <CardTitle className="text-4xl">Login untuk Mengelola Ulasan Anda</CardTitle>
+            <p className="text-gray-600 mt-4">Lihat, tambah, edit, atau hapus ulasan Anda</p>
+          </CardHeader>
+          <CardContent>
+            <Button size="lg" onClick={() => (window.location.href = '/auth/signin')}>
+              <LogIn className="mr-2" /> Masuk Sekarang
+            </Button>
+          </CardContent>
+        </Card>
+      ) : userRole !== 'guest' ? (
+        <Alert className="border-red-300 bg-red-50">
+          <AlertDescription className="text-center text-lg font-medium">
+            Hanya akun <span className="text-yellow-600 font-bold">tamu</span> yang dapat mengelola ulasan.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <>
+          {/* Form Tambah Ulasan */}
+          <Card className="shadow-xl border-yellow-200">
+            <CardHeader>
+              <CardTitle className="text-3xl flex items-center gap-3">
+                <Star className="text-yellow-500 fill-yellow-500" />
+                Tinggalkan Ulasan Baru
+              </CardTitle>
+              <p className="text-gray-600 mt-2">Halo, {userName}!</p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="text-center p-6 bg-yellow-50 rounded-xl">
+                  <Label className="block text-lg font-semibold text-yellow-800 mb-4">
+                    Rating Anda <span className="text-red-500">*</span>
+                  </Label>
+                  <RatingStars value={rating} onChange={setRating} />
+                </div>
 
-          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
-          
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div className="inline-block mb-6">
-              <div className="flex items-center justify-center gap-3 px-6 py-2 bg-yellow-50 border border-yellow-300 rounded-full">
-                <MessageSquare className="w-5 h-5 text-yellow-600" />
-                <span className="text-yellow-700 font-semibold">Kami Mendengarkan Anda</span>
+                <div>
+                  <Label>Komentar <span className="text-red-500">*</span></Label>
+                  <Textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={5}
+                    placeholder="Ceritakan pengalaman menginap Anda..."
+                    className="mt-2"
+                    disabled={submitting}
+                  />
+                  <p className="text-sm text-right mt-1 text-gray-500">
+                    {comment.length} / {MIN_COMMENT}+ karakter
+                  </p>
+                </div>
+
+                <div>
+                  <Label>Nama Tampilan (opsional)</Label>
+                  <Input
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="Nama Anda"
+                    className="mt-2"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold"
+                  disabled={submitting || rating === 0 || comment.trim().length < MIN_COMMENT}
+                >
+                  {submitting ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+                  Kirim Ulasan
+                </Button>
+
+                {message && (
+                  <Alert className={message.type === 'success' ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}>
+                    <AlertDescription>{message.text}</AlertDescription>
+                  </Alert>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Daftar Ulasan Saya */}
+          <div className="mt-12">
+            <h2 className="text-4xl font-bold text-center mb-10 flex items-center justify-center gap-4">
+              <Star className="text-yellow-500 fill-yellow-500" />
+              Ulasan Saya
+              <Star className="text-yellow-500 fill-yellow-500" />
+            </h2>
+
+            {loadingReviews ? (
+              <div className="space-y-6">
+                {[1, 2].map((i) => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
               </div>
-            </div>
-            
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="bg-gradient-to-r from-gray-800 via-gray-700 to-yellow-600 bg-clip-text text-transparent">
-                Hubungi Kami
-              </span>
-              <br />
-              <span className="text-yellow-600">atau Tinggalkan Ulasan</span>
-            </h1>
-            
-            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Kami senang mendengar dari Anda. Beri tahu kami pengalaman Anda di{' '}
-              <span className="text-yellow-600 font-semibold">Mutiara Hotel</span>
-            </p>
+            ) : myReviews.length === 0 ? (
+              <Card className="text-center py-16 bg-gray-50">
+                <MessageSquare className="w-20 h-20 mx-auto text-gray-300 mb-4" />
+                <p className="text-2xl text-gray-600">Anda belum pernah memberikan ulasan</p>
+                <p className="text-gray-500 mt-2">Kirim ulasan pertama Anda di atas!</p>
+              </Card>
+            ) : (
+              <div className="space-y-8">
+                {myReviews.map((review) => {
+                  const displayName = review.guest_name || review.admin?.full_name || 'Tamu';
+                  const initial = displayName[0].toUpperCase();
 
-            <div className="flex items-center justify-center gap-3 mt-8">
-              <div className="w-16 h-px bg-gradient-to-r from-transparent to-yellow-400"></div>
-              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              <div className="w-16 h-px bg-gradient-to-l from-transparent to-yellow-400"></div>
-            </div>
+                  return (
+                    <Card key={review.id} className="shadow-lg hover:shadow-xl transition-all border-yellow-100">
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                              {initial}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-xl">{displayName}</p>
+                              <p className="text-sm text-gray-500">
+                                {formatDate(review.created_at)}
+                                {review.updated_at && review.updated_at !== review.created_at && ' (diedit)'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            {editingId === review.id ? (
+                              <>
+                                <Button size="sm" onClick={() => saveEdit(review.id)} className="bg-green-600 hover:bg-green-700">
+                                  <Check className="w-5 h-5" />
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                                  Batal
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button size="sm" variant="ghost" onClick={() => startEdit(review)}>
+                                  <Edit2 className="w-5 h-5 text-yellow-600" />
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => handleDelete(review.id)}>
+                                  <Trash2 className="w-5 h-5 text-red-600" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-4">
+                          {editingId === review.id ? (
+                            <RatingStars value={editRating} onChange={setEditRating} />
+                          ) : (
+                            <RatingStars value={review.rating} readonly />
+                          )}
+                          <span className="ml-3 text-lg font-semibold text-yellow-600">
+                            {editingId === review.id ? editRating : review.rating}.0
+                          </span>
+                        </div>
+
+                        {editingId === review.id ? (
+                          <Textarea
+                            value={editComment}
+                            onChange={(e) => setEditComment(e.target.value)}
+                            rows={4}
+                            className="mt-3"
+                            placeholder="Edit ulasan Anda..."
+                          />
+                        ) : (
+                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{review.comment}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
+        </>
+      )}
+    </>
+  );
+}
+
+export default function ContactPage() {
+  return (
+    <>
+      <Header />
+      <main className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 pt-32 pb-24">
+        <section className="text-center py-16">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4">
+            <span className="bg-gradient-to-r from-gray-800 to-yellow-600 bg-clip-text text-transparent">
+              Kelola Ulasan Anda
+            </span>
+          </h1>
+          <p className="text-xl text-gray-600">Tambah, edit, atau hapus ulasan Anda kapan saja</p>
         </section>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-            <ReviewSection />
-
-            {/* Contact Info + Map */}
-            <div className="space-y-8">
-              <Card className="bg-white border border-gray-200 shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-20 h-20 border-t-2 border-r-2 border-yellow-400/40 transition-all duration-500 group-hover:border-yellow-500"></div>
-                <CardHeader className="space-y-2 pb-6">
-                  <CardTitle className="text-3xl font-bold text-gray-800">
-                    Informasi Kontak
-                  </CardTitle>
-                  <p className="text-gray-600 text-sm">Hubungi kami melalui saluran berikut</p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center gap-4 text-gray-700">
-                    <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <MapPin className="w-5 h-5 text-yellow-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Alamat</p>
-                      <p className="text-sm text-gray-600">Sibola Hotangsas, Balige, Toba, Sumatera Utara</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-gray-700">
-                    <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <Phone className="w-5 h-5 text-yellow-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Telepon</p>
-                      <p className="text-sm text-gray-600">+62 812-3456-7890</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-gray-700">
-                    <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <Mail className="w-5 h-5 text-yellow-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Email</p>
-                      <p className="text-sm text-gray-600">info@mutiarahotel.com</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-6 pt-4">
-                    <a href="#" className="text-yellow-600 hover:text-yellow-700 transition-colors">
-                      <Facebook className="w-6 h-6" />
-                    </a>
-                    <a href="#" className="text-yellow-600 hover:text-yellow-700 transition-colors">
-                      <Instagram className="w-6 h-6" />
-                    </a>
-                    <a href="#" className="text-yellow-600 hover:text-yellow-700 transition-colors">
-                      <Twitter className="w-6 h-6" />
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border border-gray-200 shadow-xl overflow-hidden relative group">
-                <div className="absolute bottom-0 left-0 w-20 h-20 border-b-2 border-l-2 border-yellow-400/40 transition-all duration-500 group-hover:border-yellow-500 z-10"></div>
-                <CardHeader className="space-y-2">
-                  <CardTitle className="text-3xl font-bold text-gray-800">
-                    Lokasi Kami
-                  </CardTitle>
-                  <p className="text-gray-600 text-sm">Temukan kami di peta</p>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="aspect-video relative overflow-hidden">
-                    <div className="absolute inset-0 border-4 border-yellow-200 pointer-events-none z-10"></div>
-                    <iframe
-                      src={googleMapsEmbed}
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      allowFullScreen
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      className="absolute inset-0 grayscale hover:grayscale-0 transition-all duration-500"
-                      title="Lokasi Mutiara Hotel"
-                    />
-                  </div>
-                  <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-yellow-200">
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 text-yellow-600 hover:text-yellow-700 font-semibold transition-colors group/link"
-                    >
-                      <MapPin className="w-5 h-5 group-hover/link:scale- increasing transition-transform" />
-                      <span className="underline underline-offset-4">Buka di Google Maps</span>
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+        <div className="max-w-4xl mx-auto px-4">
+          <ReviewSection />
         </div>
       </main>
       <Footer />
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-      `}</style>
     </>
   );
 }
