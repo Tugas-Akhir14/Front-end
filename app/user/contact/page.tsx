@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Star, Send, LogIn, Loader2, Edit2, Trash2, Check, MessageSquare
 } from 'lucide-react';
+import ChatBot from '@/components/Chatbot/ChatBot';
 
 interface Admin {
   id: number;
@@ -442,6 +443,7 @@ export default function ContactPage() {
         </div>
       </main>
       <Footer />
+      <ChatBot />
     </>
   );
 }

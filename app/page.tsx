@@ -61,12 +61,12 @@ export default function Home() {
     const fetchReviews = async () => {
       try {
         const response = await axios.get<Review[]>('/public/reviews');
-        const approvedReviews = response.data.filter((r) => r.rating >= 4);
+        const approvedReviews = response.data.filter((r) => r.rating >= 0);
         setReviews(approvedReviews.slice(0, 6));
       } catch (err: any) {
         console.error('Failed to fetch reviews:', err);
         // Fallback statis yang SESUAI tipe Review
-        setReviews([
+        setReviews([  
           { id: 1, rating: 5, comment: 'Pelayanan memukau, kamar super nyaman.', guest_name: 'Sarah Johnson', created_at: '2025-01-15' },
           { id: 2, rating: 5, comment: 'Lokasi strategis, fasilitas mantap.', guest_name: 'Michael Chen', created_at: '2025-01-10' },
           { id: 3, rating: 4, comment: 'Spa top tier, staf ramah.', guest_name: 'Emma Williams', created_at: '2025-01-08' },
@@ -756,7 +756,9 @@ export default function Home() {
         </section>
       </main>
       <Footer />
-      <ChatBot onReservationRequest={handleReservationRequest} />
+      <ChatBot />
     </>
   );
 }
+
+

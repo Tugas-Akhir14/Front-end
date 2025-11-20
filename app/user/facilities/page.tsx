@@ -28,6 +28,7 @@ import Footer from '@/components/Layout/Footer';
 import Header from '@/components/Layout/Header';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import ChatBot from '@/components/Chatbot/ChatBot';
 
 // ===== Types =====
 type Facility = {
@@ -385,7 +386,8 @@ export default function Facilities() {
         </section>
 
         <Footer />
+        <ChatBot />
       </main>
     </div>
   );
-}
+} 

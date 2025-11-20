@@ -3,256 +3,178 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { MessageCircle, X, Send, User, Bot } from 'lucide-react';
-import { ChatMessage } from '@/types';
+import { MessageCircle, X, Home, MapPin, Clock, Wifi, Car, Coffee, Waves, Phone, ChevronRight } from 'lucide-react';
 
-interface ChatBotProps {
-  onReservationRequest?: (details: any) => void;
-}
-
-export default function ChatBot({ onReservationRequest }: ChatBotProps) {
+export default function ChatBotMutiara() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<any[]>([
     {
-      id: '1',
-      text: "Hello! Welcome to Mutiara Hotel. I'm here to help you make a reservation. How can I assist you today?",
-      sender: 'bot',
-      timestamp: new Date(),
-    },
+      id: 'welcome',
+      type: 'bot',
+      content: "Horas! Selamat datang di Hotel Mutiara Balige 🏨✨\n\nSilakan pilih informasi yang Anda butuhkan:",
+      buttons: [
+        { text: "Lokasi & Alamat", icon: MapPin, action: "alamat" },
+        { text: "Jam Check-in / Check-out", icon: Clock, action: "jam" },
+        { text: "Fasilitas Hotel", icon: Home, action: "fasilitas" },
+        { text: "Harga Kamar & Tipe", icon: Coffee, action: "harga" },
+        { text: "Kolam Renang & View Danau Toba", icon: Waves, action: "kolam" },
+        { text: "Restoran & Menu Khas Batak", icon: Coffee, action: "resto" },
+        { text: "Parkir & Wi-Fi", icon: Wifi, action: "parkir" },
+        { text: "Hubungi Kami Langsung", icon: Phone, action: "kontak" },
+      ]
+    }
   ]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [reservationState, setReservationState] = useState({
-    step: 0,
-    data: {},
-  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const roomTypes = [
-    { name: 'Superior', price: 250 },
-    { name: 'Deluxe ', price: 360 },
-    { name: 'Executive', price: 725 },
-  ];
-
-  const addMessage = (text: string, sender: 'user' | 'bot') => {
-    const newMessage: ChatMessage = {
+  const addMessage = (content: string, type: 'bot' | 'user', buttons?: any[], userText?: string) => {
+    setMessages(prev => [...prev, {
       id: Date.now().toString(),
-      text,
-      sender,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, newMessage]);
+      type,
+      content,
+      buttons: buttons || null,
+      userText: type === 'user' ? userText : null, // simpan teks asli yang dipilih user
+      timestamp: new Date()
+    }]);
   };
 
-  const botResponse = async (userMessage: string) => {
-    setIsTyping(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    let response = '';
-    const lowerMessage = userMessage.toLowerCase();
-
-    // Simple reservation flow
-    if (lowerMessage.includes('book') || lowerMessage.includes('reserve') || lowerMessage.includes('room')) {
-      if (reservationState.step === 0) {
-        response = "Great! I'd be happy to help you book a room. What type of room are you looking for?\n\n" +
-                  roomTypes.map(room => `• ${room.name} - $${room.price}/night`).join('\n');
-        setReservationState(prev => ({ ...prev, step: 1 }));
-      }
-    } else if (reservationState.step === 1) {
-      const selectedRoom = roomTypes.find(room => 
-        lowerMessage.includes(room.name.toLowerCase()) || 
-        lowerMessage.includes(room.name.split(' ')[0].toLowerCase())
-      );
-      
-      if (selectedRoom) {
-        setReservationState(prev => ({ 
-          ...prev, 
-          step: 2, 
-          data: { ...prev.data, roomType: selectedRoom.name, price: selectedRoom.price }
-        }));
-        response = `Perfect! You've selected the ${selectedRoom.name} at $${selectedRoom.price}/night. When would you like to check in? (Please provide a date in MM/DD/YYYY format)`;
-      } else {
-        response = "I didn't recognize that room type. Please choose from:\n" +
-                  roomTypes.map(room => `• ${room.name} - $${room.price}/night`).join('\n');
-      }
-    } else if (reservationState.step === 2) {
-      // Simple date validation
-      if (lowerMessage.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
-        setReservationState(prev => ({ 
-          ...prev, 
-          step: 3, 
-          data: { ...prev.data, checkIn: userMessage }
-        }));
-        response = "Great! When would you like to check out? (Please provide a date in MM/DD/YYYY format)";
-      } else {
-        response = "Please provide a valid check-in date in MM/DD/YYYY format.";
-      }
-    } else if (reservationState.step === 3) {
-      if (lowerMessage.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
-        setReservationState(prev => ({ 
-          ...prev, 
-          step: 4, 
-          data: { ...prev.data, checkOut: userMessage }
-        }));
-        response = "How many guests will be staying?";
-      } else {
-        response = "Please provide a valid check-out date in MM/DD/YYYY format.";
-      }
-    } else if (reservationState.step === 4) {
-      const guests = parseInt(lowerMessage);
-      if (guests && guests > 0) {
-        const reservationData = { 
-          ...reservationState.data, 
-          guests,
-          totalAmount: (reservationState.data as any).price * 3 // Simplified calculation
-        };
-        
-        setReservationState({ step: 0, data: {} });
-        response = `Perfect! Here's your reservation summary:
-        
-Room: ${(reservationData as any).roomType}
-Check-in: ${(reservationData as any).checkIn}
-Check-out: ${(reservationData as any).checkOut}
-Guests: ${guests}
-Total: $${(reservationData as any).totalAmount}
-
-To complete your booking, please sign in or create an account. Would you like me to redirect you to the booking page?`;
-
-        if (onReservationRequest) {
-          onReservationRequest(reservationData);
-        }
-      } else {
-        response = "Please provide a valid number of guests.";
-      }
-    } else if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      response = "Hello! Welcome to LuxuryStay Hotel. I can help you book a room, check our amenities, or answer any questions you might have. What would you like to know?";
-    } else if (lowerMessage.includes('amenities') || lowerMessage.includes('facilities')) {
-      response = "Our hotel offers amazing amenities including:\n• Free Wi-Fi\n• Swimming Pool\n• Fitness Center\n• Spa & Wellness Center\n• 24/7 Room Service\n• Restaurant & Bar\n• Business Center\n• Concierge Service";
-    } else if (lowerMessage.includes('price') || lowerMessage.includes('rate')) {
-      response = "Here are our room rates:\n" + roomTypes.map(room => `• ${room.name}: $${room.price}/night`).join('\n') + "\n\nWould you like to make a reservation?";
-    } else {
-      response = "I'm here to help with room bookings and hotel information. You can ask me about:\n• Making a reservation\n• Room types and prices\n• Hotel amenities\n• Check-in/check-out times\n\nWhat would you like to know?";
+  const sendMenu = (menuType: string) => {
+    if (menuType === "main") {
+      addMessage("Pilih lagi informasi yang Anda inginkan ya Horas!", "bot", [
+        { text: "Lokasi & Alamat", icon: MapPin, action: "alamat" },
+        { text: "Jam Check-in / Check-out", icon: Clock, action: "jam" },
+        { text: "Fasilitas Hotel", icon: Home, action: "fasilitas" },
+        { text: "Harga Kamar & Tipe", icon: Coffee, action: "harga" },
+        { text: "Kolam Renang & View", icon: Waves, action: "kolam" },
+        { text: "Restoran Khas Batak", icon: Coffee, action: "resto" },
+        { text: "Parkir & Wi-Fi", icon: Wifi, action: "parkir" },
+        { text: "Hubungi Kami", icon: Phone, action: "kontak" },
+      ]);
+      return;
     }
 
-    setIsTyping(false);
-    addMessage(response, 'bot');
+    const responses: Record<string, string> = {
+      alamat: `Hotel Mutiara Balige\nJalan Balige No. 88, Kel. Balige I\nKec. Balige, Kab. Toba Samosir\nSumatera Utara 22312\n\nLokasi strategis:\n• 3 menit dari Pasar Balige\n• 5 menit dari Pelabuhan Balige\n• 500m dari Pantai Lumban Bul-Bul\n• View langsung Danau Toba dari hotel!\n\nhttps://maps.google.com/?q=Hotel+Mutiara+Balige`,
+      
+      jam: `Jam Operasional Hotel:\n\nCheck-in : 14.00 WIB\nCheck-out : 12.00 WIB\n\nEarly check-in & late check-out bisa di-request (tergantung ketersediaan)\nSarapan: 06.30 – 10.00 WIB`,
+      
+      fasilitas: `Fasilitas Hotel Mutiara Balige:\n\n• 42 kamar modern dengan AC\n• Balkon pribadi (Deluxe & Suite)\n• Kolam renang outdoor view Danau Toba\n• Restoran Mutiara (06.00–22.00)\n• Free Wi-Fi kencang seluruh area\n• Parkir luas gratis\n• Room service 24 jam\n• Laundry & tour desk`,
+      
+      harga: `Tipe Kamar & Harga (per malam):\n\nStandard Room       : Rp650.000\nDeluxe Lake View     : Rp950.000\nFamily Room (4 org)   : Rp1.350.000\nJunior Suite             : Rp1.650.000\n\nSudah termasuk:\n• Sarapan prasmanan\n• Wi-Fi, parkir, kolam renang\n• Welcome drink khas Batak`,
+      
+      kolam: `Kolam Renang Outdoor buka setiap hari pukul 07.00 – 19.00 WIB\n\nGratis untuk semua tamu\nView langsung Danau Toba + Gunung Pusuk Buhit\nHanduk disediakan • Ada area anak`,
+      
+      resto: `Restoran Mutiara – Buka 06.00 – 22.00 WIB\n\nMenu spesial khas Batak:\n• Ikan Arsik • Saksang • Naniura\n• Mie Gomak • Tipa-tipa\n\nJuga ada menu Indonesia, Chinese, Western\nMakan sambil nikmati pemandangan Danau Toba!`,
+      
+      parkir: `Parkir luas & GRATIS untuk mobil/motor\nWi-Fi gratis kencang (30–50 Mbps) di semua area hotel`,
+      
+      kontak: `Hubungi kami langsung:\n\nWhatsApp/Telepon:\n+62 812-3456-7890 (Reservasi)\n+62 821-7777-8888 (Front Office)\n\nEmail: info@mutiarabalige.com\nInstagram: @hotelmutiarabalige\n\nKami siap 24 jam • Horas!`
+    };
+
+    const buttonLabels: Record<string, string> = {
+      alamat: "Lokasi & Alamat",
+      jam: "Jam Check-in / Check-out",
+      fasilitas: "Fasilitas Hotel",
+      harga: "Harga Kamar & Tipe",
+      kolam: "Kolam Renang & View Danau Toba",
+      resto: "Restoran & Menu Khas Batak",
+      parkir: "Parkir & Wi-Fi",
+      kontak: "Hubungi Kami Langsung"
+    };
+
+    addMessage(responses[menuType], "bot", [
+      { text: "Kembali ke Menu Utama", icon: Home, action: "main" }
+    ], buttonLabels[menuType]);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-
-    addMessage(inputValue, 'user');
-    const userMessage = inputValue;
-    setInputValue('');
-    
-    await botResponse(userMessage);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSendMessage();
+  const handleButtonClick = (action: string, buttonText: string) => {
+    if (action === "main") {
+      sendMenu("main");
+    } else {
+      // Tampilkan pesan user sesuai tombol yang diklik
+      addMessage(buttonText, "user");
+      setTimeout(() => sendMenu(action), 600);
     }
   };
 
   return (
     <>
-      {/* Chat toggle button */}
-      <Button
-        onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-yellow-600 hover:bg-yellow-700 shadow-lg ${isOpen ? 'hidden' : ''}`}
-      >
-        <MessageCircle className="w-6 h-6" />
-      </Button>
+      {/* Tombol Buka Chat */}
+      {!isOpen && (
+        <Button
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-yellow-600 hover:bg-yellow-700 shadow-2xl"
+        >
+          <MessageCircle className="w-8 h-8" />
+        </Button>
+      )}
 
-      {/* Chat window */}
+      {/* Jendela Chat - Tema PUTIH + EMAS */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 z-50 w-80 h-96 shadow-2xl border-yellow-200">
-          <CardHeader className="bg-yellow-600 text-white p-4 rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">Mutiara Assistant</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsOpen(false)}
-                className="text-white hover:bg-yellow-700 p-1 h-auto"
-              >
-                <X className="w-4 h-4" />
+        <Card className="fixed bottom-6 right-6 z-50 w-96 h-[620px] shadow-2xl border border-yellow-200">
+          <CardHeader className="bg-gradient-to-r from-yellow-600 to-amber-600 text-white rounded-t-xl">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <Home className="w-6 h-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Hotel Mutiara Balige</CardTitle>
+                  <p className="text-xs opacity-90">Online • Balas dalam hitungan detik</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="text-white hover:bg-white/20">
+                <X className="w-5 h-5" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-0 flex flex-col h-80">
-            {/* Messages area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`flex items-start space-x-2 max-w-[80%]`}>
-                    {message.sender === 'bot' && (
-                      <div className="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-3 h-3 text-yellow-600" />
-                      </div>
-                    )}
-                    <div
-                      className={`p-2 rounded-lg text-sm whitespace-pre-line ${
-                        message.sender === 'user'
-                          ? 'bg-yellow-600 text-white'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {message.text}
+
+          <CardContent className="p-0 flex flex-col h-full bg-white">
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {messages.map(msg => (
+                <div key={msg.id} className={msg.type === 'user' ? 'text-right' : 'text-left'}>
+                  {msg.type === 'user' ? (
+                    <div className="inline-block bg-yellow-600 text-white rounded-2xl px-4 py-3 shadow-lg max-w-xs">
+                      <p className="text-sm">{msg.content}</p>
                     </div>
-                    {message.sender === 'user' && (
-                      <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
-                        <User className="w-3 h-3 text-gray-600" />
-                      </div>
-                    )}
-                  </div>
+                  ) : (
+                    <div className="inline-block bg-gray-100 border border-gray-200 rounded-2xl px-4 py-3 shadow max-w-full">
+                      <p className="text-sm whitespace-pre-line text-gray-800">{msg.content}</p>
+                    </div>
+                  )}
+
+                  {/* Tombol Pilihan */}
+                  {msg.buttons && (
+                    <div className={`mt-3 flex flex-wrap gap-2 ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      {msg.buttons.map((btn: any, i: number) => (
+                        <Button
+                          key={i}
+                          onClick={() => handleButtonClick(btn.action, btn.text)}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-10 border-yellow-400 text-yellow-800 hover:bg-yellow-50 hover:border-yellow-500 font-medium"
+                        >
+                          <btn.icon className="w-4 h-4 mr-1" />
+                          {btn.text}
+                          <ChevronRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="flex items-start space-x-2">
-                    <div className="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center">
-                      <Bot className="w-3 h-3 text-yellow-600" />
-                    </div>
-                    <div className="bg-gray-100 text-gray-800 p-2 rounded-lg text-sm">
-                      Typing...
-                    </div>
-                  </div>
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input area */}
-            <div className="border-t p-3">
-              <div className="flex space-x-2">
-                <Input
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type your message..."
-                  className="flex-1 border-yellow-200 focus:border-yellow-400"
-                />
-                <Button 
-                  onClick={handleSendMessage}
-                  size="sm"
-                  className="bg-yellow-600 hover:bg-yellow-700"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
+            {/* Footer */}
+            <div className="border-t border-yellow-200 p-4 bg-gradient-to-t from-yellow-50 to-white">
+              <Button 
+                onClick={() => sendMenu("main")} 
+                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium"
+              >
+                Kembali ke Menu Utama
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Play, X, ChevronLeft, ChevronRight, Volume2, VolumeX, ZoomIn, Sparkles, Crown, Camera, Image as ImageIcon } from 'lucide-react';
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
+import ChatBot from '@/components/Chatbot/ChatBot';
 
 type APIGalleryItem = {
   id: number;
@@ -421,6 +422,8 @@ export default function Gallery() {
           </div>
         </div>
       )}
+      <ChatBot />
     </div>
+    
   );
 }

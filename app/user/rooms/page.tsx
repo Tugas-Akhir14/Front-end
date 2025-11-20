@@ -172,38 +172,48 @@ export default function RoomBookingPage() {
   };
 
   // === BOOKING ===
-  const handleBook = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+const handleBook = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
 
-    try {
-      const payload = {
-        room_type: form.type.toLowerCase(),
-        total_rooms: form.total_rooms,
-        name: form.name.trim(),
-        phone: form.phone.trim(),
-        email: form.email.trim(),
-        check_in: form.check_in,
-        check_out: form.check_out,
-        guests: form.guests,
-        notes: form.notes.trim(),
-      };
+  try {
+    const payload = {
+      room_type: form.type.toLowerCase(),
+      total_rooms: form.total_rooms,
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      email: form.email.trim(),
+      check_in: form.check_in,
+      check_out: form.check_out,
+      guests: form.guests,
+      notes: form.notes.trim(),
+    };
 
-      const res = await api.post('/public/guest-bookings', payload);
+    const res = await api.post('/public/guest-bookings', payload);
 
-      if (res.whatsapp_url) {
-        window.open(res.whatsapp_url, '_blank');
-      }
+    // ---------- PERBAIKAN UTAMA ----------
+    const whatsappUrl = res?.data?.whatsapp_url || res?.whatsapp_url;
 
-      alert('Booking berhasil! Silakan konfirmasi pembayaran via WhatsApp.');
-      router.push('/');
-    } catch (err: any) {
-      setError(err.message || 'Gagal melakukan booking');
-    } finally {
-      setLoading(false);
+    if (!whatsappUrl) {
+      throw new Error('Link WhatsApp tidak ditemukan dari server');
     }
-  };
+
+    // Buka WhatsApp (pastikan langsung terbuka)
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+
+    // ---------- END PERBAIKAN ----------
+
+    alert('Booking berhasil! Silakan konfirmasi pembayaran via WhatsApp.');
+    router.push('/');
+
+  } catch (err: any) {
+    console.error('Booking error:', err);
+    setError(err.message || 'Gagal melakukan booking. Silakan coba lagi.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (!user) {
     return (

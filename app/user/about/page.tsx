@@ -1,5 +1,6 @@
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
+import ChatBot from '@/components/Chatbot/ChatBot';
 
 
 export default function AboutPage() {
@@ -223,6 +224,9 @@ export default function AboutPage() {
                   </div>
               </section>
           </div></>
-          <Footer /></>
+          <Footer />
+          <ChatBot />
+          </>
+          
   );
 }

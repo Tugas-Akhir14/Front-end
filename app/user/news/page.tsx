@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import Link from 'next/link';
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
+import ChatBot from '@/components/Chatbot/ChatBot';
 
 type News = {
   id: number;
@@ -306,6 +307,7 @@ export default function NewsPage() {
         </section>
       </main>
       <Footer />
+      <ChatBot />
     </>
   );
 }
