@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Menu, X, User, LogOut, Settings } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, Star, Calendar } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,6 +97,118 @@ export default function Header() {
     return user.role === 'guest' ? '/dashboard' : '/admin';
   };
 
+  // Profile Dropdown Component
+  const ProfileDropdown = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="icon"
+          className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-yellow-300 transition-all"
+        >
+          <User size={18} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent 
+        align="end" 
+        className="w-80 bg-black/95 backdrop-blur-xl border-white/20 text-white p-0 overflow-hidden"
+      >
+        {user ? (
+          // User is logged in - Show Profile Card
+          <div className="p-4">
+            {/* Profile Header */}
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-2 border-amber-400">
+                <User className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-white truncate">{user.full_name}</h3>
+                <p className="text-sm text-gray-400 truncate">{user.email}</p>
+                <div className="flex items-center space-x-1 mt-1">
+                  <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                  <span className="text-xs text-gray-400">VIP Member</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-center">
+                <Calendar className="w-4 h-4 text-amber-400 mx-auto mb-1" />
+                <p className="text-xs text-gray-400">Bookings</p>
+                <p className="text-sm font-semibold text-amber-400">5</p>
+              </div>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-center">
+                <Star className="w-4 h-4 text-amber-400 mx-auto mb-1" />
+                <p className="text-xs text-gray-400">Points</p>
+                <p className="text-sm font-semibold text-amber-400">1,250</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <DropdownMenuItem asChild className="hover:bg-amber-500/20 cursor-pointer rounded-md">
+                <Link href="/user/profile" className="flex items-center text-white/90 p-2">
+                  <User size={16} className="mr-3" />
+                  My Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="hover:bg-amber-500/20 cursor-pointer rounded-md">
+                <Link href={getDashboardLink()} className="flex items-center text-white/90 p-2">
+                  <Settings size={16} className="mr-3" />
+                  {user.role === 'guest' ? 'Dashboard' : 'Admin Panel'}
+                </Link>
+              </DropdownMenuItem>
+              <div className="border-t border-white/20 pt-2 mt-2">
+                <DropdownMenuItem 
+                  onClick={handleLogout} 
+                  className="text-red-300 hover:text-red-200 hover:bg-red-500/20 cursor-pointer rounded-md p-2"
+                >
+                  <LogOut size={16} className="mr-3" />
+                  Logout
+                </DropdownMenuItem>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // User is not logged in - Show Login/Signup Card
+          <div className="p-6">
+            <div className="text-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-2 border-amber-400 mx-auto mb-3">
+                <User className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="font-semibold text-white mb-1">Welcome Guest</h3>
+              <p className="text-sm text-gray-400">Sign in to access your profile and bookings</p>
+            </div>
+
+            <div className="space-y-3">
+              <Button asChild className="w-full bg-amber-500 hover:bg-amber-600 border-2 border-amber-400 text-white">
+                <Link href="/auth/signin">
+                  Sign In
+                </Link>
+              </Button>
+              <Button 
+                variant="outline" 
+                asChild 
+                className="w-full border-amber-500 text-amber-400 hover:bg-amber-500/20"
+              >
+                <Link href="/auth/signup">
+                  Create Account
+                </Link>
+              </Button>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-white/20">
+              <p className="text-xs text-gray-400 text-center">
+                Join our loyalty program and earn rewards
+              </p>
+            </div>
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <>
       <header className="fixed top-3 sm:top-5 left-0 right-0 z-50 pointer-events-none">
@@ -136,7 +248,11 @@ export default function Header() {
                   ))}
                 </nav>
 
-                {user ? (
+                {/* Profile Icon Dropdown */}
+                <ProfileDropdown />
+
+                {/* Old User Dropdown (tetap ada untuk kompatibilitas) */}
+                {user && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="flex items-center space-x-2 border-white/30 hover:border-white/50 bg-transparent text-white/90 text-sm">
@@ -157,15 +273,6 @@ export default function Header() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                ) : (
-                  <>
-                    <Button variant="outline" asChild className="border-white/30 hover:border-white/50 bg-transparent text-white/90 text-sm">
-                      <Link href="/auth/signin">Sign In</Link>
-                    </Button>
-                    <Button asChild className="bg-yellow-500/90 hover:bg-yellow-500 text-white text-sm">
-                      <Link href="/auth/signup">Sign Up</Link>
-                    </Button>
-                  </>
                 )}
               </div>
             </div>
@@ -188,25 +295,53 @@ export default function Header() {
               {item.name}
             </Link>
           ))}
-          <div className="border-t border-white/20 mt-3 pt-3 space-y-2">
+          
+          {/* Mobile Profile Section */}
+          <div className="border-t border-white/20 mt-3 pt-3 space-y-3">
             {user ? (
               <>
+                {/* Mobile Profile Info */}
+                <div className="flex items-center space-x-3 px-3 py-2 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-2 border-amber-400">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-white text-sm truncate">{user.full_name}</h4>
+                    <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                  </div>
+                </div>
+                
+                <Button variant="outline" asChild className="w-full justify-start bg-transparent text-white/90 border-white/30">
+                  <Link href="/user/profile" onClick={() => setIsMenuOpen(false)}>
+                    <User size={16} className="mr-3" />
+                    My Profile
+                  </Link>
+                </Button>
                 <Button variant="outline" asChild className="w-full justify-start bg-transparent text-white/90 border-white/30">
                   <Link href={getDashboardLink()} onClick={() => setIsMenuOpen(false)}>
+                    <Settings size={16} className="mr-3" />
                     {user.role === 'guest' ? 'Dashboard' : 'Admin Panel'}
                   </Link>
                 </Button>
                 <Button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="w-full bg-red-500/90 hover:bg-red-500 text-white">
+                  <LogOut size={16} className="mr-3" />
                   Logout
                 </Button>
               </>
             ) : (
               <>
+                <div className="text-center px-3 py-2">
+                  <p className="text-sm text-gray-400 mb-3">Sign in to access your profile</p>
+                </div>
                 <Button variant="outline" asChild className="w-full bg-transparent text-white/90 border-white/30">
-                  <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
+                  <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>
+                    Sign In
+                  </Link>
                 </Button>
                 <Button asChild className="w-full bg-yellow-500/90 hover:bg-yellow-500 text-white">
-                  <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>Sign Up</Link>
+                  <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
+                    Sign Up
+                  </Link>
                 </Button>
               </>
             )}
