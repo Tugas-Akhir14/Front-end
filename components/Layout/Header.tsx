@@ -1,4 +1,5 @@
-// components/Layout/Header.tsx
+
+      // components/Layout/Header.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
 interface User {
@@ -31,8 +33,7 @@ export default function Header() {
 
     const loadUser = () => {
       try {
-        // GUNAKAN sessionStorage (SAMA DENGAN contact/page.tsx)
-        const token = sessionStorage.getItem('access_token');
+        const token = sessionStorage.getItem('token');
         const raw = sessionStorage.getItem('user');
 
         if (!token || !raw) {
@@ -41,7 +42,6 @@ export default function Header() {
         }
 
         const parsed = JSON.parse(raw);
-
         const isValid =
           parsed &&
           typeof parsed === 'object' &&
@@ -54,26 +54,24 @@ export default function Header() {
           setUser(parsed as User);
         } else {
           sessionStorage.removeItem('user');
+          sessionStorage.removeItem('token');
           setUser(null);
         }
       } catch (err) {
         console.error('Invalid user in sessionStorage:', err);
         sessionStorage.removeItem('user');
+        sessionStorage.removeItem('token');
         setUser(null);
       }
     };
 
     loadUser();
-
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'user' || e.key === 'access_token') loadUser();
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener('storage', loadUser);
+    return () => window.removeEventListener('storage', loadUser);
   }, []);
 
   const handleLogout = () => {
-    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
     setUser(null);
     router.push('/');
@@ -97,112 +95,104 @@ export default function Header() {
     return user.role === 'guest' ? '/dashboard' : '/admin';
   };
 
-  // Profile Dropdown Component
+  // PROFILE DROPDOWN — VERSI FINAL YANG KAMU MAU
   const ProfileDropdown = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="icon"
-          className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-yellow-300 transition-all"
+          className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-yellow-300 transition-all rounded-full"
         >
-          <User size={18} />
+          <User size={20} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end" 
-        className="w-80 bg-black/95 backdrop-blur-xl border-white/20 text-white p-0 overflow-hidden"
-      >
+
+      <DropdownMenuContent align="end" className="w-80 bg-black/95 backdrop-blur-xl border-white/20 text-white p-0 overflow-hidden rounded-2xl">
         {user ? (
-          // User is logged in - Show Profile Card
-          <div className="p-4">
-            {/* Profile Header */}
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-2 border-amber-400">
-                <User className="w-6 h-6 text-white" />
+          // USER SUDAH LOGIN → TAMPILKAN PROFIL LENGKAP
+          <div className="p-5">
+            {/* Header Profil */}
+            <div className="flex items-center space-x-4 mb-5">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-3 border-amber-400 shadow-lg">
+                <User className="w-7 h-7 text-white" />
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-white truncate">{user.full_name}</h3>
-                <p className="text-sm text-gray-400 truncate">{user.email}</p>
-                <div className="flex items-center space-x-1 mt-1">
-                  <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                  <span className="text-xs text-gray-400">VIP Member</span>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg text-white truncate">{user.full_name}</h3>
+                <p className="text-sm text-gray-300 truncate">{user.email}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <span className="text-xs font-medium text-amber-400">VIP Member</span>
                 </div>
               </div>
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-center">
-                <Calendar className="w-4 h-4 text-amber-400 mx-auto mb-1" />
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center">
+                <Calendar className="w-5 h-5 text-amber-400 mx-auto mb-1" />
                 <p className="text-xs text-gray-400">Bookings</p>
-                <p className="text-sm font-semibold text-amber-400">5</p>
+                <p className="text-lg font-bold text-amber-400">5</p>
               </div>
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-center">
-                <Star className="w-4 h-4 text-amber-400 mx-auto mb-1" />
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center">
+                <Star className="w-5 h-5 text-amber-400 mx-auto mb-1" />
                 <p className="text-xs text-gray-400">Points</p>
-                <p className="text-sm font-semibold text-amber-400">1,250</p>
+                <p className="text-lg font-bold text-amber-400">1,250</p>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-2">
-              <DropdownMenuItem asChild className="hover:bg-amber-500/20 cursor-pointer rounded-md">
-                <Link href="/user/profile" className="flex items-center text-white/90 p-2">
-                  <User size={16} className="mr-3" />
-                  My Profile
+            <DropdownMenuSeparator className="bg-white/20" />
+
+            {/* Menu Actions */}
+            <div className="space-y-1 pt-3">
+              <DropdownMenuItem asChild>
+                <Link href="/user/profile" className="flex items-center px-3 py-3 hover:bg-amber-500/20 rounded-lg cursor-pointer transition-all">
+                  <User size={18} className="mr-3 text-amber-400" />
+                  <span className="font-medium">See Profile</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="hover:bg-amber-500/20 cursor-pointer rounded-md">
-                <Link href={getDashboardLink()} className="flex items-center text-white/90 p-2">
-                  <Settings size={16} className="mr-3" />
-                  {user.role === 'guest' ? 'Dashboard' : 'Admin Panel'}
+
+              <DropdownMenuItem asChild>
+                <Link href={getDashboardLink()} className="flex items-center px-3 py-3 hover:bg-amber-500/20 rounded-lg cursor-pointer transition-all">
+                  <Settings size={18} className="mr-3 text-amber-400" />
+                  <span className="font-medium">
+                    {user.role === 'guest' ? 'My Dashboard' : 'Admin Panel'}
+                  </span>
                 </Link>
               </DropdownMenuItem>
-              <div className="border-t border-white/20 pt-2 mt-2">
-                <DropdownMenuItem 
-                  onClick={handleLogout} 
-                  className="text-red-300 hover:text-red-200 hover:bg-red-500/20 cursor-pointer rounded-md p-2"
-                >
-                  <LogOut size={16} className="mr-3" />
-                  Logout
-                </DropdownMenuItem>
-              </div>
             </div>
+
+            <DropdownMenuSeparator className="bg-white/20 my-3" />
+
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="flex items-center px-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg cursor-pointer transition-all font-medium"
+            >
+              <LogOut size={18} className="mr-3" />
+              Logout
+            </DropdownMenuItem>
           </div>
         ) : (
-          // User is not logged in - Show Login/Signup Card
-          <div className="p-6">
-            <div className="text-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-2 border-amber-400 mx-auto mb-3">
-                <User className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="font-semibold text-white mb-1">Welcome Guest</h3>
-              <p className="text-sm text-gray-400">Sign in to access your profile and bookings</p>
+          // USER BELUM LOGIN → TAMPILKAN CARD LOGIN
+          <div className="p-6 text-center">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-4 border-amber-400 mx-auto mb-4 shadow-xl">
+              <User className="w-10 h-10 text-white" />
             </div>
+            <h3 className="font-bold text-xl mb-2">Welcome Back!</h3>
+            <p className="text-sm text-gray-400 mb-6">Sign in to manage your bookings & profile</p>
 
             <div className="space-y-3">
-              <Button asChild className="w-full bg-amber-500 hover:bg-amber-600 border-2 border-amber-400 text-white">
-                <Link href="/auth/signin">
-                  Sign In
-                </Link>
+              <Button asChild className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold text-base py-6">
+                <Link href="/auth/signin">Sign In</Link>
               </Button>
-              <Button 
-                variant="outline" 
-                asChild 
-                className="w-full border-amber-500 text-amber-400 hover:bg-amber-500/20"
-              >
-                <Link href="/auth/signup">
-                  Create Account
-                </Link>
+              <Button asChild variant="outline" className="w-full border-amber-500 text-amber-400 hover:bg-amber-500/20 font-medium">
+                <Link href="/auth/signup">Create Account</Link>
               </Button>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/20">
-              <p className="text-xs text-gray-400 text-center">
-                Join our loyalty program and earn rewards
-              </p>
-            </div>
+            <p className="text-xs text-gray-500 mt-5">
+              Join now and earn rewards on every stay
+            </p>
           </div>
         )}
       </DropdownMenuContent>
@@ -211,11 +201,12 @@ export default function Header() {
 
   return (
     <>
+      {/* ... bagian header lainnya tetap sama ... */}
       <header className="fixed top-3 sm:top-5 left-0 right-0 z-50 pointer-events-none">
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <div className="pointer-events-auto rounded-2xl border border-white/20 bg-black/30 backdrop-blur-xl shadow-lg hover:bg-black/40 transition-all">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 py-3">
-              {/* Left */}
+              {/* Left Nav */}
               <div className="flex items-center">
                 <nav className="hidden md:flex gap-8">
                   {leftNav.map((item) => (
@@ -238,8 +229,8 @@ export default function Header() {
                 </Link>
               </div>
 
-              {/* Right */}
-              <div className="hidden md:flex items-center justify-end space-x-4">
+              {/* Right Nav + Profile */}
+              <div className="hidden md:flex items-center justify-end space-x-6">
                 <nav className="flex gap-8">
                   {rightNav.map((item) => (
                     <Link key={item.name} href={item.href} className="text-white/90 hover:text-yellow-300 transition-colors hover:scale-105 text-base">
@@ -248,37 +239,15 @@ export default function Header() {
                   ))}
                 </nav>
 
-                {/* Profile Icon Dropdown */}
+                {/* Profile Dropdown (yang baru) */}
                 <ProfileDropdown />
-
-                {/* Old User Dropdown (tetap ada untuk kompatibilitas) */}
-                {user && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="flex items-center space-x-2 border-white/30 hover:border-white/50 bg-transparent text-white/90 text-sm">
-                        <User size={16} />
-                        <span>{user.full_name}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 bg-black/80 backdrop-blur-xl border-white/20 text-white text-sm">
-                      <DropdownMenuItem asChild>
-                        <Link href={getDashboardLink()} className="flex items-center text-white/90">
-                          <Settings size={16} className="mr-3" />
-                          {user.role === 'guest' ? 'Dashboard' : 'Admin Panel'}
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleLogout} className="text-red-300 hover:text-red-200">
-                        <LogOut size={16} className="mr-3" />
-                        Logout
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
               </div>
             </div>
           </div>
         </div>
       </header>
+
+      
 
       {/* Mobile Sidebar */}
       <div className={`fixed inset-0 z-[60] bg-black/40 transition-opacity md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMenuOpen(false)} />
