@@ -2,188 +2,239 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar,
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  User,
+  LogOut,
   Edit3,
-  Save,
-  X,
-  Shield,
-  Bell,
-  CreditCard,
-  History,
-  Star,
-  Camera,
-  LogOut
+  Key,
+  Calendar,
+  Users,
 } from 'lucide-react';
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
 
-type UserProfile = {
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+});
+
+api.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+type AdminProfile = {
   id: number;
-  name: string;
+  full_name: string;
   email: string;
-  phone: string | null;
-  address: string | null;
-  date_of_birth: string | null;
-  avatar: string | null;
-  created_at: string;
-  updated_at: string;
+  phone_number: string | null;
+  role: string;
+  is_approved: boolean;
 };
 
-type Reservation = {
+type Booking = {
   id: number;
+  room: {
+    number: string;
+    room_type: {
+      type: string;
+    };
+  };
   check_in: string;
   check_out: string;
+  total_nights: number;
+  guests: number;
   total_price: number;
-  status: 'pending' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled';
-  room: {
-    type: string;
-    number: string;
-  };
-  guests_count: number;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'checked_in' | 'checked_out';
+  created_at: string;
 };
 
 export default function UserProfile() {
   const router = useRouter();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
+  const [user, setUser] = useState<AdminProfile | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [totalBookings, setTotalBookings] = useState(0);
+  const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState('profile'); // Tambah state untuk tab
+  const limit = 10;
 
-  // Form state
-  const [formData, setFormData] = useState({
-    name: '',
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [openPasswordModal, setOpenPasswordModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [editForm, setEditForm] = useState({
+    full_name: '',
     email: '',
-    phone: '',
-    address: '',
-    date_of_birth: '',
+    phone_number: '',
   });
 
-  // ================== Fetch User Data ==================
+  const [passwordForm, setPasswordForm] = useState({
+    old_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchProfile = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get<{ data: UserProfile }>('/user/profile');
+        const { data } = await api.get('/admins/profile');
         const userData = data.data;
         setUser(userData);
-        setFormData({
-          name: userData.name,
+        setEditForm({
+          full_name: userData.full_name,
           email: userData.email,
-          phone: userData.phone || '',
-          address: userData.address || '',
-          date_of_birth: userData.date_of_birth || '',
+          phone_number: userData.phone_number || '',
         });
-      } catch (error) {
-        console.error('Failed to fetch user data:', error);
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          sessionStorage.removeItem('token');
+          router.push('/login');
+        } else {
+          toast.error('Gagal memuat profil');
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserData();
-  }, []);
+    if (sessionStorage.getItem('token')) {
+      fetchProfile();
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
 
-  // ================== Fetch Reservations ==================
-  useEffect(() => {
-    const fetchReservations = async () => {
-      try {
-        const { data } = await axios.get<{ data: Reservation[] }>('/user/reservations');
-        setReservations(data.data || []);
-      } catch (error) {
-        console.error('Failed to fetch reservations:', error);
+  const fetchBookings = async (pageNum: number = 1) => {
+    if (activeTab !== 'bookings') return; // Hanya fetch kalau tab aktif
+
+    try {
+      setLoadingBookings(true);
+      const offset = (pageNum - 1) * limit;
+      const { data } = await api.get(`/public/bookings/me?limit=${limit}&offset=${offset}`);
+
+      const rawBookings = data?.data?.data || [];
+      const bookingsData = Array.isArray(rawBookings) ? rawBookings : [];
+      
+      setBookings(bookingsData);
+      setTotalBookings(data?.data?.total || 0);
+      setPage(pageNum);
+    } catch (error: any) {
+      console.error('Error fetching bookings:', error);
+      if (error.response?.status === 401) {
+        sessionStorage.removeItem('token');
+        router.push('/login');
+        return;
       }
-    };
+      toast.error('Gagal memuat riwayat pemesanan');
+      setBookings([]);
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
 
-    if (activeTab === 'reservations') {
-      fetchReservations();
+  // Trigger fetch saat tab berubah ke bookings
+  useEffect(() => {
+    if (activeTab === 'bookings') {
+      fetchBookings(1);
     }
   }, [activeTab]);
 
-  // ================== Handlers ==================
-  const handleSave = async () => {
+  const handleUpdateProfile = async () => {
+    if (!editForm.full_name || !editForm.email) {
+      toast.error('Nama dan email wajib diisi');
+      return;
+    }
     try {
       setSaving(true);
-      const { data } = await axios.put<{ data: UserProfile }>('/user/profile', formData);
+      const { data } = await api.patch('/admins/profile', {
+        full_name: editForm.full_name,
+        email: editForm.email,
+        phone_number: editForm.phone_number || null,
+      });
       setUser(data.data);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update profile:', error);
+      setOpenEditModal(false);
+      toast.success('Profil berhasil diperbarui');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Gagal update profil');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCancel = () => {
-    if (user) {
-      setFormData({
-        name: user.name,
-        email: user.email,
-        phone: user.phone || '',
-        address: user.address || '',
-        date_of_birth: user.date_of_birth || '',
-      });
+  const handleChangePassword = async () => {
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      toast.error('Password baru tidak cocok');
+      return;
     }
-    setIsEditing(false);
-  };
-
-  const handleLogout = async () => {
+    if (passwordForm.new_password.length < 8) {
+      toast.error('Password minimal 8 karakter');
+      return;
+    }
     try {
-      await axios.post('/auth/logout');
-      router.push('/');
-    } catch (error) {
-      console.error('Logout failed:', error);
+      setSaving(true);
+      await api.patch('/admins/profile/password', {
+        old_password: passwordForm.old_password,
+        new_password: passwordForm.new_password,
+      });
+      setOpenPasswordModal(false);
+      setPasswordForm({ old_password: '', new_password: '', confirm_password: '' });
+      toast.success('Password berhasil diubah');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Gagal mengubah password');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Intl.DateTimeFormat('id-ID', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(new Date(dateString));
+  const handleLogout = () => {
+    sessionStorage.removeItem('token');
+    router.push('/login');
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors = {
-      pending: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50',
-      confirmed: 'bg-blue-500/20 text-blue-300 border-blue-500/50',
-      checked_in: 'bg-green-500/20 text-green-300 border-green-500/50',
-      checked_out: 'bg-gray-500/20 text-gray-300 border-gray-500/50',
-      cancelled: 'bg-red-500/20 text-red-300 border-red-500/50',
-    };
-    return colors[status as keyof typeof colors] || colors.pending;
-  };
-
-  const getStatusText = (status: string) => {
-    const texts = {
-      pending: 'Menunggu Konfirmasi',
-      confirmed: 'Terkonfirmasi',
-      checked_in: 'Check-in',
-      checked_out: 'Check-out',
-      cancelled: 'Dibatalkan',
-    };
-    return texts[status as keyof typeof texts] || status;
+  const getStatusBadge = (status: string) => {
+    const base = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium';
+    switch (status) {
+      case 'confirmed':   return <span className={`${base} bg-green-900 text-green-300`}>Confirmed</span>;
+      case 'pending':     return <span className={`${base} bg-yellow-900 text-yellow-300`}>Pending</span>;
+      case 'cancelled':   return <span className={`${base} bg-red-900 text-red-300`}>Cancelled</span>;
+      case 'checked_in':  return <span className={`${base} bg-blue-900 text-blue-300`}>Checked In</span>;
+      case 'checked_out': return <span className={`${base} bg-gray-700 text-gray-300`}>Checked Out</span>;
+      default:            return <span className={`${base} bg-gray-700 text-gray-300`}>{status}</span>;
+    }
   };
 
   if (loading) {
@@ -201,381 +252,246 @@ export default function UserProfile() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-black text-white">
-        {/* Hero Section */}
-        <section className="relative py-20 bg-gradient-to-b from-amber-950/50 to-black overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-20 left-10 w-72 h-72 bg-amber-600 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-yellow-600 rounded-full blur-3xl"></div>
-          </div>
-          
-          <div className="relative max-w-7xl mx-auto px-4 text-center">
-            <div className="inline-flex items-center space-x-2 bg-amber-900/80 px-6 py-3 rounded-full border-2 border-amber-600 mb-6 backdrop-blur-sm">
-              <User className="w-5 h-5 text-amber-400" />
-              <span className="text-amber-300 font-semibold">Profile Management</span>
-            </div>
-            
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500">
+      <main className="min-h-screen bg-black text-white py-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
               My Profile
             </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Kelola informasi pribadi dan riwayat reservasi Anda
-            </p>
+            <p className="text-gray-400">Kelola akun dan riwayat pemesanan Anda</p>
           </div>
-        </section>
 
-        {/* Profile Content */}
-        <section className="py-16 relative">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Sidebar */}
-              <Card className="lg:col-span-1 bg-gray-900 border-2 border-amber-700 overflow-hidden">
-                <CardContent className="p-6">
-                  {/* User Avatar & Basic Info */}
-                  <div className="text-center mb-8">
-                    <div className="relative inline-block mb-4">
-                      <div className="w-24 h-24 rounded-full bg-amber-500 flex items-center justify-center border-4 border-amber-400 shadow-lg shadow-amber-500/25">
-                        {user?.avatar ? (
-                          <img 
-                            src={user.avatar} 
-                            alt={user.name}
-                            className="w-full h-full rounded-full object-cover"
-                          />
-                        ) : (
-                          <User className="w-10 h-10 text-white" />
-                        )}
-                      </div>
-                      <button className="absolute bottom-0 right-0 w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center border-2 border-amber-300 hover:bg-amber-600 transition-colors">
-                        <Camera className="w-4 h-4 text-white" />
-                      </button>
-                    </div>
-                    
-                    <h3 className="text-xl font-bold text-white mb-1">{user?.name}</h3>
-                    <p className="text-gray-400 text-sm">{user?.email}</p>
-                    
-                    <div className="flex items-center justify-center space-x-1 mt-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 text-amber-500 fill-amber-500" />
-                      ))}
-                      <span className="text-gray-400 text-sm ml-1">Member</span>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <Card className="bg-gray-900 border-2 border-amber-700">
+              <CardContent className="p-6 text-center">
+                <div className="w-32 h-32 mx-auto mb-4 bg-amber-500 rounded-full flex items-center justify-center border-4 border-amber-400 shadow-lg">
+                  <User className="w-16 h-16 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold">{user?.full_name}</h3>
+                <p className="text-gray-400">{user?.email}</p>
+                <p className="text-sm text-amber-400 mt-2 capitalize">
+                  {user?.role.replace('_', ' ')}
+                </p>
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  className="mt-8 w-full border-red-500 text-red-400 hover:bg-red-500/10"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </CardContent>
+            </Card>
 
-                  {/* Navigation */}
-                  <nav className="space-y-2">
-                    {[
-                      { id: 'profile', icon: User, label: 'Profile' },
-                      { id: 'reservations', icon: History, label: 'Reservations' },
-                      { id: 'security', icon: Shield, label: 'Security' },
-                      { id: 'notifications', icon: Bell, label: 'Notifications' },
-                      { id: 'billing', icon: CreditCard, label: 'Billing' },
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
-                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 ${
-                          activeTab === item.id
-                            ? 'bg-amber-500/20 text-amber-300 border-r-2 border-amber-500'
-                            : 'text-gray-400 hover:text-amber-300 hover:bg-amber-500/10'
-                        }`}
-                      >
-                        <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.label}</span>
-                      </button>
-                    ))}
-                  </nav>
+            <div className="lg:col-span-3">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+                <TabsList className="grid w-full grid-cols-3 bg-gray-900">
+                  <TabsTrigger value="profile">Profile</TabsTrigger>
+                  <TabsTrigger value="security">Security</TabsTrigger>
+                  <TabsTrigger value="bookings">Riwayat Pesanan</TabsTrigger>
+                </TabsList>
 
-                  {/* Logout Button */}
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-300 mt-8 border border-red-500/30"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span className="font-medium">Logout</span>
-                  </button>
-                </CardContent>
-              </Card>
-
-              {/* Main Content */}
-              <div className="lg:col-span-3">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                  
-                  {/* Profile Tab */}
-                  <TabsContent value="profile" className="space-y-6">
-                    <Card className="bg-gray-900 border-2 border-amber-700">
-                      <CardHeader className="border-b border-amber-700/50">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle className="text-2xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-500">
-                              Personal Information
-                            </CardTitle>
-                            <CardDescription className="text-gray-400 mt-2">
-                              Kelola informasi profil dan bagaimana data Anda digunakan
-                            </CardDescription>
-                          </div>
-                          
-                          {!isEditing ? (
-                            <Button
-                              onClick={() => setIsEditing(true)}
-                              className="bg-amber-500 hover:bg-amber-600 border-2 border-amber-400"
-                            >
+                {/* Profile Tab */}
+                <TabsContent value="profile">
+                  <Card className="bg-gray-900 border-2 border-amber-700">
+                    <CardHeader>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <CardTitle className="text-2xl bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+                            Informasi Pribadi
+                          </CardTitle>
+                          <CardDescription className="text-gray-400">
+                            Update data profil Anda
+                          </CardDescription>
+                        </div>
+                        <Dialog open={openEditModal} onOpenChange={setOpenEditModal}>
+                          <DialogTrigger asChild>
+                            <Button className="bg-amber-500 hover:bg-amber-600">
                               <Edit3 className="w-4 h-4 mr-2" />
                               Edit Profile
                             </Button>
-                          ) : (
-                            <div className="space-x-2">
+                          </DialogTrigger>
+                          <DialogContent className="bg-gray-900 text-white border-2 border-amber-700">
+                            <DialogHeader>
+                              <DialogTitle>Edit Profile</DialogTitle>
+                              <DialogDescription className="text-gray-400">
+                                Ubah informasi profil Anda
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div>
+                                <Label>Nama Lengkap</Label>
+                                <Input
+                                  value={editForm.full_name}
+                                  onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                                  className="bg-gray-800 border-amber-600 text-white mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label>Email</Label>
+                                <Input
+                                  type="email"
+                                  value={editForm.email}
+                                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                                  className="bg-gray-800 border-amber-600 text-white mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label>Nomor Telepon</Label>
+                                <Input
+                                  value={editForm.phone_number}
+                                  onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })}
+                                  placeholder="081234567890"
+                                  className="bg-gray-800 border-amber-600 text-white mt-1"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setOpenEditModal(false)}>
+                                Batal
+                              </Button>
                               <Button
-                                onClick={handleSave}
+                                onClick={handleUpdateProfile}
                                 disabled={saving}
-                                className="bg-green-500 hover:bg-green-600 border-2 border-green-400"
+                                className="bg-amber-500 hover:bg-amber-600"
                               >
-                                <Save className="w-4 h-4 mr-2" />
-                                {saving ? 'Saving...' : 'Save Changes'}
+                                {saving ? 'Menyimpan...' : 'Simpan'}
                               </Button>
-                              <Button
-                                onClick={handleCancel}
-                                variant="outline"
-                                className="border-2 border-red-500 text-red-400 hover:bg-red-500/10"
-                              >
-                                <X className="w-4 h-4 mr-2" />
-                                Cancel
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Name */}
-                          <div className="space-y-2">
-                            <Label htmlFor="name" className="text-gray-300 flex items-center space-x-2">
-                              <User className="w-4 h-4" />
-                              <span>Full Name</span>
-                            </Label>
-                            {isEditing ? (
-                              <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="bg-gray-800 border-amber-600 text-white"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-medium">{user?.name}</p>
-                            )}
-                          </div>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><Label className="text-gray-400">Nama Lengkap</Label><p className="text-xl font-medium text-white mt-1">{user?.full_name}</p></div>
+                        <div><Label className="text-gray-400">Email</Label><p className="text-xl font-medium text-white mt-1">{user?.email}</p></div>
+                        <div><Label className="text-gray-400">Nomor Telepon</Label><p className="text-xl font-medium text-white mt-1">{user?.phone_number || 'Belum diisi'}</p></div>
+                        <div><Label className="text-gray-400">Role</Label><p className="text-xl font-medium text-amber-400 capitalize mt-1">{user?.role.replace(/_/g, ' ')}</p></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-                          {/* Email */}
-                          <div className="space-y-2">
-                            <Label htmlFor="email" className="text-gray-300 flex items-center space-x-2">
-                              <Mail className="w-4 h-4" />
-                              <span>Email Address</span>
-                            </Label>
-                            {isEditing ? (
-                              <Input
-                                id="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                className="bg-gray-800 border-amber-600 text-white"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-medium">{user?.email}</p>
-                            )}
+                {/* Security Tab */}
+                <TabsContent value="security">
+                  <Card className="bg-gray-900 border-2 border-amber-700">
+                    <CardHeader>
+                      <CardTitle className="text-2xl bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+                        Keamanan Akun
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Dialog open={openPasswordModal} onOpenChange={setOpenPasswordModal}>
+                        <DialogTrigger asChild>
+                          <Button className="bg-amber-500 hover:bg-amber-600">
+                            <Key className="w-4 h-4 mr-2" />
+                            Ganti Password
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-gray-900 text-white border-2 border-amber-700">
+                          <DialogHeader>
+                            <DialogTitle>Ganti Password</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div><Label>Password Lama</Label><Input type="password" value={passwordForm.old_password} onChange={(e) => setPasswordForm({ ...passwordForm, old_password: e.target.value })} className="bg-gray-800 border-amber-600 text-white mt-1" /></div>
+                            <div><Label>Password Baru</Label><Input type="password" value={passwordForm.new_password} onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })} className="bg-gray-800 border-amber-600 text-white mt-1" /></div>
+                            <div><Label>Konfirmasi Password Baru</Label><Input type="password" value={passwordForm.confirm_password} onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })} className="bg-gray-800 border-amber-600 text-white mt-1" /></div>
                           </div>
-
-                          {/* Phone */}
-                          <div className="space-y-2">
-                            <Label htmlFor="phone" className="text-gray-300 flex items-center space-x-2">
-                              <Phone className="w-4 h-4" />
-                              <span>Phone Number</span>
-                            </Label>
-                            {isEditing ? (
-                              <Input
-                                id="phone"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                className="bg-gray-800 border-amber-600 text-white"
-                                placeholder="+62 XXX-XXXX-XXXX"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-medium">
-                                {user?.phone || 'Not provided'}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Date of Birth */}
-                          <div className="space-y-2">
-                            <Label htmlFor="date_of_birth" className="text-gray-300 flex items-center space-x-2">
-                              <Calendar className="w-4 h-4" />
-                              <span>Date of Birth</span>
-                            </Label>
-                            {isEditing ? (
-                              <Input
-                                id="date_of_birth"
-                                type="date"
-                                value={formData.date_of_birth}
-                                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                                className="bg-gray-800 border-amber-600 text-white"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-medium">
-                                {user?.date_of_birth ? formatDate(user.date_of_birth) : 'Not provided'}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Address */}
-                          <div className="md:col-span-2 space-y-2">
-                            <Label htmlFor="address" className="text-gray-300 flex items-center space-x-2">
-                              <MapPin className="w-4 h-4" />
-                              <span>Address</span>
-                            </Label>
-                            {isEditing ? (
-                              <Input
-                                id="address"
-                                value={formData.address}
-                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                className="bg-gray-800 border-amber-600 text-white"
-                                placeholder="Enter your complete address"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-medium">
-                                {user?.address || 'Not provided'}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Member Since */}
-                        {!isEditing && user?.created_at && (
-                          <div className="mt-8 pt-6 border-t border-amber-700/50">
-                            <p className="text-gray-400 text-sm">
-                              Member since {formatDate(user.created_at)}
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Reservations Tab */}
-                  <TabsContent value="reservations" className="space-y-6">
-                    <Card className="bg-gray-900 border-2 border-amber-700">
-                      <CardHeader>
-                        <CardTitle className="text-2xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-500">
-                          My Reservations
-                        </CardTitle>
-                        <CardDescription className="text-gray-400">
-                          Riwayat dan status reservasi Anda
-                        </CardDescription>
-                      </CardHeader>
-                      
-                      <CardContent className="p-6">
-                        {reservations.length === 0 ? (
-                          <div className="text-center py-12">
-                            <History className="w-16 h-16 text-amber-600 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-300 mb-2">
-                              No Reservations Yet
-                            </h3>
-                            <p className="text-gray-500 mb-6">
-                              You haven't made any reservations yet.
-                            </p>
-                            <Button
-                              className="bg-amber-500 hover:bg-amber-600 border-2 border-amber-400"
-                              onClick={() => router.push('/user/rooms')}
-                            >
-                              Book Your First Stay
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setOpenPasswordModal(false)}>Batal</Button>
+                            <Button onClick={handleChangePassword} disabled={saving} className="bg-amber-500 hover:bg-amber-600">
+                              {saving ? 'Menyimpan...' : 'Ubah Password'}
                             </Button>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {reservations.map((reservation) => (
-                              <Card 
-                                key={reservation.id}
-                                className="bg-gray-800 border-2 border-amber-700/50 hover:border-amber-600 transition-all duration-300"
-                              >
-                                <CardContent className="p-6">
-                                  <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
-                                    <div className="space-y-2">
-                                      <div className="flex items-center space-x-4">
-                                        <h4 className="text-lg font-semibold text-white">
-                                          {reservation.room.type} - Room {reservation.room.number}
-                                        </h4>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(reservation.status)}`}>
-                                          {getStatusText(reservation.status)}
-                                        </span>
-                                      </div>
-                                      
-                                      <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                                        <div className="flex items-center space-x-2">
-                                          <Calendar className="w-4 h-4" />
-                                          <span>Check-in: {formatDate(reservation.check_in)}</span>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                          <Calendar className="w-4 h-4" />
-                                          <span>Check-out: {formatDate(reservation.check_out)}</span>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                          <User className="w-4 h-4" />
-                                          <span>{reservation.guests_count} Guests</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="text-right">
-                                      <p className="text-2xl font-bold text-amber-400">
-                                        {formatPrice(reservation.total_price)}
-                                      </p>
-                                      <p className="text-sm text-gray-400">Total</p>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-                  {/* Other Tabs - Placeholder */}
-                  {['security', 'notifications', 'billing'].map((tab) => (
-                    <TabsContent key={tab} value={tab} className="space-y-6">
-                      <Card className="bg-gray-900 border-2 border-amber-700">
-                        <CardHeader>
-                          <CardTitle className="text-2xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-500 capitalize">
-                            {tab}
-                          </CardTitle>
-                          <CardDescription className="text-gray-400">
-                            Manage your {tab} settings
-                          </CardDescription>
-                        </CardHeader>
-                        
-                        <CardContent className="p-6">
-                          <div className="text-center py-12">
-                            <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                              {tab === 'security' && <Shield className="w-8 h-8 text-amber-400" />}
-                              {tab === 'notifications' && <Bell className="w-8 h-8 text-amber-400" />}
-                              {tab === 'billing' && <CreditCard className="w-8 h-8 text-amber-400" />}
+                {/* Bookings Tab */}
+                <TabsContent value="bookings">
+                  <Card className="bg-gray-900 border-2 border-amber-700">
+                    <CardHeader>
+                      <CardTitle className="text-2xl bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+                        Riwayat Pemesanan Kamar
+                      </CardTitle>
+                      <CardDescription className="text-gray-400">
+                        Semua pemesanan kamar yang pernah Anda buat
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingBookings ? (
+                        <div className="flex justify-center py-12">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+                        </div>
+                      ) : bookings.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Calendar className="w-16 h-16 mx-auto text-gray-600 mb-4" />
+                          <p className="text-gray-400">Belum ada riwayat pemesanan</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {bookings.map((booking) => (
+                            <div key={booking.id} className="bg-gray-800/50 border border-amber-800/30 rounded-lg p-6 hover:border-amber-600 transition">
+                              <div className="flex flex-col md:flex-row md:justify-between gap-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div className="bg-amber-600 text-white rounded-lg p-3">
+                                      <Calendar className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                      <h4 className="text-lg font-semibold">
+                                        {booking.room.room_type.type} - Kamar {booking.room.number}
+                                      </h4>
+                                      <p className="text-sm text-gray-400">Booking #{booking.id}</p>
+                                    </div>
+                                    <div className="ml-auto">{getStatusBadge(booking.status)}</div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div><p className="text-gray-400">Check-in</p><p className="font-medium">{format(new Date(booking.check_in), 'dd MMM yyyy', { locale: localeId })}</p></div>
+                                    <div><p className="text-gray-400">Check-out</p><p className="font-medium">{format(new Date(booking.check_out), 'dd MMM yyyy', { locale: localeId })}</p></div>
+                                    <div><p className="text-gray-400">Lama Menginap</p><p className="font-medium">{booking.total_nights} malam</p></div>
+                                    <div><p className="text-gray-400">Tamu</p><p className="font-medium"><Users className="inline w-4 h-4 mr-1" />{booking.guests} orang</p></div>
+                                  </div>
+
+                                  <div className="mt-4 flex items-center justify-between">
+                                    <p className="text-lg font-bold text-amber-400">
+                                      Rp {booking.total_price.toLocaleString('id-ID')}
+                                    </p>
+                                    <span className="text-sm text-gray-500">
+                                      {format(new Date(booking.created_at), 'dd MMM yyyy HH:mm', { locale: localeId })}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <h3 className="text-xl font-semibold text-gray-300 mb-2 capitalize">
-                              {tab} Settings
-                            </h3>
-                            <p className="text-gray-500">
-                              This section is under development and will be available soon.
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  ))}
-                </Tabs>
-              </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {totalBookings > limit && (
+                        <div className="flex justify-center gap-4 mt-8">
+                          <Button variant="outline" disabled={page === 1} onClick={() => fetchBookings(page - 1)}>
+                            Sebelumnya
+                          </Button>
+                          <span className="flex items-center px-4 text-gray-400">
+                            Halaman {page} dari {Math.ceil(totalBookings / limit)}
+                          </span>
+                          <Button variant="outline" disabled={page * limit >= totalBookings} onClick={() => fetchBookings(page + 1)}>
+                            Selanjutnya
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
-        </section>
+        </div>
       </main>
       <Footer />
     </>
