@@ -80,3 +80,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes drift-slow {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(50px, -50px) rotate(8deg); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-30px) translateX(20px); }
+}
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-drift-slow { animation: drift-slow 30s infinite ease-in-out; }
+.animate-float { animation: float 15s infinite ease-in-out; }
+.animate-gradient-x { animation: gradient-x 12s linear infinite; }
+.animate-fadeInUp { animation: fadeInUp 1.2s ease-out forwards; }
+.drop-shadow-glow { filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6)); }

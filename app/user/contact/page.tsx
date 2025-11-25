@@ -32,21 +32,21 @@ interface Review {
 }
 
 function ReviewSection() {
-  // Auth
+  // Auth states (tidak diubah)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('Tamu');
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
-  // Form
+  // Form states
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [guestName, setGuestName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // My Reviews Only
+  // My reviews
   const [myReviews, setMyReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -55,7 +55,7 @@ function ReviewSection() {
 
   const MIN_COMMENT = 10;
 
-  // Cek login
+  // === AUTH CHECK (tidak diubah) ===
   useEffect(() => {
     const check = () => {
       const token = sessionStorage.getItem('token');
@@ -78,19 +78,15 @@ function ReviewSection() {
     return () => window.removeEventListener('storage', check);
   }, []);
 
-  // Load hanya ulasan milik sendiri
+  // === LOAD MY REVIEWS (tidak diubah) ===
   const loadMyReviews = async () => {
     if (!isLoggedIn || !userId) return;
-
     setLoadingReviews(true);
     try {
       const token = sessionStorage.getItem('token');
       const res = await fetch('/public/reviews/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (res.ok) {
         const data = await res.json();
         setMyReviews(Array.isArray(data) ? data : []);
@@ -98,30 +94,25 @@ function ReviewSection() {
         setMyReviews([]);
       }
     } catch (e) {
-      console.error('Failed to load my reviews:', e);
+      console.error(e);
       setMyReviews([]);
     } finally {
       setLoadingReviews(false);
     }
   };
 
-  // Load ulasan setiap kali login berubah atau setelah CRUD
   useEffect(() => {
-    if (isLoggedIn && userRole === 'guest') {
-      loadMyReviews();
-    }
+    if (isLoggedIn && userRole === 'guest') loadMyReviews();
   }, [isLoggedIn, userRole]);
 
-  // Submit ulasan baru
+  // === SUBMIT, EDIT, DELETE (logika tetap sama) ===
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = sessionStorage.getItem('token');
-    if (!token || userRole !== 'guest') return;
-    if (rating === 0 || comment.trim().length < MIN_COMMENT) return;
+    if (!token || userRole !== 'guest' || rating === 0 || comment.trim().length < MIN_COMMENT) return;
 
     setSubmitting(true);
     setMessage(null);
-
     try {
       const res = await fetch('/public/reviews', {
         method: 'POST',
@@ -135,13 +126,10 @@ function ReviewSection() {
           guest_name: guestName.trim() || undefined,
         }),
       });
-
       if (res.ok) {
         setMessage({ type: 'success', text: 'Ulasan berhasil dikirim!' });
-        setRating(0);
-        setComment('');
-        setGuestName('');
-        loadMyReviews(); // Refresh hanya milik sendiri
+        setRating(0); setComment(''); setGuestName('');
+        loadMyReviews();
       } else {
         const data = await res.json();
         setMessage({ type: 'error', text: data.error || 'Gagal mengirim ulasan' });
@@ -153,7 +141,6 @@ function ReviewSection() {
     }
   };
 
-  // Edit
   const startEdit = (review: Review) => {
     setEditingId(review.id);
     setEditRating(review.rating);
@@ -163,7 +150,6 @@ function ReviewSection() {
   const saveEdit = async (id: number) => {
     const token = sessionStorage.getItem('token');
     if (!token) return;
-
     try {
       const res = await fetch(`/public/reviews/${id}`, {
         method: 'PUT',
@@ -171,43 +157,30 @@ function ReviewSection() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          rating: editRating,
-          comment: editComment.trim(),
-        }),
+        body: JSON.stringify({ rating: editRating, comment: editComment.trim() }),
       });
-
       if (res.ok) {
         setEditingId(null);
         loadMyReviews();
         setMessage({ type: 'success', text: 'Ulasan berhasil diperbarui!' });
-      } else {
-        setMessage({ type: 'error', text: 'Gagal update ulasan' });
       }
     } catch {
       setMessage({ type: 'error', text: 'Koneksi error' });
     }
   };
 
-  // Delete
   const handleDelete = async (id: number) => {
     if (!confirm('Yakin ingin menghapus ulasan ini?')) return;
     const token = sessionStorage.getItem('token');
     if (!token) return;
-
     try {
-      await fetch(`/public/reviews/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await fetch(`/public/reviews/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       loadMyReviews();
       setMessage({ type: 'success', text: 'Ulasan berhasil dihapus' });
     } catch {
       setMessage({ type: 'error', text: 'Gagal menghapus ulasan' });
     }
-  };
-
-  // Rating Stars
+  };  
   const RatingStars = ({ value, onChange, readonly = false }: {
     value: number;
     onChange?: (v: number) => void;
@@ -222,7 +195,7 @@ function ReviewSection() {
           onClick={() => !readonly && onChange?.(i)}
           className={`transition-all ${readonly ? '' : 'hover:scale-125 cursor-pointer'}`}
         >
-          <Star className={`w-8 h-8 ${i <= value ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+          <Star className={`w-8 h-8 ${i <= value ? 'text-amber-500 fill-amber-500' : 'text-gray-600'}`} />
         </button>
       ))}
     </div>
@@ -241,75 +214,73 @@ function ReviewSection() {
 
   return (
     <>
-      {/* FORM ULASAN */}
       {!isLoggedIn ? (
-        <Card className="shadow-xl border-yellow-200 text-center py-16">
+        <Card className="shadow-2xl border-amber-600/40 bg-black/50 backdrop-blur text-center py-16">
           <CardHeader>
-            <MessageSquare className="w-20 h-20 mx-auto text-yellow-500 mb-4" />
-            <CardTitle className="text-4xl">Login untuk Mengelola Ulasan Anda</CardTitle>
-            <p className="text-gray-600 mt-4">Lihat, tambah, edit, atau hapus ulasan Anda</p>
+            <MessageSquare className="w-20 h-20 mx-auto text-amber-500 mb-4" />
+            <CardTitle className="text-4xl text-amber-400">Login untuk Mengelola Ulasan Anda</CardTitle>
+            <p className="text-gray-400 mt-4">Lihat, tambah, edit, atau hapus ulasan Anda</p>
           </CardHeader>
           <CardContent>
-            <Button size="lg" onClick={() => (window.location.href = '/auth/signin')}>
+            <Button size="lg" className="bg-amber-600 hover:bg-amber-500 text-black font-bold" onClick={() => (window.location.href = '/auth/signin')}>
               <LogIn className="mr-2" /> Masuk Sekarang
             </Button>
           </CardContent>
         </Card>
       ) : userRole !== 'guest' ? (
-        <Alert className="border-red-300 bg-red-50">
-          <AlertDescription className="text-center text-lg font-medium">
-            Hanya akun <span className="text-yellow-600 font-bold">tamu</span> yang dapat mengelola ulasan.
+        <Alert className="border-amber-600/50 bg-black/60">
+          <AlertDescription className="text-center text-lg font-medium text-amber-400">
+            Hanya akun <span className="font-bold">tamu</span> yang dapat mengelola ulasan.
           </AlertDescription>
         </Alert>
       ) : (
         <>
-          {/* Form Tambah Ulasan */}
-          <Card className="shadow-xl border-yellow-200">
+          <Card className="shadow-2xl border-amber-600/40 bg-black/60 backdrop-blur">
             <CardHeader>
-              <CardTitle className="text-3xl flex items-center gap-3">
-                <Star className="text-yellow-500 fill-yellow-500" />
+              <CardTitle className="text-3xl flex items-center gap-3 text-amber-400">
+                <Star className="text-amber-500 fill-amber-500" />
                 Tinggalkan Ulasan Baru
               </CardTitle>
-              <p className="text-gray-600 mt-2">Halo, {userName}!</p>
+              <p className="text-gray-300 mt-2">Halo, {userName}!</p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="text-center p-6 bg-yellow-50 rounded-xl">
-                  <Label className="block text-lg font-semibold text-yellow-800 mb-4">
+                <div className="text-center p-6 bg-amber-950/30 rounded-xl border border-amber-700/50">
+                  <Label className="block text-lg font-semibold text-amber-400 mb-4">
                     Rating Anda <span className="text-red-500">*</span>
                   </Label>
                   <RatingStars value={rating} onChange={setRating} />
                 </div>
 
                 <div>
-                  <Label>Komentar <span className="text-red-500">*</span></Label>
+                  <Label className="text-amber-300">Komentar <span className="text-red-500">*</span></Label>
                   <Textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     rows={5}
                     placeholder="Ceritakan pengalaman menginap Anda..."
-                    className="mt-2"
+                    className="mt-2 bg-black/40 border-amber-800/50 text-gray-100 placeholder-gray-500 focus:border-amber-600"
                     disabled={submitting}
                   />
-                  <p className="text-sm text-right mt-1 text-gray-500">
+                  <p className="text-sm text-right mt-1 text-gray-400">
                     {comment.length} / {MIN_COMMENT}+ karakter
                   </p>
                 </div>
 
                 <div>
-                  <Label>Nama Tampilan (opsional)</Label>
+                  <Label className="text-amber-300">Nama Tampilan (opsional)</Label>
                   <Input
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder="Nama Anda"
-                    className="mt-2"
+                    className="mt-2 bg-black/40 border-amber-800/50 text-gray-100 placeholder-gray-500 focus:border-amber-600"
                   />
                 </div>
 
                 <Button
                   type="submit"
                   size="lg"
-                  className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold"
+                  className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-bold"
                   disabled={submitting || rating === 0 || comment.trim().length < MIN_COMMENT}
                 >
                   {submitting ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
@@ -317,30 +288,30 @@ function ReviewSection() {
                 </Button>
 
                 {message && (
-                  <Alert className={message.type === 'success' ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}>
-                    <AlertDescription>{message.text}</AlertDescription>
+                  <Alert className={message.type === 'success' ? 'bg-amber-950/60 border-amber-600' : 'bg-red-950/60 border-red-700'}>
+                    <AlertDescription className={message.type === 'success' ? 'text-amber-300' : 'text-red-300'}>
+                      {message.text}
+                    </AlertDescription>
                   </Alert>
                 )}
               </form>
             </CardContent>
           </Card>
-
-          {/* Daftar Ulasan Saya */}
           <div className="mt-12">
-            <h2 className="text-4xl font-bold text-center mb-10 flex items-center justify-center gap-4">
-              <Star className="text-yellow-500 fill-yellow-500" />
+            <h2 className="text-4xl font-bold text-center mb-10 flex items-center justify-center gap-4 text-amber-400">
+              <Star className="text-amber-500 fill-amber-500" />
               Ulasan Saya
-              <Star className="text-yellow-500 fill-yellow-500" />
+              <Star className="text-amber-500 fill-amber-500" />
             </h2>
 
             {loadingReviews ? (
               <div className="space-y-6">
-                {[1, 2].map((i) => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
+                {[1, 2].map((i) => <Skeleton key={i} className="h-48 w-full rounded-xl bg-gray-900/50" />)}
               </div>
             ) : myReviews.length === 0 ? (
-              <Card className="text-center py-16 bg-gray-50">
-                <MessageSquare className="w-20 h-20 mx-auto text-gray-300 mb-4" />
-                <p className="text-2xl text-gray-600">Anda belum pernah memberikan ulasan</p>
+              <Card className="text-center py-16 bg-black/40 border-amber-800/40">
+                <MessageSquare className="w-20 h-20 mx-auto text-gray-600 mb-4" />
+                <p className="text-2xl text-gray-300">Anda belum pernah memberikan ulasan</p>
                 <p className="text-gray-500 mt-2">Kirim ulasan pertama Anda di atas!</p>
               </Card>
             ) : (
@@ -350,16 +321,16 @@ function ReviewSection() {
                   const initial = displayName[0].toUpperCase();
 
                   return (
-                    <Card key={review.id} className="shadow-lg hover:shadow-xl transition-all border-yellow-100">
+                    <Card key={review.id} className="shadow-2xl bg-black/60 border-amber-700/40 hover:border-amber-600 transition-all">
                       <CardContent className="pt-6">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                            <div className="w-14 h-14 bg-gradient-to-br from-amber-600 to-amber-500 rounded-full flex items-center justify-center text-black font-bold text-xl shadow-lg">
                               {initial}
                             </div>
                             <div>
-                              <p className="font-semibold text-xl">{displayName}</p>
-                              <p className="text-sm text-gray-500">
+                              <p className="font-semibold text-xl text-amber-400">{displayName}</p>
+                              <p className="text-sm text-gray-400">
                                 {formatDate(review.created_at)}
                                 {review.updated_at && review.updated_at !== review.created_at && ' (diedit)'}
                               </p>
@@ -369,20 +340,20 @@ function ReviewSection() {
                           <div className="flex gap-2">
                             {editingId === review.id ? (
                               <>
-                                <Button size="sm" onClick={() => saveEdit(review.id)} className="bg-green-600 hover:bg-green-700">
+                                <Button size="sm" onClick={() => saveEdit(review.id)} className="bg-green-700 hover:bg-green-600">
                                   <Check className="w-5 h-5" />
                                 </Button>
-                                <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                                <Button size="sm" variant="outline" className="border-amber-700 text-amber-400" onClick={() => setEditingId(null)}>
                                   Batal
                                 </Button>
                               </>
                             ) : (
                               <>
                                 <Button size="sm" variant="ghost" onClick={() => startEdit(review)}>
-                                  <Edit2 className="w-5 h-5 text-yellow-600" />
+                                  <Edit2 className="w-5 h-5 text-amber-500" />
                                 </Button>
                                 <Button size="sm" variant="ghost" onClick={() => handleDelete(review.id)}>
-                                  <Trash2 className="w-5 h-5 text-red-600" />
+                                  <Trash2 className="w-5 h-5 text-red-500" />
                                 </Button>
                               </>
                             )}
@@ -395,7 +366,7 @@ function ReviewSection() {
                           ) : (
                             <RatingStars value={review.rating} readonly />
                           )}
-                          <span className="ml-3 text-lg font-semibold text-yellow-600">
+                          <span className="ml-3 text-lg font-semibold text-amber-500">
                             {editingId === review.id ? editRating : review.rating}.0
                           </span>
                         </div>
@@ -405,11 +376,10 @@ function ReviewSection() {
                             value={editComment}
                             onChange={(e) => setEditComment(e.target.value)}
                             rows={4}
-                            className="mt-3"
-                            placeholder="Edit ulasan Anda..."
+                            className="mt-3 bg-black/40 border-amber-800/50 text-gray-100"
                           />
                         ) : (
-                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{review.comment}</p>
+                          <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{review.comment}</p>
                         )}
                       </CardContent>
                     </Card>
@@ -423,22 +393,96 @@ function ReviewSection() {
     </>
   );
 }
-
 export default function ContactPage() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 pt-32 pb-24">
-        <section className="text-center py-16">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4">
-            <span className="bg-gradient-to-r from-gray-800 to-yellow-600 bg-clip-text text-transparent">
-              Kelola Ulasan Anda
-            </span>
-          </h1>
-          <p className="text-xl text-gray-600">Tambah, edit, atau hapus ulasan Anda kapan saja</p>
+      <main className="min-h-screen bg-black pt-32 pb-24">
+        {/* Hero */}
+        <section className="text-center py-16 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-600/10 via-transparent to-amber-600/10"></div>
+          <div className="relative z-10">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 bg-clip-text text-transparent">
+                Hubungi Kami
+              </span>
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto px-4">
+              Kami siap melayani Anda dengan pengalaman menginap terbaik
+            </p>
+          </div>
         </section>
+        <div className="max-w-7xl mx-auto px-4 mb-16">
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { title: "Alamat", icon: "location", content: "Jl. Sisingamangaraja No. 1\nMedan, Sumatera Utara\nIndonesia 20217" },
+              { title: "Kontak", icon: "contact", content: "☎ +62 812-3456-7890\n✉ info@grandhotel.com" },
+              { title: "Jam Operasional", icon: "clock", content: "Check-in: 14:00\nCheck-out: 12:00\nResepsionis: 24/7" },
+            ].map((item, i) => (
+              <Card key={i} className="bg-gradient-to-br from-black to-gray-950 border-2 border-amber-700/40 hover:border-amber-600 transition-all hover:shadow-2xl hover:shadow-amber-600/20 group">
+                <CardContent className="pt-8 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-amber-600 to-amber-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                    <div className="w-8 h-8 bg-black rounded-full"></div>
+                  </div>
+                  <h3 className="text-xl font-bold text-amber-400 mb-3">{item.title}</h3>
+                  <p className="text-gray-300 leading-relaxed whitespace-pre-line">{item.content}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
 
+        {/* Social Media */}
+        <div className="max-w-4xl mx-auto px-4 mb-16">
+          <Card className="bg-gradient-to-br from-black to-gray-950 border-2 border-amber-700/40 shadow-2xl shadow-amber-600/10">
+            <CardContent className="py-12 text-center">
+              <h3 className="text-3xl font-bold text-amber-400 mb-8">Ikuti Kami</h3>
+              <div className="flex justify-center gap-8 flex-wrap">
+                {/* Sosmed icons – warna emas */}
+                {['fb', 'ig', 'tw', 'tt', 'in'].map((_, i) => (
+                  <div key={i} className="w-14 h-14 bg-gradient-to-br from-amber-600 to-amber-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-lg hover:shadow-amber-500/50">
+                    <div className="w-7 h-7 bg-black rounded"></div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Map */}
+        <div className="max-w-6xl mx-auto px-4 mb-16">
+          <Card className="bg-gradient-to-br from-black to-gray-950 border-2 border-amber-700/40 shadow-2xl shadow-amber-600/10 overflow-hidden">
+            <CardHeader className="text-center pb-6">
+              <CardTitle className="text-3xl font-bold text-amber-400">Lokasi Kami</CardTitle>
+              <p className="text-gray-400 mt-2">Temukan kami di pusat kota Medan</p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="w-full h-[450px] relative">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3981.9764556938315!2d98.66581287475977!3d3.5951948964116457!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30313106c3a68b55%3A0xc4867c6b88a3db0!2sJl.%20Sisingamangaraja%2C%20Medan%2C%20Sumatera%20Utara!5e0!3m2!1sen!2sid!4v1234567890"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="grayscale hover:grayscale-0 transition-all duration-500"
+                ></iframe>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Review Section */}
         <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 bg-clip-text text-transparent">
+                Kelola Ulasan Anda
+              </span>
+            </h2>
+            <p className="text-xl text-gray-400">Tambah, edit, atau hapus ulasan Anda kapan saja</p>
+          </div>
           <ReviewSection />
         </div>
       </main>

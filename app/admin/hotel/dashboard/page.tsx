@@ -1,761 +1,325 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { format, subDays, startOfDay } from 'date-fns';
-import { id } from 'date-fns/locale';
-import { PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useEffect, useState } from 'react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths } from 'date-fns';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { Hotel, Bed, Star, Calendar, DollarSign, Users, RefreshCw, Check, XCircle, Trash2, Sun, Moon, Crown, Sparkles, TrendingUp } from 'lucide-react';
-import Image from 'next/image';
+import { TrendingUp, TrendingDown, Users, Hotel, DollarSign, Calendar, Star, RefreshCw } from 'lucide-react';
 
-// === CONFIG ===
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const API = `${API_BASE}/api`;
+const API_BASE = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080';
 
-// === TYPES (SESUAI BACKEND) ===
-type Room = {
-  id: number;
-  number: string;
-  type: string;
-  price: number;
-  capacity: number;
-  status: string;
-  description?: string;
-  image?: string | null;
-  created_at: string;
-  updated_at: string;
-};
+interface Stats {
+  totalBookings: number;
+  pendingBookings: number;
+  confirmedBookings: number;
+  cancelledBookings: number;
+  totalRevenue: number;
+  occupancyRate: number;
+  avgRating: number;
+  totalRooms: number;
+  availableRooms: number;
+  totalReviews: number;
+}
 
-type Booking = {
-  id: number;
-  name: string;
-  phone: string;
-  email: string | null;
-  room: { number: string; type: string };
-  check_in: string;
-  check_out: string;
-  guests: number;
-  total_price: number;
-  status: string;
-  created_at: string;
-};
+interface MonthlyData {
+  month: string;
+  revenue: number;
+  bookings: number;
+}
 
-type Review = {
-  id: number;
-  rating: number;
-  comment: string;
-  guest_name: string | null;
-  status?: string;
-  created_at: string;
-};
-
-// === UTILS ===
-const getToken = (): string | null => {
-  const raw = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
-  return raw ? raw.replace(/^"+|"+$/g, '') : null;
-};
-
-const rupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
-
-const getStatusColor = (status: string) => {
-  const s = status.toLowerCase();
-  const map: Record<string, string> = {
-    available: 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 dark:from-emerald-900/30 dark:to-green-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
-    booked: 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 dark:from-blue-900/30 dark:to-cyan-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800',
-    maintenance: 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 dark:from-orange-900/30 dark:to-amber-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-800',
-    cleaning: 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 dark:from-purple-900/30 dark:to-pink-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
-    pending: 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-700 dark:from-yellow-900/30 dark:to-amber-900/30 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800',
-    confirmed: 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 dark:from-emerald-900/30 dark:to-green-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
-    cancelled: 'bg-gradient-to-r from-red-100 to-rose-100 text-red-700 dark:from-red-900/30 dark:to-rose-900/30 dark:text-red-300 border border-red-200 dark:border-red-800',
-  };
-  return map[s] || 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 dark:from-gray-900/30 dark:to-slate-900/30 dark:text-gray-300 border border-gray-200 dark:border-gray-800';
-};
-
-const getStatusLabel = (status: string, type: 'room' | 'booking') => {
-  const s = status.toLowerCase();
-  const roomMap: Record<string, string> = {
-    available: 'Tersedia',
-    booked: 'Dipesan',
-    maintenance: 'Maintenance',
-    cleaning: 'Dibersihkan'
-  };
-  const bookingMap: Record<string, string> = {
-    pending: 'Menunggu',
-    confirmed: 'Dikonfirmasi',
-    cancelled: 'Dibatalkan'
-  };
-  return type === 'room' ? roomMap[s] || status : bookingMap[s] || status;
-};
-
-// === API CALLS ===
-const api = {
-  rooms: async (token: string) => {
-    const res = await fetch(`${API}/rooms?limit=1000`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Gagal memuat kamar');
-    const json = await res.json();
-    return json.data || [];
-  },
-  bookings: async (token: string) => {
-    const res = await fetch(`${API}/bookings`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Gagal memuat booking');
-    const json = await res.json();
-    return json.data || [];
-  },
-  reviews: async (token: string) => {
-    const res = await fetch(`${API}/reviews/pending`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Gagal memuat ulasan');
-    return (await res.json()) || [];
-  },
-  approveReview: async (id: number, token: string) => {
-    const res = await fetch(`${API}/reviews/${id}/approve`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Gagal menyetujui');
-  },
-  deleteReview: async (id: number, token: string) => {
-    const res = await fetch(`${API}/reviews/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Gagal menghapus');
-  },
-  updateBooking: async (id: number, action: 'confirm' | 'cancel', token: string) => {
-    const res = await fetch(`${API}/bookings/${id}/${action}`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Gagal update status');
-  },
-};
-
-// === MAIN DASHBOARD ===
-export default function AdminHotelDashboard() {
-  const { toast } = useToast();
-  const [token, setToken] = useState<string | null>(null);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+export default function AdminDashboard() {
+  const [stats, setStats] = useState<Stats>({
+    totalBookings: 0,
+    pendingBookings: 0,
+    confirmedBookings: 0,
+    cancelledBookings: 0,
+    totalRevenue: 0,
+    occupancyRate: 0,
+    avgRating: 0,
+    totalRooms: 0,
+    availableRooms: 0,
+    totalReviews: 0,
+  });
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Filters
-  const [roomFilter, setRoomFilter] = useState<'all' | 'available' | 'booked'>('all');
-  const [bookingFilter, setBookingFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
+  const getToken = () => {
+    const raw = sessionStorage.getItem('token');
+    return raw ? raw.replace(/^"+|"+$/g, '') : null;
+  };
 
-  // === DARK MODE STATE (SYNC DENGAN LAYOUT) ===
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    const checkDark = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDark();
-    const observer = new MutationObserver(checkDark);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  // Load token
-  useEffect(() => {
-    const t = getToken();
-    setToken(t);
-    if (!t) {
-      toast({ title: 'Login Diperlukan', description: 'Silakan login sebagai admin.', variant: 'destructive' });
+  const fetchDashboardData = async () => {
+    const token = getToken();
+    if (!token) {
+      setLoading(false);
+      return;
     }
-  }, [toast]);
 
-  // Fetch all data
-  const fetchAll = useCallback(async () => {
-    if (!token) return;
-    setRefreshing(true);
     try {
-      const [rawRooms, rawBookings, rawReviews] = await Promise.all([
-        api.rooms(token),
-        api.bookings(token),
-        api.reviews(token),
+      setRefreshing(true);
+      const [bookingRes, roomRes, reviewRes] = await Promise.all([
+        fetch(`${API_BASE}/api/bookings`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/rooms`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/reviews`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
-      const mappedBookings: Booking[] = (rawBookings || []).map((b: any) => ({
-        id: b.id,
-        name: b.name,
-        phone: b.phone,
-        email: b.email,
-        room: {
-          number: b.room?.number || '—',
-          type: b.room?.type || 'unknown'
-        },
-        check_in: b.check_in,
-        check_out: b.check_out,
-        guests: b.guests,
-        total_price: b.total_price || 0,
-        status: b.status || 'unknown',
-        created_at: b.created_at,
-      }));
+      const bookings = (await bookingRes.json()).data?.data || [];
+      const rooms = (await roomRes.json()).data || [];
+      const reviews = (await reviewRes.json()).data || [];
 
-      setRooms(rawRooms || []);
-      setBookings(mappedBookings);
-      setReviews(rawReviews || []);
-    } catch (err: any) {
-      toast({ title: 'Gagal Memuat', description: err.message, variant: 'destructive' });
+      // === Hitung statistik ===
+      const confirmed = bookings.filter((b: any) => b.status === 'confirmed' || b.status === 'checked_in');
+      const totalRevenue = confirmed.reduce((sum: number, b: any) => sum + b.total_price, 0);
+
+      const availableRooms = rooms.filter((r: any) => r.status === 'available').length;
+      const occupancyRate = rooms.length > 0 ? ((rooms.length - availableRooms) / rooms.length) * 100 : 0;
+
+      const avgRating = reviews.length > 0
+        ? (reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length).toFixed(1)
+        : 0;
+
+      // === Data bulanan (6 bulan terakhir) ===
+      const monthly: MonthlyData[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = subMonths(new Date(), i);
+        const monthStart = startOfMonth(date);
+        const monthEnd = endOfMonth(date);
+        const monthBookings = bookings.filter((b: any) => {
+          const checkIn = new Date(b.check_in);
+          return checkIn >= monthStart && checkIn <= monthEnd && (b.status === 'confirmed' || b.status === 'checked_in');
+        });
+        monthly.push({
+          month: format(date, 'MMM yyyy'),
+          revenue: monthBookings.reduce((s: number, b: any) => s + b.total_price, 0),
+          bookings: monthBookings.length,
+        });
+      }
+
+      setMonthlyData(monthly);
+
+      setStats({
+        totalBookings: bookings.length,
+        pendingBookings: bookings.filter((b: any) => b.status === 'pending').length,
+        confirmedBookings: confirmed.length,
+        cancelledBookings: bookings.filter((b: any) => b.status === 'cancelled').length,
+        totalRevenue,
+        occupancyRate: Number(occupancyRate.toFixed(1)),
+        avgRating: Number(avgRating),
+        totalRooms: rooms.length,
+        availableRooms,
+        totalReviews: reviews.length,
+      });
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token, toast]);
+  };
 
   useEffect(() => {
-    if (token) {
-      fetchAll();
-      const interval = setInterval(fetchAll, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [token, fetchAll]);
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 30000); 
+    return () => clearInterval(interval);
+  }, []);
 
-  // === STATISTICS ===
-  const stats = useMemo(() => {
-    const totalRooms = rooms.length;
-    const availableRooms = rooms.filter(r => r.status.toLowerCase() === 'available').length;
-    const pendingBookings = bookings.filter(b => b.status.toLowerCase() === 'pending').length;
-    const totalRevenue = bookings
-      .filter(b => b.status.toLowerCase() === 'confirmed')
-      .reduce((sum, b) => sum + (b.total_price || 0), 0);
-    const avgRating = reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-      : '0';
-
-    return {
-      totalRooms,
-      availableRooms,
-      pendingBookings,
-      totalRevenue,
-      avgRating: parseFloat(avgRating)
-    };
-  }, [rooms, bookings, reviews]);
-
-  // === CHARTS DATA ===
-  const roomTypeData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    rooms.forEach(r => {
-      const key = r.type.toLowerCase();
-      counts[key] = (counts[key] || 0) + 1;
-    });
-    return Object.entries(counts).map(([key, value]) => ({
-      name: key.charAt(0).toUpperCase() + key.slice(1),
-      value
-    }));
-  }, [rooms]);
-
-  const bookingStatusData = useMemo(() => {
-    const counts: Record<string, number> = { pending: 0, confirmed: 0, cancelled: 0 };
-    bookings.forEach(b => {
-      const key = b.status.toLowerCase();
-      if (key in counts) counts[key]++;
-    });
-    return [
-      { name: 'Menunggu', value: counts.pending, color: '#f59e0b' },
-      { name: 'Dikonfirmasi', value: counts.confirmed, color: '#10b981' },
-      { name: 'Dibatalkan', value: counts.cancelled, color: '#ef4444' },
-    ];
-  }, [bookings]);
-
-  const last7DaysBookings = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = startOfDay(subDays(new Date(), 6 - i));
-      const count = bookings.filter(b => {
-        const created = new Date(b.created_at);
-        return startOfDay(created).getTime() === date.getTime();
-      }).length;
-      return { date: format(date, 'dd MMM', { locale: id }), count };
-    });
-  }, [bookings]);
-
-  // === HANDLERS ===
-  const handleApproveReview = async (id: number) => {
-    if (!token) return;
-    try {
-      await api.approveReview(id, token);
-      setReviews(prev => prev.filter(r => r.id !== id));
-      toast({ title: 'Disetujui', description: 'Ulasan telah disetujui.' });
-    } catch {
-      toast({ title: 'Gagal', description: 'Gagal menyetujui ulasan.', variant: 'destructive' });
-    }
-  };
-
-  const handleDeleteReview = async (id: number) => {
-    if (!token || !confirm('Hapus ulasan ini?')) return;
-    try {
-      await api.deleteReview(id, token);
-      setReviews(prev => prev.filter(r => r.id !== id));
-      toast({ title: 'Dihapus', description: 'Ulasan telah dihapus.' });
-    } catch {
-      toast({ title: 'Gagal', description: 'Gagal menghapus ulasan.', variant: 'destructive' });
-    }
-  };
-
-  const handleBookingAction = async (id: number, action: 'confirm' | 'cancel') => {
-    if (!token) return;
-    try {
-      await api.updateBooking(id, action, token);
-      await fetchAll();
-      toast({
-        title: action === 'confirm' ? 'Dikonfirmasi' : 'Dibatalkan',
-        description: `Booking #${id} berhasil.`
-      });
-    } catch {
-      toast({ title: 'Gagal', description: 'Gagal update status.', variant: 'destructive' });
-    }
-  };
-
-  // === FILTERED DATA ===
-  const filteredRooms = roomFilter === 'all'
-    ? rooms
-    : rooms.filter(r => r.status.toLowerCase() === roomFilter);
-
-  const filteredBookings = bookingFilter === 'all'
-    ? bookings
-    : bookings.filter(b => b.status.toLowerCase() === bookingFilter);
-
-  if (!token) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-2 border-amber-200/50 dark:border-amber-700/50 shadow-2xl">
-          <CardContent className="pt-6 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl mb-4 shadow-lg">
-              <Crown className="w-8 h-8 text-white" />
-            </div>
-            <p className="text-red-600 dark:text-red-400 mb-4 font-medium">Login sebagai admin diperlukan.</p>
-            <a href="/login" className="inline-block bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-6 py-3 rounded-xl hover:from-amber-600 hover:to-yellow-600 font-semibold shadow-lg transition-all">
-              Login Admin
-            </a>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const pieData = [
+    { name: 'Tersedia', value: stats.availableRooms, color: '#10b981' },
+    { name: 'Dipesan', value: stats.totalRooms - stats.availableRooms, color: '#3b82f6' },
+  ];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-white to-amber-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl mb-4 shadow-xl">
-            <RefreshCw className="w-10 h-10 animate-spin text-white" />
-          </div>
-          <p className="text-amber-700 dark:text-amber-300 font-medium">Memuat dashboard...</p>
+          <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4 text-amber-600" />
+          <p className="text-lg font-medium text-gray-700">Memuat dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50/50 via-white to-yellow-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-6 border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-                <div className="h-9 w-9 rounded-xl grid place-items-center shadow-lg">
-                            
-                                      <Image
-                                        src="/logo.png"
-                                        alt="Logo"
-                                        width={64}
-                                        height={64}
-                                        className="object-contain"
-                                        priority
-                                      />
-                                    
-                        </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
-                Dashboard Hotel
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-800 flex items-center gap-3">
+                <Hotel className="w-10 h-10 text-amber-600" />
+                Dashboard Admin
               </h1>
+              <p className="text-gray-600 mt-1">Ringkasan performa hotel secara real-time</p>
             </div>
-            <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              Pantau semua aktivitas hotel secara real-time
-            </p>
-          </div>
-          <div className="flex gap-2">
             <Button
-              size="sm"
-              variant="outline"
-              className="border-2 border-amber-200/50 dark:border-amber-700/50 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 hover:shadow-md"
-              onClick={() => {
-                document.documentElement.classList.toggle('dark');
-                localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-              }}
-            >
-              {isDark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-amber-600" />}
-            </Button>
-            <Button 
-              onClick={fetchAll} 
-              disabled={refreshing} 
-              size="sm" 
-              className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white shadow-md"
+              onClick={fetchDashboardData}
+              disabled={refreshing}
+              className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-medium"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              Refresh Data
             </Button>
           </div>
-        </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card className="bg-gradient-to-br from-white to-amber-50/30 dark:from-slate-800 dark:to-amber-900/10 border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg hover:shadow-xl transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Total Kamar</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-400 to-blue-500 grid place-items-center shadow-md">
-                <Bed className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">{stats.totalRooms}</div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                <TrendingUp className="w-3 h-3 text-green-600" />
-                {stats.availableRooms} tersedia
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-white to-yellow-50/30 dark:from-slate-800 dark:to-yellow-900/10 border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg hover:shadow-xl transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Booking Menunggu</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 grid place-items-center shadow-md">
-                <Calendar className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent">{stats.pendingBookings}</div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                <Sparkles className="w-3 h-3 text-amber-600" />
-                Perlu konfirmasi
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-white to-green-50/30 dark:from-slate-800 dark:to-green-900/10 border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg hover:shadow-xl transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Pendapatan</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 grid place-items-center shadow-md">
-                <DollarSign className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{rupiah(stats.totalRevenue)}</div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                <TrendingUp className="w-3 h-3 text-green-600" />
-                Booking dikonfirmasi
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-white to-orange-50/30 dark:from-slate-800 dark:to-orange-900/10 border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg hover:shadow-xl transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Ulasan Pending</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-400 to-amber-500 grid place-items-center shadow-md">
-                <Star className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">{reviews.length}</div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                <Sparkles className="w-3 h-3 text-orange-600" />
-                Menunggu moderasi
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-800 dark:to-purple-900/10 border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg hover:shadow-xl transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Rating Rata-rata</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 grid place-items-center shadow-md">
-                <Users className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{stats.avgRating} ★</div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                Dari {reviews.length} ulasan
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-500" />
-                Distribusi Tipe Kamar
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={roomTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
-                    {roomTypeData.map((_, i) => (
-                      <Cell key={`cell-${i}`} fill={['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'][i % 4]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', border: '2px solid #fbbf24', borderRadius: '12px' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-500" />
-                Status Booking
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={bookingStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
-                    {bookingStatusData.map((entry, i) => (
-                      <Cell key={`cell-${i}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', border: '2px solid #fbbf24', borderRadius: '12px' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="lg:col-span-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-amber-500" />
-                Tren Booking 7 Hari Terakhir
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={last7DaysBookings}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e5e7eb'} />
-                  <XAxis dataKey="date" stroke={isDark ? '#94a3b8' : '#6b7280'} />
-                  <YAxis stroke={isDark ? '#94a3b8' : '#6b7280'} />
-                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', border: '2px solid #fbbf24', borderRadius: '12px' }} />
-                  <Line type="monotone" dataKey="count" stroke="#f59e0b" strokeWidth={3} dot={{ fill: '#f59e0b', r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tables */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Rooms */}
-          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-                  <Bed className="w-5 h-5 text-amber-500" />
-                  Kamar
+          {/* Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="border-yellow-200 shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-emerald-600" />
+                  Total Pendapatan
                 </CardTitle>
-                <Select value={roomFilter} onValueChange={(v) => setRoomFilter(v as any)}>
-                  <SelectTrigger className="w-32 border-2 border-amber-200/50 dark:border-amber-700/50 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-2 border-amber-200/50 dark:border-amber-700/50">
-                    <SelectItem value="all">Semua</SelectItem>
-                    <SelectItem value="available">Tersedia</SelectItem>
-                    <SelectItem value="booked">Dipesan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-amber-200/50 dark:border-amber-700/30">
-                    <TableHead className="text-amber-700 dark:text-amber-300 font-bold">No. Kamar</TableHead>
-                    <TableHead className="text-amber-700 dark:text-amber-300 font-bold">Tipe</TableHead>
-                    <TableHead className="text-amber-700 dark:text-amber-300 font-bold">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRooms.slice(0, 5).map((r) => (
-                    <TableRow key={r.id} className="border-b border-amber-100/50 dark:border-amber-800/20 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-colors">
-                      <TableCell className="font-bold text-gray-900 dark:text-white">{r.number}</TableCell>
-                      <TableCell className="text-gray-700 dark:text-gray-300">{r.type}</TableCell>
-                      <TableCell>
-                        <Badge className={`${getStatusColor(r.status)} font-semibold shadow-sm`}>
-                          {getStatusLabel(r.status, 'room')}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {filteredRooms.length > 5 && (
-                <div className="px-6 py-3 text-center text-sm text-amber-600 dark:text-amber-400 font-medium border-t border-amber-200/50 dark:border-amber-700/30">
-                  +{filteredRooms.length - 5} kamar lainnya
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-emerald-700">
+                  {stats.totalRevenue.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })}
+                </p>
+                <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  dari booking terkonfirmasi
+                </p>
+              </CardContent>
+            </Card>
 
-          {/* Bookings */}
-          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-amber-500" />
-                  Pemesanan
+            <Card className="border-yellow-200 shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-amber-600" />
+                  Total Booking
                 </CardTitle>
-                <Select value={bookingFilter} onValueChange={(v) => setBookingFilter(v as any)}>
-                  <SelectTrigger className="w-32 border-2 border-amber-200/50 dark:border-amber-700/50 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-2 border-amber-200/50 dark:border-amber-700/50">
-                    <SelectItem value="all">Semua</SelectItem>
-                    <SelectItem value="pending">Menunggu</SelectItem>
-                    <SelectItem value="confirmed">Dikonfirmasi</SelectItem>
-                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-amber-200/50 dark:border-amber-700/30">
-                    <TableHead className="text-amber-700 dark:text-amber-300 font-bold">ID</TableHead>
-                    <TableHead className="text-amber-700 dark:text-amber-300 font-bold">Tamu</TableHead>
-                    <TableHead className="text-amber-700 dark:text-amber-300 font-bold">Status</TableHead>
-                    <TableHead className="text-amber-700 dark:text-amber-300 font-bold">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredBookings.slice(0, 5).map((b) => (
-                    <TableRow key={b.id} className="border-b border-amber-100/50 dark:border-amber-800/20 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-colors">
-                      <TableCell className="font-mono font-bold text-amber-700 dark:text-amber-300">#{b.id}</TableCell>
-                      <TableCell className="text-gray-900 dark:text-white font-medium">{b.name}</TableCell>
-                      <TableCell>
-                        <Badge className={`${getStatusColor(b.status)} font-semibold shadow-sm`}>
-                          {getStatusLabel(b.status, 'booking')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {b.status.toLowerCase() === 'pending' && (
-                          <div className="flex gap-1">
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleBookingAction(b.id, 'confirm')} 
-                              className="h-7 w-7 p-0 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-md"
-                            >
-                              <Check className="h-3 w-3" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="destructive" 
-                              onClick={() => handleBookingAction(b.id, 'cancel')} 
-                              className="h-7 w-7 p-0 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-md"
-                            >
-                              <XCircle className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Reviews */}
-          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                Ulasan Pending
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {reviews.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm flex flex-col items-center gap-2">
-                  <Sparkles className="w-8 h-8 text-amber-400 opacity-50" />
-                  Tidak ada ulasan menunggu
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-amber-700">{stats.totalBookings}</p>
+                <div className="flex gap-2 mt-2">
+                  <Badge variant="secondary" className="bg-yellow-100 text-amber-800">{stats.pendingBookings} pending</Badge>
+                  <Badge className="bg-emerald-100 text-emerald-800">{stats.confirmedBookings} confirmed</Badge>
                 </div>
-              ) : (
-                <div className="space-y-3 p-4">
-                  {reviews.slice(0, 3).map((r) => (
-                    <div key={r.id} className="border-b border-amber-200/50 dark:border-amber-700/30 pb-3 last:border-0 hover:bg-amber-50/30 dark:hover:bg-amber-900/10 p-3 rounded-lg transition-all">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm truncate text-gray-900 dark:text-white flex items-center gap-2">
-                            {r.guest_name || 'Tamu'}
-                            <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 text-amber-700 dark:text-amber-300 text-[10px] border border-amber-200 dark:border-amber-700">
-                              NEW
-                            </Badge>
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mt-1">{r.comment}</p>
-                          <div className="flex items-center gap-1 mt-2">
-                            {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`w-3 h-3 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300 dark:text-gray-600'}`} 
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleApproveReview(r.id)} 
-                            className="h-7 w-7 p-0 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-md"
-                          >
-                            <Check className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="destructive" 
-                            onClick={() => handleDeleteReview(r.id)} 
-                            className="h-7 w-7 p-0 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-md"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-yellow-200 shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Hotel className="w-5 h-5 text-blue-600" />
+                  Tingkat Okupansi
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-blue-700">{stats.occupancyRate}%</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {stats.availableRooms} dari {stats.totalRooms} kamar tersedia
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-yellow-200 shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Star className="w-5 h-5 text-yellow-500" />
+                  Rating Tamu
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-yellow-600 flex items-center gap-2">
+                  {stats.avgRating} <span className="text-4xl">★</span>
+                </p>
+                <p className="text-sm text-gray-600 mt-1">berdasarkan {stats.totalReviews} ulasan</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* Pendapatan Bulanan */}
+            <Card className="shadow-xl border-yellow-200">
+              <CardHeader>
+                <CardTitle>Pendapatan 6 Bulan Terakhir</CardTitle>
+                <CardDescription>Grafik pendapatan dari booking terkonfirmasi</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis tickFormatter={(v) => `Rp${(v / 1e6).toFixed(0)}jt`} />
+                    <Tooltip formatter={(v: number) => v.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })} />
+                    <Bar dataKey="revenue" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Status Kamar */}
+            <Card className="shadow-xl border-yellow-200">
+              <CardHeader>
+                <CardTitle>Distribusi Status Kamar</CardTitle>
+                <CardDescription>{stats.totalRooms} total kamar</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, i) => (
+                        <Cell key={`cell-${i}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex justify-center gap-6 mt-4">
+                  {pieData.map((d) => (
+                    <div key={d.name} className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{ backgroundColor: d.color }} />
+                      <span className="text-sm font-medium">{d.name}: {d.value}</span>
                     </div>
                   ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Footer */}
-        <div className="text-center bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-4 border-2 border-amber-200/50 dark:border-amber-700/30 shadow-lg">
-          <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2 flex-wrap">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Dashboard diperbarui otomatis setiap 30 detik</span>
-            <span className="hidden sm:inline">•</span>
-            <span className="font-medium text-amber-700 dark:text-amber-300">
-              {format(new Date(), 'dd MMMM yyyy, HH:mm', { locale: id })}
-            </span>
-            <Sparkles className="w-4 h-4 text-amber-500" />
-          </p>
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button asChild className="h-24 flex flex-col gap-2 bg-gradient-to-br from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-semibold shadow-lg">
+              <a href="/admin/hotel/booking">
+                <Calendar className="w-8 h-8" />
+                Kelola Booking
+              </a>
+            </Button>
+            <Button asChild className="h-24 flex flex-col gap-2 bg-gradient-to-br from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold shadow-lg">
+              <a href="/admin/hotel/room">
+                <Hotel className="w-8 h-8" />
+                Manajemen Kamar
+              </a>
+            </Button>
+            <Button asChild className="h-24 flex flex-col gap-2 bg-gradient-to-br from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold shadow-lg">
+              <a href="/admin/hotel/review">
+                <Star className="w-8 h-8" />
+                Lihat Ulasan
+              </a>
+            </Button>
+            <Button asChild className="h-24 flex flex-col gap-2 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold shadow-lg">
+              <a href="/admin/hotel/type">
+                <Users className="w-8 h-8" />
+                Tipe Kamar
+              </a>
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

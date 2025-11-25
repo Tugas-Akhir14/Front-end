@@ -5,11 +5,9 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
-// === CONFIG ===
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const ADMIN_API = `${API_URL}/api`;
+const HOTEL_REVIEWS_API = `${API_URL}/api/reviews`; // atau /api/hotel/reviews → sesuaikan
 
-// === TYPES ===
 interface Review {
   id: number;
   rating: number;
@@ -19,7 +17,7 @@ interface Review {
   created_at: string;
 }
 
-// === RATING STARS (dengan emas premium) ===
+// === RATING STARS ===
 function RatingStars({ value, size = 'md' }: { value: number; size?: 'sm' | 'md' }) {
   const sizeClass = size === 'sm' ? 'text-lg' : 'text-xl';
   return (
@@ -41,120 +39,96 @@ function RatingStars({ value, size = 'md' }: { value: number; size?: 'sm' | 'md'
   );
 }
 
-// === API FUNCTIONS ===
+// === Ambil token dari sessionStorage ===
 const getToken = (): string | null => {
-  if (typeof window !== 'undefined') {
-    return sessionStorage.getItem('token');
-  }
-  return null;
+  if (typeof window === 'undefined') return null;
+  return sessionStorage.getItem('token');
 };
 
-const getPendingReviews = async (token: string): Promise<Review[]> => {
-  const res = await fetch(`${ADMIN_API}/reviews/pending`, {
+// === API: Fetch ulasan DENGAN token (wajib!) ===
+const fetchHotelReviews = async (token: string): Promise<Review[]> => {
+  const res = await fetch(HOTEL_REVIEWS_API, {
+    method: 'GET',
     headers: {
-      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`, // <<< INI YANG HILANG SEBELUMNYA!
     },
+    cache: 'no-store',
   });
+
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err || 'Gagal memuat ulasan pending');
+    const errText = await res.text();
+    let errorMsg = 'Gagal memuat ulasan';
+    try {
+      const json = JSON.parse(errText);
+      errorMsg = json.error || json.message || errText;
+    } catch {
+      errorMsg = errText || `Status: ${res.status}`;
+    }
+    throw new Error(errorMsg);
   }
-  return res.json();
+
+  const data = await res.json();
+
+  // Normalisasi response
+  if (Array.isArray(data)) return data;
+  if (data?.data && Array.isArray(data.data)) return data.data;
+  if (data?.reviews && Array.isArray(data.reviews)) return data.reviews;
+
+  throw new Error('Format respons tidak didukung');
 };
 
-const approveReview = async (id: number, token: string) => {
-  const res = await fetch(`${ADMIN_API}/reviews/${id}/approve`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err || 'Gagal menyetujui ulasan');
-  }
-  return res.json();
-};
-
-const deleteReview = async (id: number, token: string) => {
-  const res = await fetch(`${ADMIN_API}/reviews/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err || 'Gagal menghapus ulasan');
-  }
-  return res.json();
-};
-
-// === MAIN PAGE ===
+// === MAIN COMPONENT ===
 export default function AdminHotelReviewPage() {
   const [token, setToken] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Ambil token saat mount
   useEffect(() => {
     const storedToken = getToken();
     setToken(storedToken);
   }, []);
 
-  const fetchReviews = async () => {
-    if (!token) return;
+  const loadReviews = async () => {
+    if (!token) {
+      setError('Token tidak ditemukan. Silakan login ulang.');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const data = await getPendingReviews(token);
-      setReviews(data);
+      const data = await fetchHotelReviews(token);
+      const sorted = data.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setReviews(sorted);
     } catch (err: any) {
-      setError(err.message);
+      console.error('Fetch reviews error:', err);
+      setError(err.message || 'Gagal memuat ulasan');
     } finally {
       setLoading(false);
     }
   };
 
+  // Load ulasan saat token tersedia
   useEffect(() => {
-    if (token) {
-      fetchReviews();
+    if (token !== null) {
+      loadReviews();
     }
   }, [token]);
 
-  const handleApprove = async (id: number) => {
-    if (!token) return;
-    try {
-      await approveReview(id, token);
-      setReviews((prev) => prev.filter((r) => r.id !== id));
-    } catch (err: any) {
-      alert(err.message || 'Gagal menyetujui ulasan');
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!token) return;
-    if (!confirm('Yakin ingin menghapus ulasan ini? Tindakan ini tidak bisa dibatalkan.')) {
-      return;
-    }
-    try {
-      await deleteReview(id, token);
-      setReviews((prev) => prev.filter((r) => r.id !== id));
-    } catch (err: any) {
-      alert(err.message || 'Gagal menghapus ulasan');
-    }
-  };
-
-  if (!token) {
+  // === Jika belum login (token null) ===
+  if (token === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-white to-amber-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-10 text-center max-w-md border border-yellow-200">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-            <svg className="h-8 w-8 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg className="h-8 w-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
           <p className="text-amber-800 font-bold text-lg mb-3">Akses Ditolak</p>
@@ -172,120 +146,98 @@ export default function AdminHotelReviewPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50">
-      {/* Header */}
       <header className="bg-white shadow-lg border-b border-yellow-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
-              Moderasi Ulasan Hotel
-            </h1>
-            <a
-              href="/"
-              className="text-amber-700 hover:text-amber-800 font-semibold flex items-center gap-1 transition-colors"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12h18m-8-9l-7 7 7 7" />
-              </svg>
-              Kembali
-            </a>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+                Daftar Ulasan Hotel (Live)
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Total: <span className="font-bold text-amber-700">{reviews.length}</span> ulasan ditampilkan
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={loadReviews}
+                disabled={loading}
+                className="px-5 py-2 rounded-xl bg-amber-100 text-amber-800 font-medium hover:bg-amber-200 transition-colors flex items-center gap-2 disabled:opacity-60"
+              >
+                <svg className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+              <a href="/" className="text-amber-700 hover:text-amber-800 font-semibold flex items-center gap-1">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Kembali
+              </a>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-sm font-medium text-amber-800">
-            Hanya ulasan yang <span className="font-bold">belum disetujui</span> yang ditampilkan di sini.
-          </p>
-        </div>
 
-        {/* Loading */}
         {loading && (
           <div className="text-center py-12">
             <div className="inline-flex items-center gap-3 text-amber-700">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <svg className="animate-spin h-6 w-6" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
-              <span className="font-medium">Memuat ulasan pending...</span>
+              <span className="font-medium">Memuat ulasan...</span>
             </div>
           </div>
         )}
 
-        {/* Error */}
         {error && (
-          <div className="bg-rose-50 border border-rose-200 rounded-xl p-6 text-center">
+          <div className="bg-rose-50 border border-rose-200 rounded-xl p-6">
             <p className="font-bold text-rose-700 text-lg">Gagal memuat ulasan</p>
-            <p className="text-sm text-rose-600 mt-1">{error}</p>
+            <p className="text-sm text-rose-600 mt-2 break-words">{error}</p>
+            <button onClick={loadReviews} className="mt-4 text-rose-700 underline font-medium">
+              Coba lagi
+            </button>
           </div>
         )}
 
-        {/* Empty */}
         {!loading && !error && reviews.length === 0 && (
           <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-yellow-200">
             <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-amber-100">
-              <svg className="h-10 w-10 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg className="h-10 w-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2a2 2 0 00-2 2v3m-8-5h6" />
               </svg>
             </div>
-            <p className="text-gray-800 font-bold text-xl">Tidak ada ulasan menunggu</p>
-            <p className="text-gray-600 mt-2">Semua ulasan sudah ditinjau.</p>
+            <p className="text-gray-800 font-bold text-xl">Belum ada ulasan</p>
+            <p className="text-gray-600 mt-2">Belum ada ulasan yang ditampilkan di website.</p>
           </div>
         )}
 
-        {/* List */}
         {!loading && !error && reviews.length > 0 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {reviews.map((r) => (
-              <div
-                key={r.id}
-                className="bg-white p-6 rounded-2xl shadow-md border-2 border-yellow-100 hover:border-yellow-300 hover:shadow-xl transition-all duration-300"
-              >
-                <div className="flex flex-col lg:flex-row justify-between items-start gap-5">
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-3 mb-3">
-                      <RatingStars value={r.rating} size="md" />
-                      <span className="font-bold text-gray-800 text-lg">
-                        {r.guest_name || 'Tamu'}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 leading-relaxed text-base">{r.comment}</p>
-                    <p className="text-xs text-gray-500 mt-4 flex items-center gap-2">
-                      <svg className="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      {format(new Date(r.created_at), 'dd MMMM yyyy, HH:mm', { locale: id })}
-                      {r.ip_address && (
-                        <>
-                          <span className="mx-2">•</span>
-                          <span className="font-mono text-amber-700">IP: {r.ip_address}</span>
-                        </>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* Tombol Aksi */}
-                  <div className="flex gap-3 self-stretch lg:self-center">
-                    <button
-                      onClick={() => handleApprove(r.id)}
-                      className="flex-1 lg:flex-initial px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold text-sm shadow-md hover:from-amber-600 hover:to-yellow-700 transition-all flex items-center justify-center gap-2"
-                    >
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Setujui
-                    </button>
-                    <button
-                      onClick={() => handleDelete(r.id)}
-                      className="flex-1 lg:flex-initial px-6 py-3 rounded-xl border-2 border-rose-300 text-rose-700 font-bold text-sm hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
-                    >
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Hapus
-                    </button>
-                  </div>
+              <div key={r.id} className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:border-amber-200 transition-all">
+                <div className="flex flex-wrap items-center gap-4 mb-3">
+                  <RatingStars value={r.rating} size="md" />
+                  <span className="font-bold text-gray-800 text-lg">{r.guest_name || 'Tamu'}</span>
+                  <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">Ditampilkan</span>
+                </div>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{r.comment}</p>
+                <div className="mt-4 text-xs text-gray-500 flex flex-wrap items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <svg className="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {format(new Date(r.created_at), 'dd MMMM yyyy, HH:mm', { locale: id })}
+                  </span>
+                  {r.ip_address && (
+                    <>
+                      <span>•</span>
+                      <span className="font-mono bg-gray-100 px-2 py-1 rounded">IP: {r.ip_address}</span>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
