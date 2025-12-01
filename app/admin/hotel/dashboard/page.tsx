@@ -133,7 +133,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-white to-amber-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4 text-amber-600" />
           <p className="text-lg font-medium text-gray-700">Memuat dashboard...</p>
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50 py-8">
+      <div className="bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -154,15 +154,7 @@ export default function AdminDashboard() {
                 Dashboard Admin
               </h1>
               <p className="text-gray-600 mt-1">Ringkasan performa hotel secara real-time</p>
-            </div>
-            <Button
-              onClick={fetchDashboardData}
-              disabled={refreshing}
-              className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-medium"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh Data
-            </Button>
+            </div>          
           </div>
 
           {/* Stat Cards */}

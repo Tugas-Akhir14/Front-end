@@ -106,40 +106,40 @@ function ReviewSection() {
   }, [isLoggedIn, userRole]);
 
   // === SUBMIT, EDIT, DELETE (logika tetap sama) ===
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const token = sessionStorage.getItem('token');
-    if (!token || userRole !== 'guest' || rating === 0 || comment.trim().length < MIN_COMMENT) return;
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const token = sessionStorage.getItem('token');
+      if (!token || userRole !== 'guest' || rating === 0 || comment.trim().length < MIN_COMMENT) return;
 
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const res = await fetch('/public/reviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          rating,
-          comment: comment.trim(),
-          guest_name: guestName.trim() || undefined,
-        }),
-      });
-      if (res.ok) {
-        setMessage({ type: 'success', text: 'Ulasan berhasil dikirim!' });
-        setRating(0); setComment(''); setGuestName('');
-        loadMyReviews();
-      } else {
-        const data = await res.json();
-        setMessage({ type: 'error', text: data.error || 'Gagal mengirim ulasan' });
+      setSubmitting(true);
+      setMessage(null);
+      try {
+        const res = await fetch('/public/reviews', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            rating,
+            comment: comment.trim(),
+            guest_name: guestName.trim() || undefined,
+          }),
+        });
+        if (res.ok) {
+          setMessage({ type: 'success', text: 'Ulasan berhasil dikirim!' });
+          setRating(0); setComment(''); setGuestName('');
+          loadMyReviews();
+        } else {
+          const data = await res.json();
+          setMessage({ type: 'error', text: data.error || 'Gagal mengirim ulasan' });
+        }
+      } catch {
+        setMessage({ type: 'error', text: 'Koneksi error, coba lagi' });
+      } finally {
+        setSubmitting(false);
       }
-    } catch {
-      setMessage({ type: 'error', text: 'Koneksi error, coba lagi' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    };
 
   const startEdit = (review: Review) => {
     setEditingId(review.id);

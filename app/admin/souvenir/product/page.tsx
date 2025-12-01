@@ -4,6 +4,8 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { X, Plus, Edit2, Trash2, Upload, AlertCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { Toaster, toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 interface Category {
   id: number;
@@ -62,7 +64,7 @@ export default function ProductSouvenirPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [existingImages, setExistingImages] = useState<string[]>([]);
 
-  const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('token')?.replace(/^"+|"+$/g, '') : null;
 
   // === FETCH PRODUCTS & CATEGORIES ===
   const fetchProducts = useCallback(async () => {
@@ -78,7 +80,8 @@ export default function ProductSouvenirPage() {
       const result: ApiResponse = await res.json();
       setProducts(result.data);
       setTotal(result.total);
-    } catch (err) {
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal memuat produk.');
       setError('Gagal memuat produk.');
     } finally {
       setLoading(false);
@@ -115,11 +118,32 @@ export default function ProductSouvenirPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nama || !form.harga || !form.stok || !form.category_id || form.gambar.length === 0) {
-      setError('Semua field wajib diisi dan minimal 1 gambar.');
+      toast.error('Semua field wajib diisi dan minimal 1 gambar.');
       return;
     }
 
+    const result = await Swal.fire({
+      title: 'Tambah Produk Baru?',
+      text: `Produk "${form.nama}" akan ditambahkan ke daftar souvenir.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Tambah!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-popup',
+        confirmButton: 'swal-confirm',
+        cancelButton: 'swal-cancel',
+        actions: 'swal-actions',
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading('Menyimpan produk baru...');
     setSubmitLoading(true);
+
     const formData = new FormData();
     formData.append('nama', form.nama);
     formData.append('deskripsi', form.deskripsi);
@@ -138,12 +162,12 @@ export default function ProductSouvenirPage() {
         const err = await res.json();
         throw new Error(err.error || 'Gagal membuat produk');
       }
-      setSuccess('Produk berhasil dibuat!');
+      toast.success('Produk berhasil dibuat!', { id: toastId });
       setIsCreateOpen(false);
       resetForm();
       fetchProducts();
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message || 'Gagal membuat produk', { id: toastId });
     } finally {
       setSubmitLoading(false);
     }
@@ -154,7 +178,28 @@ export default function ProductSouvenirPage() {
     e.preventDefault();
     if (!selectedProduct) return;
 
+    const result = await Swal.fire({
+      title: 'Simpan Perubahan?',
+      text: `Perubahan pada produk "${form.nama || selectedProduct.nama}" akan disimpan.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Simpan!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-popup',
+        confirmButton: 'swal-confirm',
+        cancelButton: 'swal-cancel',
+        actions: 'swal-actions',
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading('Memperbarui produk...');
     setSubmitLoading(true);
+
     const formData = new FormData();
     if (form.nama) formData.append('nama', form.nama);
     if (form.deskripsi) formData.append('deskripsi', form.deskripsi);
@@ -173,12 +218,12 @@ export default function ProductSouvenirPage() {
         const err = await res.json();
         throw new Error(err.error || 'Gagal update produk');
       }
-      setSuccess('Produk berhasil diupdate!');
+      toast.success('Produk berhasil diperbarui!', { id: toastId });
       setIsEditOpen(false);
       resetForm();
       fetchProducts();
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message || 'Gagal memperbarui produk', { id: toastId });
     } finally {
       setSubmitLoading(false);
     }
@@ -187,17 +232,40 @@ export default function ProductSouvenirPage() {
   // === HANDLE DELETE ===
   const handleDelete = async () => {
     if (!selectedProduct) return;
+
+    const result = await Swal.fire({
+      title: `Hapus Produk "${selectedProduct.nama}"?`,
+      text: 'Tindakan ini tidak dapat dibatalkan!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+      focusCancel: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-popup',
+        confirmButton: 'swal-confirm',
+        cancelButton: 'swal-cancel',
+        actions: 'swal-actions',
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading('Menghapus produk...');
+
     try {
       const res = await fetch(`http://localhost:8080/api/products/${selectedProduct.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Gagal menghapus produk');
-      setSuccess('Produk berhasil dihapus!');
+      toast.success('Produk berhasil dihapus!', { id: toastId });
       setIsDeleteOpen(false);
       fetchProducts();
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message || 'Gagal menghapus produk', { id: toastId });
     }
   };
 
@@ -217,7 +285,7 @@ export default function ProductSouvenirPage() {
       category_id: product.category_id.toString(),
       gambar: [],
     });
-    setExistingImages(product.gambar ? product.gambar.split(',') : []);
+    setExistingImages(product.gambar ? product.gambar.split(',').map(s => s.trim()) : []);
     setIsEditOpen(true);
   };
 
@@ -233,242 +301,271 @@ export default function ProductSouvenirPage() {
 
   const totalPages = Math.ceil(total / limit);
 
+  // === HAPUS LANGSUNG DENGAN SWEETALERT (TIDAK PAKAI MODAL MANUAL) ===
+  const confirmDelete = async (product: Product) => {
+    const result = await Swal.fire({
+      title: `Hapus Produk "${product.nama}"?`,
+      text: 'Tindakan ini tidak dapat dibatalkan!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+      focusCancel: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-popup',
+        confirmButton: 'swal-confirm',
+        cancelButton: 'swal-cancel',
+        actions: 'swal-actions',
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading('Menghapus produk...');
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/products/${product.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Gagal menghapus produk');
+      }
+      toast.success('Produk berhasil dihapus!', { id: toastId });
+      fetchProducts();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menghapus produk', { id: toastId });
+    }
+  };
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Daftar Produk Souvenir</h1>
-        <button
-          onClick={openCreate}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> Tambah Produk
-        </button>
-      </div>
+    <>
+      {/* Sonner Toaster */}
+      <Toaster position="top-right" richColors closeButton />
 
-      {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5" />
-            {success}
-          </div>
-          <button onClick={() => setSuccess(null)} className="text-green-700 hover:text-green-900">
-            <X className="w-4 h-4" />
+      {/* SweetAlert2 Custom Style (sama di semua halaman admin) */}
+      <style jsx global>{`
+        .swal-popup { border-radius: 1rem !important; }
+        .swal-actions { gap: 1rem !important; justify-content: center !important; padding: 0 1.5rem !important; }
+        .swal-cancel {
+          min-width: 120px !important;
+          padding: 0.75rem 1.5rem !important;
+          background-color: #6b7280 !important;
+          color: white !important;
+          border-radius: 0.75rem !important;
+          font-weight: 600 !important;
+          box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3) !important;
+        }
+        .swal-cancel:hover { background-color: #4b5563 !important; }
+        .swal-confirm {
+          min-width: 140px !important;
+          padding: 0.75rem 1.5rem !important;
+          background: linear-gradient(to right, #ef4444, #dc2626) !important;
+          color: white !important;
+          border-radius: 0.75rem !important;
+          font-weight: 600 !important;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+        }
+        .swal-confirm:hover { background: linear-gradient(to right, #dc2626, #b91c1c) !important; }
+      `}</style>
+
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Daftar Produk Souvenir</h1>
+          <button
+            onClick={openCreate}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Tambah Produk
           </button>
         </div>
-      )}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
-            {error}
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-gray-600">Memuat produk...</p>
           </div>
-          <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">Memuat produk...</p>
-        </div>
-      ) : (
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {products.length === 0 ? (
+        ) : (
+          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">Belum ada produk.</td>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                   </tr>
-                ) : (
-                  products.map((product) => {
-                    const imageUrls = product.gambar
-                      ? product.gambar.split(',').map(url => getImageUrl(url.trim())).filter(Boolean)
-                      : [];
-                    return (
-                      <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {imageUrls.length > 0 ? (
-                            <div className="flex gap-1 flex-wrap">
-                              {imageUrls.slice(0, 3).map((url, i) => (
-                                <img
-                                  key={i}
-                                  src={url}
-                                  alt={`${product.nama} ${i + 1}`}
-                                  className="h-12 w-12 object-cover rounded-md border shadow-sm"
-                                  onError={(e) => e.currentTarget.style.display = 'none'}
-                                  loading="lazy"
-                                />
-                              ))}
-                              {imageUrls.length > 3 && <div className="h-12 w-12 bg-gray-100 rounded-md flex items-center justify-center text-xs">+{imageUrls.length - 3}</div>}
-                            </div>
-                          ) : (
-                            <div className="h-12 w-12 bg-gray-200 border-2 border-dashed rounded-md flex items-center justify-center text-xs text-gray-500">
-                              No Image
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{product.nama}</div>
-                          <div className="text-sm text-gray-500 line-clamp-1">{product.deskripsi}</div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{product.category?.nama || '-'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">Rp {product.harga.toLocaleString('id-ID')}</td>
-                        <td className="px-6 py-4 text-sm">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${product.stok > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {product.stok}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium space-x-3">
-                          <button onClick={() => openEdit(product)} className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1">
-                            <Edit2 className="w-4 h-4" /> Edit
-                          </button>
-                          <button onClick={() => openDelete(product)} className="text-red-600 hover:text-red-900 flex items-center gap-1">
-                            <Trash2 className="w-4 h-4" /> Hapus
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200">
-              <div className="text-sm text-gray-700">
-                Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} produk
-              </div>
-              <div className="flex space-x-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <Link
-                    key={p}
-                    href={`/admin/productSouvenir?page=${p}&limit=${limit}`}
-                    className={`px-3 py-1 text-sm rounded-md ${p === page ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                  >
-                    {p}
-                  </Link>
-                ))}
-              </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {products.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">Belum ada produk.</td>
+                    </tr>
+                  ) : (
+                    products.map((product) => {
+                      const imageUrls = product.gambar
+                        ? product.gambar.split(',').map(url => getImageUrl(url.trim())).filter(Boolean)
+                        : [];
+                      return (
+                        <tr key={product.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {imageUrls.length > 0 ? (
+                              <div className="flex gap-1 flex-wrap">
+                                {imageUrls.slice(0, 3).map((url, i) => (
+                                  <img
+                                    key={i}
+                                    src={url}
+                                    alt={`${product.nama} ${i + 1}`}
+                                    className="h-12 w-12 object-cover rounded-md border shadow-sm"
+                                    onError={(e) => e.currentTarget.style.display = 'none'}
+                                    loading="lazy"
+                                  />
+                                ))}
+                                {imageUrls.length > 3 && <div className="h-12 w-12 bg-gray-100 rounded-md flex items-center justify-center text-xs">+{imageUrls.length - 3}</div>}
+                              </div>
+                            ) : (
+                              <div className="h-12 w-12 bg-gray-200 border-2 border-dashed rounded-md flex items-center justify-center text-xs text-gray-500">
+                                No Image
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-medium text-gray-900">{product.nama}</div>
+                            <div className="text-sm text-gray-500 line-clamp-1">{product.deskripsi}</div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">{product.category?.nama || '-'}</td>
+                          <td className="px-6 py-4 text-sm text-gray-900">Rp {product.harga.toLocaleString('id-ID')}</td>
+                          <td className="px-6 py-4 text-sm">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${product.stok > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {product.stok}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium space-x-3">
+                            <button onClick={() => openEdit(product)} className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1">
+                              <Edit2 className="w-4 h-4" /> Edit
+                            </button>
+                            <button onClick={() => confirmDelete(product)} className="text-red-600 hover:text-red-900 flex items-center gap-1">
+                              <Trash2 className="w-4 h-4" /> Hapus
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* === CREATE MODAL === */}
-      {isCreateOpen && (
-        <Modal title="Tambah Produk Baru" onClose={() => setIsCreateOpen(false)}>
-          <form onSubmit={handleCreate} className="space-y-4">
-            <Input label="Nama Produk" name="nama" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} required />
-            <Textarea label="Deskripsi" name="deskripsi" value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} />
-            <Input label="Harga" type="number" name="harga" value={form.harga} onChange={(e) => setForm({ ...form, harga: e.target.value })} required />
-            <Input label="Stok" type="number" name="stok" value={form.stok} onChange={(e) => setForm({ ...form, stok: e.target.value })} required />
-            <Select label="Kategori" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required>
-              <option value="">Pilih Kategori</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.nama}</option>
-              ))}
-            </Select>
-            <FileInput
-              label="Gambar Produk (max 5MB, JPG/PNG/WEBP)"
-              onChange={(files) => setForm({ ...form, gambar: files })}
-              multiple
-              accept="image/jpeg,image/png,image/webp"
-            />
-            <div className="flex justify-end gap-3 pt-4">
-              <button type="button" onClick={() => setIsCreateOpen(false)} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                Batal
-              </button>
-              <button type="submit" disabled={submitLoading} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-                {submitLoading ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* === EDIT MODAL === */}
-      {isEditOpen && selectedProduct && (
-        <Modal title="Edit Produk" onClose={() => setIsEditOpen(false)}>
-          <form onSubmit={handleUpdate} className="space-y-4">
-            <Input label="Nama Produk" name="nama" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} />
-            <Textarea label="Deskripsi" name="deskripsi" value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} />
-            <Input label="Harga" type="number" name="harga" value={form.harga} onChange={(e) => setForm({ ...form, harga: e.target.value })} />
-            <Input label="Stok" type="number" name="stok" value={form.stok} onChange={(e) => setForm({ ...form, stok: e.target.value })} />
-            <Select label="Kategori" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-              <option value="">Pilih Kategori</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.nama}</option>
-              ))}
-            </Select>
-
-            {existingImages.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Gambar Saat Ini</label>
-                <div className="flex gap-2 flex-wrap">
-                  {existingImages.map((url, i) => (
-                    <img key={i} src={getImageUrl(url)} alt={`Gambar ${i + 1}`} className="h-20 w-20 object-cover rounded-md border" />
+            {totalPages > 1 && (
+              <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200">
+                <div className="text-sm text-gray-700">
+                  Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total} produk
+                </div>
+                <div className="flex space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <Link
+                      key={p}
+                      href={`/admin/productSouvenir?page=${p}&limit=${limit}`}
+                      className={`px-3 py-1 text-sm rounded-md ${p === page ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                    >
+                      {p}
+                    </Link>
                   ))}
                 </div>
               </div>
             )}
-
-            <FileInput
-              label="Tambah Gambar Baru (opsional)"
-              onChange={(files) => setForm({ ...form, gambar: files })}
-              multiple
-              accept="image/jpeg,image/png,image/webp"
-            />
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button type="button" onClick={() => setIsEditOpen(false)} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                Batal
-              </button>
-              <button type="submit" disabled={submitLoading} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-                {submitLoading ? 'Memperbarui...' : 'Update'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* === DELETE MODAL === */}
-      {isDeleteOpen && selectedProduct && (
-        <Modal title="Hapus Produk?" onClose={() => setIsDeleteOpen(false)}>
-          <p className="text-gray-600 mb-6">
-            Apakah Anda yakin ingin menghapus produk <strong>{selectedProduct.nama}</strong>?
-            <br />
-            <span className="text-sm text-red-500">Tindakan ini tidak dapat dibatalkan.</span>
-          </p>
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setIsDeleteOpen(false)} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-              Batal
-            </button>
-            <button onClick={handleDelete} className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2">
-              Hapus
-            </button>
           </div>
-        </Modal>
-      )}
-    </div>
+        )}
+
+        {/* === CREATE MODAL === */}
+        {isCreateOpen && (
+          <Modal title="Tambah Produk Baru" onClose={() => setIsCreateOpen(false)}>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <Input label="Nama Produk" name="nama" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} required />
+              <Textarea label="Deskripsi" name="deskripsi" value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} />
+              <Input label="Harga" type="number" name="harga" value={form.harga} onChange={(e) => setForm({ ...form, harga: e.target.value })} required />
+              <Input label="Stok" type="number" name="stok" value={form.stok} onChange={(e) => setForm({ ...form, stok: e.target.value })} required />
+              <Select label="Kategori" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required>
+                <option value="">Pilih Kategori</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.nama}</option>
+                ))}
+              </Select>
+              <FileInput
+                label="Gambar Produk (max 5MB, JPG/PNG/WEBP)"
+                onChange={(files) => setForm({ ...form, gambar: files })}
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+              />
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setIsCreateOpen(false)} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                  Batal
+                </button>
+                <button type="submit" disabled={submitLoading} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+                  {submitLoading ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </Modal>
+        )}
+
+        {/* === EDIT MODAL === */}
+        {isEditOpen && selectedProduct && (
+          <Modal title="Edit Produk" onClose={() => setIsEditOpen(false)}>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <Input label="Nama Produk" name="nama" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} />
+              <Textarea label="Deskripsi" name="deskripsi" value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} />
+              <Input label="Harga" type="number" name="harga" value={form.harga} onChange={(e) => setForm({ ...form, harga: e.target.value })} />
+              <Input label="Stok" type="number" name="stok" value={form.stok} onChange={(e) => setForm({ ...form, stok: e.target.value })} />
+              <Select label="Kategori" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
+                <option value="">Pilih Kategori</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.nama}</option>
+                ))}
+              </Select>
+
+              {existingImages.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Gambar Saat Ini</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {existingImages.map((url, i) => (
+                      <img key={i} src={getImageUrl(url)} alt={`Gambar ${i + 1}`} className="h-20 w-20 object-cover rounded-md border" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <FileInput
+                label="Tambah Gambar Baru (opsional)"
+                onChange={(files) => setForm({ ...form, gambar: files })}
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+              />
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setIsEditOpen(false)} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                  Batal
+                </button>
+                <button type="submit" disabled={submitLoading} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+                  {submitLoading ? 'Memperbarui...' : 'Update'}
+                </button>
+              </div>
+            </form>
+          </Modal>
+        )}
+        
+      </div>
+    </>
   );
 }
 
-// === REUSABLE COMPONENTS ===
+// === REUSABLE COMPONENTS (TIDAK BERUBAH SAMA SEKALI) ===
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -536,7 +633,7 @@ function FileInput({ label, onChange, ...props }: { label: string; onChange: (fi
           onChange={(e) => {
             const files = Array.from(e.target.files || []);
             if (files.some(f => f.size > 5 * 1024 * 1024)) {
-              alert('File terlalu besar! Maksimal 5MB.');
+              toast.error('File terlalu besar! Maksimal 5MB per gambar.');
               return;
             }
             onChange(files);

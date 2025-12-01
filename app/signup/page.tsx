@@ -26,50 +26,39 @@ export default function SignUp() {
   const [success, setSuccess] = useState('');
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  setSuccess('');
+  setIsLoading(true);
 
-    if (password !== confirmPassword) {
-      setError('Password tidak cocok');
-      return;
-    }
+  try {
+    const res = await fetch('http://localhost:8080/admins/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: fullName.trim(),
+        email: email.trim(),
+        phone_number: phoneNumber.trim(),
+        password,
+        confirm_password: confirmPassword,
+        role,
+      }),
+    });
 
-    setIsLoading(true);
-
-    try {
-      const res = await api('/admins/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          full_name: fullName.trim(),
-          email: email.trim(),
-          phone_number: phoneNumber.trim(),
-          password,
-          confirm_password: confirmPassword,
-          role,
-        }),
-      });
-
-      if (!res?.ok) {
-        const data = await res?.json().catch(() => ({}));
-        setError(data.error || 'Gagal membuat akun');
-        return;
-      }
-
-      setSuccess(
-        role === 'guest'
-          ? 'Registrasi berhasil! Silakan login.'
-          : 'Registrasi berhasil! Menunggu persetujuan Superadmin.'
-      );
-
+    if (res.ok || res.status === 201) {
+      setSuccess('Registrasi berhasil! Menunggu persetujuan Superadmin.');
       setTimeout(() => router.push('/auth/signin'), 2000);
-    } catch {
-      setError('Terjadi kesalahan jaringan');
-    } finally {
-      setIsLoading(false);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || 'Gagal membuat akun');
     }
-  };
+  } catch {
+    setError('Terjadi kesalahan jaringan');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 flex items-center justify-center px-4 py-12 relative overflow-hidden">

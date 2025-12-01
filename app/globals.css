@@ -103,3 +103,63 @@
 .animate-gradient-x { animation: gradient-x 12s linear infinite; }
 .animate-fadeInUp { animation: fadeInUp 1.2s ease-out forwards; }
 .drop-shadow-glow { filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6)); }
+
+
+/* SWEETALERT2 CUSTOM STYLE - TOMBOL JARAKNYA CANTIK */
+.swal-popup {
+  border-radius: 1rem !important;
+  padding-bottom: 1.5rem !important;
+}
+
+.swal-title {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+}
+
+.swal-text {
+  font-size: 1rem !important;
+  color: #6b7280 !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.swal-actions {
+  gap: 1rem !important;           /* INI YANG BIKIN TOMBOL GA BEREMPETAN */
+  justify-content: center !important;
+  padding: 0 1.5rem !important;
+  margin-top: 1.5rem !important;
+}
+
+/* Tombol Batal */
+.swal-btn_cancel {
+  min-width: 120px !important;
+  padding: 0.75rem 1.5rem !important;
+  font-weight: 600 !important;
+  background-color: #6b7280 !important;
+  color: white !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3) !important;
+  transition: all 0.2s !important;
+}
+
+.swal-btn-cancel:hover {
+  background-color: #4b5563 !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Tombol Hapus */
+.swal-btn-confirm {
+  min-width: 140px !important;
+  padding: 0.75rem 1.5rem !important;
+  font-weight: 600 !important;
+  background: linear-gradient(to right, #ef4444, #dc2626) !important;
+  color: white !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+  transition: all 0.2s !important;
+}
+
+.swal-btn-confirm:hover {
+  background: linear-gradient(to right, #dc2626, #b91c1c) !important;
+  transform: translateY(-2px) !important;
+}

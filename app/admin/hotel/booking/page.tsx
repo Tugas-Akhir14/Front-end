@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Toaster, toast } from 'sonner';
+import Swal from 'sweetalert2';
 import { format } from 'date-fns';
 import { CheckCircle2, XCircle, Calendar, User, Phone, Hotel, DollarSign, Clock, RefreshCw, Edit3 } from 'lucide-react';
 
@@ -34,13 +36,13 @@ interface Booking {
 const API_BASE = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080';
 
 export default function AdminBookingPage() {
-  const { toast } = useToast();
+  const { toast: shadcnToast } = useToast();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  // State untuk dialog update status
+  // Dialog update status
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
   const [newStatus, setNewStatus] = useState<string>('');
@@ -55,11 +57,7 @@ export default function AdminBookingPage() {
   const fetchBookings = async () => {
     const token = getToken();
     if (!token) {
-      toast({
-        title: 'Tidak Login',
-        description: 'Silakan login terlebih dahulu.',
-        variant: 'destructive',
-      });
+      toast.error('Sesi telah berakhir. Silakan login kembali.');
       setLoading(false);
       return;
     }
@@ -96,11 +94,7 @@ export default function AdminBookingPage() {
 
       setBookings(mappedBookings);
     } catch (err: any) {
-      toast({
-        title: 'Gagal Memuat',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast.error(err.message || 'Gagal memuat data booking');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -114,6 +108,29 @@ export default function AdminBookingPage() {
   }, []);
 
   const handleAction = async (id: number, action: 'confirm' | 'cancel') => {
+    const actionText = action === 'confirm' ? 'konfirmasi' : 'batalkan';
+    const result = await Swal.fire({
+      title: `Yakin ingin ${actionText} booking ini?`,
+      text: `Booking #${id} akan di${actionText}. Tindakan ini tidak dapat dibatalkan!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: `Ya, ${actionText}!`,
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+      focusCancel: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-popup',
+        confirmButton: action === 'confirm' ? 'swal-confirm' : 'swal-cancel',
+        cancelButton: 'swal-cancel',
+        actions: 'swal-actions',
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading(`Sedang memproses ${actionText} booking #${id}...`);
+
     try {
       const res = await fetch(`${API_BASE}/api/bookings/${id}/${action}`, {
         method: 'PATCH',
@@ -125,23 +142,36 @@ export default function AdminBookingPage() {
         throw new Error(err.error || 'Gagal update status');
       }
 
-      toast({
-        title: action === 'confirm' ? 'Dikonfirmasi!' : 'Dibatalkan!',
-        description: `Booking #${id} berhasil di${action === 'confirm' ? 'konfirmasi' : 'batalkan'}.`,
-      });
-
+      toast.success(`Booking #${id} berhasil di${actionText}!`, { id: toastId });
       fetchBookings();
     } catch (err: any) {
-      toast({
-        title: 'Gagal',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast.error(err.message || 'Gagal memproses aksi', { id: toastId });
     }
   };
 
   const handleUpdateStatus = async () => {
     if (!selectedBookingId || !newStatus) return;
+
+    const result = await Swal.fire({
+      title: 'Ubah Status Booking?',
+      text: `Status akan diubah menjadi "${newStatus}"`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Ubah!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-popup',
+        confirmButton: 'swal-confirm',
+        cancelButton: 'swal-cancel',
+        actions: 'swal-actions',
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading('Menyimpan perubahan status...');
 
     try {
       const res = await fetch(`${API_BASE}/api/bookings/${selectedBookingId}/status`, {
@@ -155,27 +185,19 @@ export default function AdminBookingPage() {
         throw new Error(err.error || 'Gagal mengubah status');
       }
 
-      toast({
-        title: 'Berhasil!',
-        description: `Status booking #${selectedBookingId} diubah menjadi "${newStatus}"`,
-      });
-
+      toast.success(`Status berhasil diubah menjadi "${newStatus}"!`, { id: toastId });
       setOpenDialog(false);
       setNewStatus('');
       setSelectedBookingId(null);
       fetchBookings();
     } catch (err: any) {
-      toast({
-        title: 'Gagal',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast.error(err.message || 'Gagal mengubah status', { id: toastId });
     }
   };
 
   const openUpdateDialog = (id: number, currentStatus: string) => {
     setSelectedBookingId(id);
-    setNewStatus(currentStatus); // default ke status saat ini
+    setNewStatus(currentStatus);
     setOpenDialog(true);
   };
 
@@ -213,6 +235,35 @@ export default function AdminBookingPage() {
 
   return (
     <>
+      {/* Sonner Toaster */}
+      <Toaster position="top-right" richColors closeButton />
+
+      {/* SweetAlert2 Custom Style (sama persis seperti halaman News) */}
+      <style jsx global>{`
+        .swal-popup { border-radius: 1rem !important; }
+        .swal-actions { gap: 1rem !important; justify-content: center !important; padding: 0 1.5rem !important; }
+        .swal-cancel {
+          min-width: 120px !important;
+          padding: 0.75rem 1.5rem !important;
+          background-color: #6b7280 !important;
+          color: white !important;
+          border-radius: 0.75rem !important;
+          font-weight: 600 !important;
+          box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3) !important;
+        }
+        .swal-cancel:hover { background-color: #4b5563 !important; }
+        .swal-confirm {
+          min-width: 140px !important;
+          padding: 0.75rem 1.5rem !important;
+          background: linear-gradient(to right, #ef4444, #dc2626) !important;
+          color: white !important;
+          border-radius: 0.75rem !important;
+          font-weight: 600 !important;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+        }
+        .swal-confirm:hover { background: linear-gradient(to right, #dc2626, #b91c1c) !important; }
+      `}</style>
+
       <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Card className="shadow-xl border border-yellow-200/50 overflow-hidden">
@@ -323,7 +374,6 @@ export default function AdminBookingPage() {
                           <TableCell>{getStatusBadge(booking.status)}</TableCell>
                           <TableCell>
                             <div className="flex justify-center gap-2">
-                              {/* Tombol Confirm & Cancel (hanya untuk pending) */}
                               {booking.status === 'pending' && (
                                 <>
                                   <Button
@@ -344,7 +394,6 @@ export default function AdminBookingPage() {
                                 </>
                               )}
 
-                              {/* Tombol Update Status (selalu muncul kecuali checked_out) */}
                               {booking.status !== 'checked_out' && (
                                 <Button
                                   size="sm"
@@ -354,13 +403,6 @@ export default function AdminBookingPage() {
                                 >
                                   <Edit3 className="w-4 h-4" />
                                 </Button>
-                              )}
-
-                              {/* Jika sudah confirmed/cancelled tapi bukan checked_out */}
-                              {(booking.status === 'confirmed' || booking.status === 'cancelled') && booking.status !== 'checked_out' && (
-                                <Badge className={booking.status === 'confirmed' ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}>
-                                  {booking.status === 'confirmed' ? 'Terkonfirmasi' : 'Dibatalkan'}
-                                </Badge>
                               )}
                             </div>
                           </TableCell>
@@ -382,41 +424,41 @@ export default function AdminBookingPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
 
-      {/* Dialog Update Status */}
-      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ubah Status Booking</DialogTitle>
-            <DialogDescription>
-              Pilih status baru untuk booking #{selectedBookingId}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Select value={newStatus} onValueChange={setNewStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Menunggu</SelectItem>
-                <SelectItem value="confirmed">Dikonfirmasi</SelectItem>
-                <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                <SelectItem value="checked_in">Check-in</SelectItem>
-                <SelectItem value="checked_out">Check-out</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenDialog(false)}>
-              Batal
-            </Button>
-            <Button onClick={handleUpdateStatus} disabled={!newStatus}>
-              Simpan Perubahan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Dialog Update Status */}
+        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Ubah Status Booking</DialogTitle>
+              <DialogDescription>
+                Pilih status baru untuk booking #{selectedBookingId}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Select value={newStatus} onValueChange={setNewStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Menunggu</SelectItem>
+                  <SelectItem value="confirmed">Dikonfirmasi</SelectItem>
+                  <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                  <SelectItem value="checked_in">Check-in</SelectItem>
+                  <SelectItem value="checked_out">Check-out</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpenDialog(false)}>
+                Batal
+              </Button>
+              <Button onClick={handleUpdateStatus} disabled={!newStatus}>
+                Simpan Perubahan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </>
   );
 }

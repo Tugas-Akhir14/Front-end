@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Pencil, Trash2, AlertCircle, LogOut, Plus } from "lucide-react";
+import { useEffectCallback, useEffect, useState } from "react";
+import { Pencil, Trash2, AlertCircle, Plus } from "lucide-react";
+import Swal from "sweetalert2";
+import { toast, Toaster } from "sonner";
 
 interface RoomType {
   id: number;
@@ -32,15 +34,14 @@ export default function RoomTypePage() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const API_URL = "http://localhost:8080/api";
-  const TOKEN_KEY = "token"; 
-
+  const TOKEN_KEY = "token";
   const validTypes = ["superior", "deluxe", "executive"];
 
   // Load token
   useEffect(() => {
     const storedToken = sessionStorage.getItem(TOKEN_KEY);
     if (storedToken) {
-      setToken(storedToken);
+      setToken(storedToken.replace(/^"+|"+$/g, "")); // bersihin tanda petik kalau ada
     } else {
       setError("Anda belum login. Silakan login terlebih dahulu.");
       setLoading(false);
@@ -68,15 +69,13 @@ export default function RoomTypePage() {
         setRoomTypes(cached);
       }
 
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
-
       const res = await fetch(`${API_URL}/room-types`, {
         method: "GET",
         credentials: "include",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!res.ok) {
@@ -94,11 +93,12 @@ export default function RoomTypePage() {
       setRoomTypes(types);
       saveToSession(types);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Terjadi kesalahan");
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan jaringan";
+      toast.error(msg);
       const cached = loadFromSession();
       if (cached) {
         setRoomTypes(cached);
-        setError("Menggunakan data dari cache (offline mode)");
+        toast.info("Menggunakan data dari cache");
       }
     } finally {
       setLoading(false);
@@ -106,9 +106,7 @@ export default function RoomTypePage() {
   };
 
   useEffect(() => {
-    if (token) {
-      fetchRoomTypes();
-    }
+    if (token) fetchRoomTypes();
   }, [token]);
 
   const validatePrice = (value: string): number | null => {
@@ -137,20 +135,20 @@ export default function RoomTypePage() {
       return;
     }
 
-    try {
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token!}`,
-      };
+    const toastId = toast.loading("Menambahkan tipe kamar...");
 
+    try {
       const res = await fetch(`${API_URL}/room-types`, {
         method: "POST",
         credentials: "include",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token!}`,
+        },
         body: JSON.stringify({
           type: createForm.type.toLowerCase(),
           price: price,
-          description: createForm.description,
+          description: createForm.description.trim(),
         }),
       });
 
@@ -159,11 +157,12 @@ export default function RoomTypePage() {
         throw new Error(err.error || "Gagal menambah tipe kamar");
       }
 
+      toast.success("Tipe kamar berhasil ditambahkan!", { id: toastId });
       await fetchRoomTypes();
       setIsCreateModalOpen(false);
       setCreateForm({ type: "", Price: "", description: "" });
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Gagal menambah");
+      toast.error(err instanceof Error ? err.message : "Gagal menambah", { id: toastId });
     }
   };
 
@@ -180,16 +179,16 @@ export default function RoomTypePage() {
       editForm.Price = validPrice;
     }
 
-    try {
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
+    const toastId = toast.loading("Menyimpan perubahan...");
 
+    try {
       const res = await fetch(`${API_URL}/room-types/${id}`, {
         method: "PUT",
         credentials: "include",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(editForm),
       });
 
@@ -203,37 +202,60 @@ export default function RoomTypePage() {
         throw new Error(err.error || "Gagal update");
       }
 
+      toast.success("Tipe kamar berhasil diperbarui!", { id: toastId });
       setPriceError(null);
       await fetchRoomTypes();
       setEditingId(null);
       setEditForm({});
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Update gagal");
+      toast.error(err instanceof Error ? err.message : "Update gagal", { id: toastId });
     }
   };
 
-  // === DELETE ===
-  const handleDelete = async (id: number) => {
-    if (!confirm("Hapus tipe kamar ini?")) return;
+  // === DELETE DENGAN SWEETALERT2 CANTIK + WARNA SOLID ===
+  const handleDelete = async (id: number, typeName: string) => {
+    const result = await Swal.fire({
+      title: `Hapus tipe "${typeName}"?`,
+      text: "Tindakan ini tidak dapat dibatalkan!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ya, Hapus!",
+      cancelButtonText: "Batal",
+      reverseButtons: true,
+      focusCancel: true,
+      buttonsStyling: false,
+      customClass: {
+        confirmButton: "swal-btn-confirm",
+        cancelButton: "swal-btn-cancel",
+        actions: "swal-actions",
+        popup: "rounded-2xl",
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading(`Menghapus tipe ${typeName}...`);
 
     try {
       setDeletingId(id);
-      const headers: HeadersInit = { Authorization: `Bearer ${token!}` };
 
       const res = await fetch(`${API_URL}/room-types/${id}`, {
         method: "DELETE",
         credentials: "include",
-        headers,
+        headers: {
+          Authorization: `Bearer ${token!}`,
+        },
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Gagal menghapus");
+        throw new Error(err.error || "Gagal menghapus tipe kamar");
       }
 
+      toast.success(`Tipe "${typeName}" berhasil dihapus!`, { id: toastId });
       await fetchRoomTypes();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Hapus gagal");
+      toast.error(err instanceof Error ? err.message : "Gagal menghapus", { id: toastId });
     } finally {
       setDeletingId(null);
     }
@@ -248,17 +270,10 @@ export default function RoomTypePage() {
     }).format(price);
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem("room_types_cache");
-    window.location.href = "/admin/login";
-  };
-
-  // Loading
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
       </div>
     );
   }
@@ -272,7 +287,7 @@ export default function RoomTypePage() {
           <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => (window.location.href = "/admin/login")}
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+            className="px-6 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition"
           >
             Login Sekarang
           </button>
@@ -283,35 +298,50 @@ export default function RoomTypePage() {
 
   return (
     <>
+      {/* SWEETALERT2 & SONNER */}
+      <Toaster position="top-right" richColors closeButton />
+      <style jsx global>{`
+        .swal-actions {
+          gap: 1rem !important;
+          justify-content: center !important;
+        }
+        .swal-btn-cancel {
+          min-width: 120px !important;
+          padding: 0.75rem 1.5rem !important;
+          background-color: #6b7280 !important;
+          color: white !important;
+          border-radius: 0.75rem !important;
+          font-weight: 600 !important;
+          box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3) !important;
+        }
+        .swal-btn-cancel:hover {
+          background-color: #4b5563 !important;
+        }
+        .swal-btn-confirm {
+          min-width: 140px !important;
+          padding: 0.75rem 1.5rem !important;
+          background: linear-gradient(to right, #ef4444, #dc2626) !important;
+          color: white !important;
+          border-radius: 0.75rem !important;
+          font-weight: 600 !important;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+        }
+        .swal-btn-confirm:hover {
+          background: linear-gradient(to right, #dc2626, #b91c1c) !important;
+        }
+      `}</style>
+
       <div className="container mx-auto p-6 max-w-5xl">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-gray-800">Manajemen Tipe Kamar</h1>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Tipe
-              </button>
-              <button
-                onClick={fetchRoomTypes}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
-            </div>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-semibold rounded-xl shadow-md hover:from-amber-600 hover:to-yellow-700 transition flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Tambah Tipe
+            </button>
           </div>
 
           {error && (
@@ -330,26 +360,26 @@ export default function RoomTypePage() {
 
           {roomTypes.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              Belum ada tipe kamar.
+              Belum ada tipe kamar. Tekan tombol "Tambah Tipe" untuk memulai.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full table-auto border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipe</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                  <tr className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b">
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Tipe</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Harga</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Deskripsi</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold uppercase text-amber-800">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-amber-100">
                   {roomTypes.map((rt) => (
-                    <tr key={rt.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{rt.id}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">{rt.type}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <tr key={rt.id} className="hover:bg-amber-50 transition">
+                      <td className="px-4 py-4 text-sm text-gray-900">{rt.id}</td>
+                      <td className="px-4 py-4 text-sm font-bold text-amber-700 capitalize">{rt.type}</td>
+                      <td className="px-4 py-4 text-sm">
                         {editingId === rt.id ? (
                           <input
                             type="number"
@@ -361,33 +391,30 @@ export default function RoomTypePage() {
                               setEditForm({ ...editForm, Price: val === "" ? undefined : Number(val) });
                               setPriceError(null);
                             }}
-                            className={`w-32 px-2 py-1 border rounded focus:outline-none focus:ring-2 ${
-                              priceError ? "border-red-500 ring-red-500" : "focus:ring-blue-500"
+                            className={`w-32 px-3 py-1.5 border rounded-lg focus:outline-none focus:ring-2 ${
+                              priceError ? "border-red-500 ring-red-500" : "focus:ring-amber-500"
                             }`}
-                            placeholder="Harga"
                           />
                         ) : (
-                          <span className="font-medium">{formatPrice(rt.Price)}</span>
+                          <span className="font-bold text-emerald-700">{formatPrice(rt.Price)}</span>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-sm text-gray-900 max-w-xs">
+                      <td className="px-4 py-4 text-sm text-gray-700 max-w-xs">
                         {editingId === rt.id ? (
                           <textarea
                             value={editForm.description ?? rt.description}
                             onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                             rows={2}
-                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
                           />
                         ) : (
-                          <span className="block truncate" title={rt.description}>
-                            {rt.description}
-                          </span>
+                          <span className="block truncate" title={rt.description}>{rt.description}</span>
                         )}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-4 py-4 text-right">
                         {editingId === rt.id ? (
-                          <div className="flex justify-end gap-2">
-                            <button onClick={() => handleUpdate(rt.id)} className="text-green-600 hover:text-green-800 font-medium">
+                          <div className="flex justify-end gap-3">
+                            <button onClick={() => handleUpdate(rt.id)} className="text-green-600 hover:text-green-800 font-semibold">
                               Simpan
                             </button>
                             <button
@@ -402,28 +429,28 @@ export default function RoomTypePage() {
                             </button>
                           </div>
                         ) : (
-                          <div className="flex justify-end gap-3">
+                          <div className="flex justify-end gap-4">
                             <button
                               onClick={() => {
                                 setEditingId(rt.id);
                                 setEditForm({ Price: rt.Price, description: rt.description });
                                 setPriceError(null);
                               }}
-                              className="text-blue-600 hover:text-blue-800"
+                              className="text-amber-600 hover:text-amber-800"
                               title="Edit"
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Pencil className="w-5 h-5" />
                             </button>
                             <button
-                              onClick={() => handleDelete(rt.id)}
+                              onClick={() => handleDelete(rt.id, rt.type.charAt(0).toUpperCase() + rt.type.slice(1))}
                               disabled={deletingId === rt.id}
                               className="text-red-600 hover:text-red-800 disabled:opacity-50"
                               title="Hapus"
                             >
                               {deletingId === rt.id ? (
-                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                                <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
                               ) : (
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-5 h-5" />
                               )}
                             </button>
                           </div>
@@ -438,25 +465,25 @@ export default function RoomTypePage() {
         </div>
       </div>
 
-      {/* === MODAL CREATE === */}
+      {/* MODAL CREATE – TETAP SAMA */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Tambah Tipe Kamar</h2>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-amber-200">
+            <h2 className="text-2xl font-bold text-gray-800 mb-5">Tambah Tipe Kamar</h2>
 
             {createError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
                 {createError}
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipe</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tipe Kamar</label>
                 <select
                   value={createForm.type}
                   onChange={(e) => setCreateForm({ ...createForm, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
                   <option value="">Pilih tipe</option>
                   {validTypes.map((t) => (
@@ -468,46 +495,46 @@ export default function RoomTypePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Harga per Malam</label>
                 <input
                   type="number"
                   min="0"
                   step="1000"
                   value={createForm.Price}
                   onChange={(e) => setCreateForm({ ...createForm, Price: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Contoh: 1500000"
+                  className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="1.500.000"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi</label>
                 <textarea
                   value={createForm.description}
                   onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  placeholder="Deskripsi tipe kamar..."
+                  rows={4}
+                  className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                  placeholder="Fasilitas, keunggulan, dll..."
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-3 mt-7">
               <button
                 onClick={() => {
                   setIsCreateModalOpen(false);
                   setCreateForm({ type: "", Price: "", description: "" });
                   setCreateError(null);
                 }}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
+                className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition"
               >
                 Batal
               </button>
               <button
                 onClick={handleCreate}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold rounded-xl shadow-md hover:from-amber-600 hover:to-yellow-700 transition"
               >
-                Simpan
+                Simpan Tipe
               </button>
             </div>
           </div>

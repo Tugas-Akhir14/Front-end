@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { Pencil, Trash2, Plus, Search, Upload } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { Toaster, toast } from 'sonner';
+import Swal from 'sweetalert2';
 import axios from 'axios';
 
-// === AXIOS INSTANCE DENGAN TOKEN DARI sessionStorage ===
+// === AXIOS INSTANCE DENGAN TOKEN ===
 const api = axios.create({
   baseURL: 'http://localhost:8080',
 });
 
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('token');
+  const token = sessionStorage.getItem('token')?.replace(/^"+|"+$/g, '');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -34,17 +35,16 @@ interface Product {
   category: Category;
 }
 
-export default function ProductBookPage() {
+export default function ProductCafePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
-  // Modal States
+  // Modal States (hanya untuk Create & Edit)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Form States
@@ -67,22 +67,22 @@ export default function ProductBookPage() {
       if (selectedCategory) params.category_id = selectedCategory;
 
       const res = await api.get('/api/cafe-products', { params });
-      setProducts(res.data);
+      const data = Array.isArray(res.data) ? res.data : res.data.data || [];
+      setProducts(data);
     } catch (err: any) {
-      console.error('Fetch products error:', err.response?.data);
-      toast.error(err.response?.data?.error || 'Gagal memuat produk. Pastikan Anda login.');
+      toast.error(err.response?.data?.error || 'Gagal memuat produk cafe');
     } finally {
       setLoading(false);
     }
   };
 
-  // === FETCH CATEGORIES (CAFE) ===
+  // === FETCH CATEGORIES ===
   const fetchCategories = async () => {
     try {
       const res = await api.get('/api/cafe-categories');
-      setCategories(res.data);
+      const data = Array.isArray(res.data) ? res.data : res.data.data || [];
+      setCategories(data);
     } catch (err: any) {
-      console.error('Fetch categories error:', err.response?.data);
       toast.error('Gagal memuat kategori cafe');
     }
   };
@@ -148,19 +148,34 @@ export default function ProductBookPage() {
     setIsEditModalOpen(true);
   };
 
-  const openDeleteModal = (product: Product) => {
-    setSelectedProduct(product);
-    setIsDeleteModalOpen(true);
-  };
-
   // === CREATE PRODUCT ===
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.gambar) {
-      toast.error('Gambar wajib diunggah');
+      toast.error('Gambar wajib diunggah!');
       return;
     }
 
+    const result = await Swal.fire({
+      title: 'Tambah Produk Baru?',
+      text: `Produk "${formData.nama}" akan ditambahkan ke cafe.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Tambah!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-popup',
+        confirmButton: 'swal-confirm',
+        cancelButton: 'swal-cancel',
+        actions: 'swal-actions',
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading('Menyimpan produk...');
     const data = new FormData();
     data.append('nama', formData.nama);
     data.append('deskripsi', formData.deskripsi);
@@ -171,11 +186,11 @@ export default function ProductBookPage() {
 
     try {
       await api.post('/api/cafe-products', data);
-      toast.success('Produk berhasil ditambahkan');
+      toast.success('Produk berhasil ditambahkan!', { id: toastId });
       setIsCreateModalOpen(false);
       fetchProducts();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Gagal menambahkan produk');
+      toast.error(err.response?.data?.error || 'Gagal menambahkan produk', { id: toastId });
     }
   };
 
@@ -183,6 +198,26 @@ export default function ProductBookPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const result = await Swal.fire({
+      title: 'Simpan Perubahan?',
+      text: `Produk "${formData.nama}" akan diperbarui.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Simpan!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-popup',
+        confirmButton: 'swal-confirm',
+        cancelButton: 'swal-cancel',
+        actions: 'swal-actions',
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading('Memperbarui produk...');
     const data = new FormData();
     data.append('nama', formData.nama);
     data.append('deskripsi', formData.deskripsi);
@@ -193,28 +228,77 @@ export default function ProductBookPage() {
 
     try {
       await api.put(`/api/cafe-products/${selectedProduct?.id}`, data);
-      toast.success('Produk berhasil diperbarui');
+      toast.success('Produk berhasil diperbarui!', { id: toastId });
       setIsEditModalOpen(false);
       fetchProducts();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Gagal memperbarui produk');
+      toast.error(err.response?.data?.error || 'Gagal memperbarui produk', { id: toastId });
     }
   };
 
-  // === DELETE PRODUCT ===
-  const handleDelete = async () => {
+  // === DELETE DENGAN SWEETALERT LANGSUNG ===
+  const confirmDelete = async (product: Product) => {
+    const result = await Swal.fire({
+      title: `Hapus Produk "${product.nama}"?`,
+      text: 'Tindakan ini tidak dapat dibatalkan!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+      focusCancel: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-popup',
+        confirmButton: 'swal-confirm',
+        cancelButton: 'swal-cancel',
+        actions: 'swal-actions',
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading('Menghapus produk...');
+
     try {
-      await api.delete(`/api/cafe-products/${selectedProduct?.id}`);
-      toast.success('Produk berhasil dihapus');
-      setIsDeleteModalOpen(false);
+      await api.delete(`/api/cafe-products/${product.id}`);
+      toast.success('Produk berhasil dihapus!', { id: toastId });
       fetchProducts();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Gagal menghapus produk');
+      toast.error(err.response?.data?.error || 'Gagal menghapus produk', { id: toastId });
     }
   };
 
   return (
     <>
+      <Toaster position="top-right" richColors closeButton />
+
+      {/* SweetAlert2 Premium Style (sama semua halaman) */}
+      <style jsx global>{`
+        .swal-popup { border-radius: 1rem !important; }
+        .swal-actions { gap: 1rem !important; justify-content: center !important; padding: 0 1.5rem !important; }
+        .swal-cancel {
+          min-width: 120px !important;
+          padding: 0.75rem 1.5rem !important;
+          background-color: #6b7280 !important;
+          color: white !important;
+          border-radius: 0.75rem !important;
+          font-weight: 600 !important;
+          box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3) !important;
+        }
+        .swal-cancel:hover { background-color: #4b5563 !important; }
+        .swal-confirm {
+          min-width: 140px !important;
+          padding: 0.75rem 1.5rem !important;
+          background: linear-gradient(to right, #ef4444, #dc2626) !important;
+          color: white !important;
+          border-radius: 0.75rem !important;
+          font-weight: 600 !important;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+        }
+        .swal-confirm:hover { background: linear-gradient(to right, #dc2626, #b91c1c) !important; }
+      `}</style>
+
       <div className="p-6 max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Manajemen Produk Cafe</h1>
@@ -268,24 +352,12 @@ export default function ProductBookPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Gambar
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nama
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Kategori
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Harga
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Stok
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Aksi
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -307,9 +379,7 @@ export default function ProductBookPage() {
                           <div className="text-sm text-gray-500 line-clamp-1">{product.deskripsi}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {product.category.nama}
-                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{product.category.nama}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         Rp {product.harga.toLocaleString('id-ID')}
                       </td>
@@ -317,12 +387,12 @@ export default function ProductBookPage() {
                       <td className="px-6 py-4 text-right text-sm font-medium">
                         <button
                           onClick={() => openEditModal(product)}
-                          className="text-blue-600 hover:text-blue-900 mr-3"
+                          className="text-blue-600 hover:text-blue-900 mr-4"
                         >
                           <Pencil className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => openDeleteModal(product)}
+                          onClick={() => confirmDelete(product)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -337,7 +407,7 @@ export default function ProductBookPage() {
         </div>
       </div>
 
-      {/* === CREATE MODAL === */}
+      {/* === CREATE MODAL (TIDAK BERUBAH) === */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -435,7 +505,7 @@ export default function ProductBookPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                 >
                   Simpan
                 </button>
@@ -445,7 +515,7 @@ export default function ProductBookPage() {
         </div>
       )}
 
-      {/* === EDIT MODAL === */}
+      {/* === EDIT MODAL (TIDAK BERUBAH) === */}
       {isEditModalOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -543,38 +613,12 @@ export default function ProductBookPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                 >
                   Update
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* === DELETE MODAL === */}
-      {isDeleteModalOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-2">Hapus Produk</h3>
-            <p className="text-gray-600 mb-6">
-              Apakah Anda yakin ingin menghapus produk <strong>{selectedProduct.nama}</strong>?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Hapus
-              </button>
-            </div>
           </div>
         </div>
       )}

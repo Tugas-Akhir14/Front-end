@@ -176,34 +176,18 @@ export default function Gallery() {
             {/* Header section */}
             <div className="text-center mb-24 relative">
               {/* Top decorative line */}
-              <div className="flex justify-center mb-8">
+              <div className="flex justify-center mb-1">
                 <div className="flex items-center space-x-2">
                   <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-500"></div>
                   <Sparkles className="w-6 h-6 text-amber-500" />
                   <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-500"></div>
                 </div>
-              </div>
+              </div>                
               
-              <div className="inline-block mb-6">
-                <span className="text-amber-300 text-sm font-bold tracking-[0.3em] uppercase bg-gradient-to-r from-amber-900/50 to-yellow-900/50 px-8 py-3 rounded-full border-2 border-amber-600 backdrop-blur-sm">
-                  Exclusive Collection
-                </span>
-              </div>
+        
               
-              <h2 className="text-6xl md:text-7xl font-bold mb-8 leading-tight">
-                <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 bg-clip-text text-transparent">
-                  Our Portfolio
-                </span>
-              </h2>
-              
-              <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed mb-8">
-                Each image tells a story of luxury, comfort, and timeless sophistication
-              </p>
-              
-              {/* Bottom decorative line */}
-              <div className="flex justify-center mt-10">
-                <div className="w-24 h-1 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 rounded-full"></div>
-              </div>
+
+      
             </div>
 
             {/* Loading skeleton */}
@@ -299,60 +283,7 @@ export default function Gallery() {
               </div>
             )}
 
-            {/* Enhanced CTA section */}
-            <div className="text-center mt-32">
-              <Card className="bg-gradient-to-br from-amber-600 via-yellow-600 to-amber-700 text-white p-20 rounded-3xl shadow-2xl border-4 border-amber-500 relative overflow-hidden backdrop-blur-sm">
-                {/* Decorative background patterns */}
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute inset-0" style={{
-                    backgroundImage: 'radial-gradient(circle, #ffffff 2px, transparent 2px)',
-                    backgroundSize: '40px 40px'
-                  }}></div>
-                </div>
-                
-                {/* Floating decorative circles */}
-                <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
-                <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3"></div>
-                
-                <CardContent className="p-0 relative z-10">
-                  <div className="max-w-3xl mx-auto space-y-10">
-                    
-                    <div className="inline-block bg-white/20 backdrop-blur-sm px-8 py-3 rounded-full mb-4 border border-white/30">
-                      <span className="text-sm font-bold tracking-widest">EXCLUSIVE INVITATION</span>
-                    </div>
-                    
-                    <h3 className="text-5xl md:text-6xl font-bold mb-8 leading-tight">
-                      Create Your Own Legacy
-                    </h3>
-                    
-                    <p className="text-white/90 text-xl md:text-2xl mb-12 max-w-2xl mx-auto leading-relaxed font-light">
-                      Step into a world where every moment becomes a treasured memory
-                    </p>
-                    
-                    {/* Decorative line */}
-                    <div className="flex justify-center mb-10">
-                      <div className="w-32 h-1 bg-white/30 rounded-full"></div>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                      <Button 
-                        size="lg" 
-                        className="bg-white text-amber-700 hover:bg-gray-50 text-lg px-12 py-7 font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-white"
-                      >
-                        Reserve Now
-                      </Button>
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="border-2 border-white text-white hover:bg-white hover:text-amber-700 text-lg px-12 py-7 font-bold transition-all duration-300 transform hover:scale-105 backdrop-blur-sm"
-                      >
-                        Contact Concierge
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+   
           </div>
         </section>
       </main>

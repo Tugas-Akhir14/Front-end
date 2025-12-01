@@ -143,9 +143,9 @@ export default function RoomCreatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50 py-8">
+    <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-2xl rounded-2xl bg-white p-8 shadow-xl border border-yellow-200">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent mb-6">
+        <h1 className="text-2xl font-bold bg-black bg-clip-text text-transparent mb-6">
           Tambah Kamar Baru
         </h1>
 
@@ -224,14 +224,14 @@ export default function RoomCreatePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-black mb-2">
               Gambar (opsional)
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={(e) => onImageChange(e.target.files?.[0] ?? null)}
-              className="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-amber-500 file:to-yellow-600 file:text-black hover:file:from-amber-600 hover:file:to-yellow-700"
+              className="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-black hover:file:from-amber-600 hover:file:to-yellow-700"
             />
             {preview && (
               <div className="mt-4">
@@ -249,7 +249,7 @@ export default function RoomCreatePage() {
             <button
               type="submit"
               disabled={submitting || loadingTypes}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold shadow-md hover:from-amber-600 hover:to-yellow-700 disabled:opacity-60 flex items-center gap-2 transition-all"
+              className="px-6 py-3 rounded-xl bg-gray-100 text-black font-bold shadow-md hover:from-amber-600 hover:to-yellow-700 disabled:opacity-60 flex items-center gap-2 transition-all"
             >
               {submitting ? (
                 <>

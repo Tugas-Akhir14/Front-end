@@ -22,6 +22,9 @@ import {
   Crown,
   Sparkles,
 } from 'lucide-react';
+import { Toaster } from 'sonner';
+import { SiAlmalinux,} from "react-icons/si";
+import { CiCircleList } from "react-icons/ci";
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 
@@ -31,7 +34,7 @@ type AuthCtx = {
   authFetch: (url: string, init?: RequestInit) => Promise<Response>;
   logout: () => void;
 };
-const AuthContext = createContext<AuthCtx | null>(null);
+const     AuthContext = createContext<AuthCtx | null>(null);
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth harus dipakai di dalam AuthProvider');
@@ -79,45 +82,44 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
     ...(can(['admin_hotel']) ? [{
       title: 'MANAGE HOTEL',
       items: [
-        { icon: 'grid', label: 'Dashboard', href: '/admin/hotel/dashboard' },
-        { icon: 'plug-in', label: 'Rooms', href: '/admin/hotel/room', badge: 'NEW' },
-        { icon: 'grid', label: 'Type', href: '/admin/hotel/type', badge: 'NEW' },
-        { icon: 'box', label: 'News', href: '/admin/hotel/news', badge: 'NEW' },
-        { icon: 'time', label: 'Booking', href: '/admin/hotel/booking', badge: 'NEW' },
-        { icon: 'calendar', label: 'Gallery', href: '/admin/hotel/gallery' },
-        { icon: 'user-circle', label: 'Visi Misi', href: '/admin/hotel/visi-misi' },
-        { icon: 'user-circle', label: 'Review', href: '/admin/hotel/review' },
+        { icon: 'dashboard', label: 'Dashboard', href: '/admin/hotel/dashboard' },
+        { icon: 'bed', label: 'Rooms', href: '/admin/hotel/room', },
+        { icon: 'list', label: 'Type', href: '/admin/hotel/type',  },
+        { icon: 'newspaper', label: 'News', href: '/admin/hotel/news',  },
+        { icon: 'booking', label: 'Booking', href: '/admin/hotel/booking',  },
+        { icon: 'gallery', label: 'Gallery', href: '/admin/hotel/gallery' },  
+        { icon: 'review', label: 'Review', href: '/admin/hotel/review' },
       ],
     }] : []),
     ...(can(['admin_souvenir']) ? [{
       title: 'MANAGE SOUVENIR',
       items: [
-        { icon: 'grid', label: 'Dashboard', href: '/admin/souvenir/dashboard' },
-        { icon: 'plug-in', label: 'Product', href: '/admin/souvenir/product', badge: 'NEW' },
-        { icon: 'calendar', label: 'Category', href: '/admin/souvenir/category' },
+        { icon: 'dashboard', label: 'Dashboard', href: '/admin/souvenir/dashboard' },
+        { icon: 'product', label: 'Product', href: '/admin/souvenir/product', },
+        { icon: 'category', label: 'Category', href: '/admin/souvenir/category' },
       ],
     }] : []),
     ...(can(['admin_buku']) ? [{
       title: 'MANAGE BUKU',
       items: [
-        { icon: 'grid', label: 'Dashboard', href: '/admin/book/dashboard' },
-        { icon: 'plug-in', label: 'Product', href: '/admin/book/product', badge: 'NEW' },
-        { icon: 'calendar', label: 'Category', href: '/admin/book/category' },
+        { icon: 'dashboard', label: 'Dashboard', href: '/admin/book/dashboard' },
+        { icon: 'book', label: 'Product', href: '/admin/book/product',  },
+        { icon: 'category', label: 'Category', href: '/admin/book/category' },
       ],
     }] : []),
     ...(can(['admin_cafe']) ? [{
       title: 'MANAGE CAFE',
       items: [
-        { icon: 'grid', label: 'Dashboard', href: '/admin/cafe/dashboard' },
-        { icon: 'plug-in', label: 'Product', href: '/admin/cafe/product', badge: 'NEW' },
-        { icon: 'plug-in', label: 'Category', href: '/admin/cafe/category', badge: 'NEW' },
+        { icon: 'dashboard', label: 'Dashboard', href: '/admin/cafe/dashboard' },
+        { icon: 'cafe', label: 'Menu', href: '/admin/cafe/product', },
+        { icon: 'category', label: 'Category', href: '/admin/cafe/category',  },
       ],
     }] : []),
     ...(role === 'superadmin' ? [{
       title: 'SUPERADMIN',
       items: [
-        { icon: 'shield', label: 'All Modules', href: '/admin/dashboard' },
-        { icon: 'users', label: 'Pending Admins', href: '/admin/pending' },
+        { icon: 'module', label: 'All Modules', href: '/admin/dashboard' },
+        { icon: 'admin', label: 'Pending Admins', href: '/admin/pending' },
       ],
     }] : []),
   ];
@@ -125,11 +127,11 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
   const Item = ({ icon, label, badge, href }: { icon: string; label: string; badge?: string; href: string }) => (
     <Link
       href={href}
-      className="group flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gradient-to-r hover:from-amber-50 hover:to-yellow-50 dark:hover:from-amber-900/20 dark:hover:to-yellow-900/20 transition-all duration-200 border border-transparent hover:border-amber-200/50 dark:hover:border-amber-700/50"
+      className="group flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white dark:bg-black transition-all duration-200 "
       title={label}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className="h-9 w-9 shrink-0 rounded-lg bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/40 dark:to-yellow-900/40 text-amber-700 dark:text-amber-300 grid place-items-center shadow-sm group-hover:shadow-md transition-shadow">
+        <div className="h-9 w-9 shrink-0 rounded-lg bg-white dark:from-amber-900/40 dark:to-yellow-900/40 text-amber-700 dark:text-amber-300 grid place-items-center shadow-sm group-hover:shadow-md transition-shadow">
           <I name={icon} className="h-5 w-5" />
         </div>
         {effectiveExpanded && (
@@ -144,7 +146,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
   );
 
   const desktopWidth = effectiveExpanded ? 'md:w-[260px]' : 'md:w-[72px]';
-  const mobileClasses = 'fixed inset-y-0 left-0 z-40 w-[260px] bg-gradient-to-b from-white via-amber-50/30 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 md:static md:z-auto md:h-screen md:w-auto';
+  const mobileClasses = 'fixed inset-y-0 left-0 z-40 w-[260px] bg-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 md:static md:z-auto md:h-screen md:w-auto';
   const desktopClasses = 'md:shrink-0 md:h-screen md:sticky md:top-0 md:border-r md:border-amber-200/50 dark:md:border-amber-800/30';
   const mobileVisible = isMobileOpen ? 'translate-x-0' : '-translate-x-full';
 
@@ -173,7 +175,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
                       
           </div>
           {effectiveExpanded && (
-            <div className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+            <div className="text-lg font-extrabold tracking-tight bg-gray-900 dark:bg-white bg-clip-text text-transparent">
               {role === 'superadmin' ? 'SuperAdmin' : 'Admin Panel'}
             </div>
           )}
@@ -183,14 +185,14 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
           {menus.map((menu, i) => (
             <div key={i} className="mb-6">
               {effectiveExpanded && (
-                <div className="px-2 mb-2 text-[13px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                  <Sparkles className="w-3 h-3" />
+                <div className="px-2 mb-2 text-[13px] font-bold text-black dark:text-white flex items-center gap-2">
+                  <SiAlmalinux />
                   {menu.title}
                 </div>
               )}
               <nav className="space-y-1.5">
                 {menu.items.map((item, j) => (
-                  <Item key={j} icon={item.icon} label={item.label} href={item.href} badge={item.badge} />
+                  <Item key={j} icon={item.icon} label={item.label} href={item.href}/>
                 ))}
               </nav>
             </div>
@@ -199,15 +201,12 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
           {/* SUPPORT */}
           <div className="mt-auto pt-6 border-t border-amber-200/50 dark:border-amber-800/30">
             {effectiveExpanded && (
-              <div className="px-2 mb-2 text-[13px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                <Sparkles className="w-3 h-3" />
+              <div className="px-2 mb-2 text-[13px] font-bold text-blue-600 flex items-center gap-2">
+                <SiAlmalinux className="w-3 h-3" />
                 SUPPORT
               </div>
             )}
             <div className="space-y-1.5">
-              <div className="px-3 py-2.5 text-[12px] text-slate-600 dark:text-slate-300 rounded-xl hover:bg-gradient-to-r hover:from-amber-50 hover:to-yellow-50 dark:hover:from-amber-900/20 dark:hover:to-yellow-900/20 cursor-pointer flex items-center gap-3 transition-all" title="Chat">
-                <I name="chat" className="h-5 h-5" /> {effectiveExpanded && <span>Chat</span>}
-              </div>
               <div className="px-3 py-2.5 text-[12px] text-slate-600 dark:text-slate-300 rounded-xl hover:bg-gradient-to-r hover:from-amber-50 hover:to-yellow-50 dark:hover:from-amber-900/20 dark:hover:to-yellow-900/20 cursor-pointer flex items-center gap-3 transition-all" title="Settings">
                 <I name="info" className="h-5 h-5" /> {effectiveExpanded && <span>Settings</span>}
               </div>
@@ -270,120 +269,152 @@ function Topbar({ onToggleDesktop, onOpenMobile, isCollapsed, profileName, onLog
   }, []);
 
   return (
-    <div className="h-[64px] w-full border-b border-amber-200/50 dark:border-amber-800/30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl flex items-center px-4 md:px-6 gap-3 md:gap-4 sticky top-0 z-10 shadow-sm">
+    <div className="h-[64px] w-full dark:border-amber-800/30 bg-white dark:bg-slate-900/80 backdrop-blur-xl flex items-center px-4 md:px-6 gap-3 md:gap-4 sticky top-0 z-10 shadow-sm">
       <button
-        className="h-10 w-10 rounded-xl border-2 border-amber-200/50 dark:border-amber-700/50 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 grid place-items-center hover:shadow-md transition-all"
+        className="h-10 w-10 rounded-xl grid place-items-center hover:shadow-md transition-all"
         onClick={() => (window.matchMedia('(min-width: 768px)').matches ? onToggleDesktop() : onOpenMobile())}
       >
-        <GridIcon className="h-5 h-5 text-amber-700 dark:text-amber-300" />
+        <CiCircleList className="h-10 h-10 text-black dark:white" />
       </button>
 
-      <div className="flex w-full relative">
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500 dark:text-amber-400" />
-        <input
-          placeholder="Search or type command…"
-          className="w-full rounded-xl bg-gradient-to-r from-amber-50/50 to-yellow-50/50 dark:from-amber-900/20 dark:to-yellow-900/20 border-2 border-amber-200/50 dark:border-amber-700/50 pl-11 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-amber-600/50 dark:placeholder:text-amber-400/50 focus:outline-none focus:ring-2 focus:ring-amber-300 dark:focus:ring-amber-600 focus:border-amber-400 dark:focus:border-amber-500 transition-all"
-        />
-      </div>
+     <div className="flex w-full relative max-w-md">
+  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+  <input
+    type="text"
+    placeholder="Search or type command…"
+    className="
+      w-full 
+      pl-10 pr-4 py-2.5 
+      text-sm 
+      bg-white dark:bg-gray-800 
+      border border-gray-300 dark:border-gray-700 
+      rounded-lg 
+      placeholder:text-gray-500 dark:placeholder:text-gray-400 
+      text-gray-900 dark:text-gray-100 
+      focus:outline-none 
+      focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+      focus:border-blue-500 dark:focus:border-blue-400 
+      transition-all duration-200
+      shadow-sm hover:shadow"  />
+</div>
 
       <div className="flex w-full justify-end items-start gap-2 md:gap-3">
-        {/* NOTIFIKASI */}
-        <div className="relative" ref={refNotif}>
-          <button
-            className="h-10 w-10 rounded-full border-2 border-amber-200/50 dark:border-amber-700/50 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 grid place-items-center relative hover:shadow-md transition-all"
-            onClick={() => setOpenNotif((v) => !v)}
-          >
-            <Bell className="h-5 h-5 text-amber-700 dark:text-amber-300" />
-            {adminLogins.length > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900 grid place-items-center shadow-lg">
-                {adminLogins.length > 9 ? '9+' : adminLogins.length}
-              </span>
-            )}
-          </button>
+  {/* NOTIFIKASI */}
+  <div className="relative" ref={refNotif}>
+    <button
+      onClick={() => setOpenNotif(v => !v)}
+      className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+    >
+      <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+      {adminLogins.length > 0 && (
+        <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-900">
+          {adminLogins.length > 9 ? '9+' : adminLogins.length}
+        </span>
+      )}
+    </button>
 
-          {openNotif && (
-            <div className="absolute right-0 mt-2 w-80 rounded-2xl border-2 border-amber-200/50 dark:border-amber-700/50 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl shadow-2xl z-50 overflow-hidden">
-              <span className="pointer-events-none absolute -top-2 right-5 h-4 w-4 rotate-45 bg-white dark:bg-slate-800 border-2 border-amber-200/50 dark:border-amber-700/50 border-b-0 border-r-0"></span>
-              <div className="px-4 py-3 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-b border-amber-200/50 dark:border-amber-700/50">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <span className="text-xs font-bold text-amber-700 dark:text-amber-300">Admin Login Baru</span>
-                </div>
-              </div>
-              <ul className="max-h-80 overflow-auto divide-y divide-amber-100 dark:divide-amber-800/30 text-sm">
-                {adminLogins.length === 0 ? (
-                  <li className="px-4 py-6 text-center text-slate-500 dark:text-slate-400">Tidak ada login baru</li>
-                ) : (
-                  adminLogins.map((l) => (
-                    <li key={l.id} className="px-4 py-3 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-colors">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-slate-800 dark:text-slate-100 truncate">{l.full_name}</div>
-                          <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                            Login sebagai <span className="font-medium text-amber-600 dark:text-amber-400">{l.role}</span> • {l.time}
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="h-8 px-3 text-xs bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-md"
-                          onClick={() => handleApprove(l.id)}
-                        >
-                          Approve
-                        </Button>
-                      </div>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-          )}
+    {/* Dropdown Notifikasi */}
+    {openNotif && (
+      <div className="absolute right-0 mt-2 w-96 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden z-50">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <h3 className="font-semibold text-gray-900 dark:text-white">Pending Admin Approval</h3>
+          </div>
         </div>
 
-        {/* Theme */}
-        <button
-          className="h-10 w-10 rounded-full border-2 border-amber-200/50 dark:border-amber-700/50 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 grid place-items-center hover:shadow-md transition-all"
-          onClick={toggleTheme}
-        >
-          {theme === 'dark' ? <Sun className="h-5 h-5 text-amber-300" /> : <Moon className="h-5 h-5 text-amber-700" />}
-        </button>
-
-        {/* Profile */}
-        <div className="relative" ref={refProfile}>
-          <button
-            onClick={() => setOpenProfile((v) => !v)}
-            className="flex items-center gap-3 rounded-xl border-2 border-amber-200/50 dark:border-amber-700/50 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 pl-1 pr-3 py-1 hover:shadow-md transition-all"
-          >
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 p-0.5">
-              <img src="https://i.pravatar.cc/40?img=12" alt="avatar" className="h-full w-full rounded-full object-cover" />
+        {/* List */}
+        <div className="max-h-96 overflow-y-auto">
+          {adminLogins.length === 0 ? (
+            <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+              Tidak ada login baru
             </div>
-            <span className="hidden sm:block text-xs font-semibold max-w-[140px] truncate text-slate-900 dark:text-slate-100">
-              {profileName || '—'}
-            </span>
-            <ChevronDown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          </button>
-
-          {openProfile && (
-            <div className="absolute right-0 mt-2 w-48 rounded-xl border-2 border-amber-200/50 dark:border-amber-700/50 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl shadow-2xl z-50 overflow-hidden">
-              <Link
-                href="/admin/settings"
-                className="block px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-gradient-to-r hover:from-amber-50 hover:to-yellow-50 dark:hover:from-amber-900/20 dark:hover:to-yellow-900/20 transition-all"
-                onClick={() => setOpenProfile(false)}
+          ) : (
+            adminLogins.map((l: any) => (
+              <div
+                key={l.id}
+                className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800 last:border-0"
               >
-                Settings
-              </Link>
-              <button
-                className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all border-t border-amber-200/50 dark:border-amber-700/50"
-                onClick={() => {
-                  setOpenProfile(false);
-                  onLogout();
-                }}
-              >
-                Logout
-              </button>
-            </div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                      {l.full_name}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Login sebagai <span className="font-semibold text-blue-600 dark:text-blue-400">Admin {l.role}</span> • {l.time}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleApprove(l.id)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                  >
+                    Approve
+                  </Button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
+    )}
+  </div>
+
+  {/* TEMA */}
+  <button
+    onClick={toggleTheme}
+    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+  >
+    {theme === 'dark' ? (
+      <Sun className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+    ) : (
+      <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+    )}
+  </button>
+
+  {/* PROFILE */}
+  <div className="relative" ref={refProfile}>
+    <button
+      onClick={() => setOpenProfile(v => !v)}
+      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+    >
+      <div className="w-9 h-9 rounded-full ring-2 ring-gray-300 dark:ring-gray-600 overflow-hidden">
+        <img
+          src="https://i.pravatar.cc/40?img=12"
+          alt="avatar"
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
+        {profileName || 'User'}
+      </span>
+      <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+    </button>
+
+    {/* Dropdown Profile */}
+    {openProfile && (
+      <div className="absolute right-0 mt-2 w-56 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden z-50">
+        <Link
+          href="/admin/settings"
+          className="block px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          onClick={() => setOpenProfile(false)}
+        >
+          Settings
+        </Link>
+        <button
+          onClick={() => {
+            setOpenProfile(false);
+            onLogout();
+          }}
+          className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
+          Logout
+        </button>
+      </div>
+    )}
+  </div>
+</div>
     </div>
   );
 }
@@ -485,22 +516,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-xl">
-            
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              width={64}
-              height={64}
-              className="object-contain"
-              priority
-            />
-          </div>
-          <p className="text-sm text-amber-700 font-medium">Loading admin panel...</p>
-        </div>
-      </div>
+<div className="min-h-screen bg-white flex items-center justify-center">
+  <div className="text-center">
+    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-xl">
+      <Image
+        src="/logo.png"
+        alt="Logo"
+        width={64}
+        height={64}
+        className="object-contain"
+        priority
+      />
+    </div>
+    <p className="text-sm text-amber-700 font-medium">Loading admin panel...</p>
+  </div>
+</div>
     );
   }
 
@@ -528,6 +558,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <main className="p-4 md:p-6">{children}</main>
           </div>
         </div>
+        <Toaster 
+  position="top-right" 
+  richColors 
+  closeButton 
+  toastOptions={{
+    classNames: {
+      toast: 'text-sm font-medium',
+      success: 'bg-emerald-500 text-white',
+      error: 'bg-red-500 text-white',
+      loading: 'bg-blue-500 text-white',
+    }
+  }}
+/>
       </div>
     </AuthContext.Provider>
   );

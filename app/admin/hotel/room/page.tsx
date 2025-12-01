@@ -3,10 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
+import { toast, Toaster } from 'sonner';
+import Swal from 'sweetalert2'; // ← TAMBAHAN INI
 
-// =====================
-// AXIOS INSTANCE
-// =====================
+// ===================== AXIOS INSTANCE =====================
 const api = axios.create({ baseURL: "http://localhost:8080" });
 api.interceptors.request.use((config) => {
   const raw = sessionStorage.getItem("token");
@@ -18,13 +18,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// =====================
-// Types – SESUAI DENGAN BACKEND
-// =====================
+// ===================== TYPES =====================
 export type RoomType = {
   id: number;
   type: "superior" | "deluxe" | "executive";
-  Price: number;           // <--- Diubah dari `price` ke `Price`
+  Price: number;
   description?: string;
 };
 
@@ -41,14 +39,9 @@ export type Room = {
   updated_at: string;
 };
 
-export type RoomsResponse = {
-  data: Room[];
-  total: number;
-};
+export type RoomsResponse = { data: Room[]; total: number; };
 
-// =====================
-// ROOM TYPES & STATUSES
-// =====================
+// ===================== CONSTANTS =====================
 const ROOM_STATUSES = [
   { label: "Semua Status", value: "" },
   { label: "Tersedia", value: "available", color: "bg-emerald-50 text-emerald-800 border border-emerald-200" },
@@ -119,58 +112,51 @@ export default function RoomPage() {
   const page = useMemo(() => Math.floor(offset / limit) + 1, [offset, limit]);
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total, limit]);
 
-  // =====================
-  // FETCH ROOM TYPES
-  // =====================
+  // ===================== FETCH ROOM TYPES =====================
   useEffect(() => {
     api.get<{ data: RoomType[] }>("/api/room-types")
       .then(res => setRoomTypes(res.data.data || []))
       .catch(() => {
+        toast.error("Gagal memuat tipe kamar, menggunakan data default");
         setRoomTypes([
-          { id: 1, type: "superior", Price: 750000 },     // <--- Price
-          { id: 2, type: "deluxe", Price: 1200000 },      // <--- Price
-          { id: 3, type: "executive", Price: 2000000 },   // <--- Price
+          { id: 1, type: "superior", Price: 750000 },
+          { id: 2, type: "deluxe", Price: 1200000 },
+          { id: 3, type: "executive", Price: 2000000 },
         ]);
       })
       .finally(() => setLoadingTypes(false));
   }, []);
 
-  // =====================
-  // FETCH ROOMS
-  // =====================
+  // ===================== FETCH ROOMS =====================
   const fetchRooms = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const res = await api.get<RoomsResponse>("/api/rooms", {
-        params: {
-          q: search || undefined,
-          type: roomType || undefined,
-          status: roomStatus || undefined,
-          limit,
-          offset,
-        },
+        params: { q: search || undefined, type: roomType || undefined, status: roomStatus || undefined, limit, offset },
       });
       setRooms(res.data.data || []);
       setTotal(res.data.total ?? 0);
     } catch (err: any) {
       const status = err?.response?.status;
-      if (status === 401) setError("Sesi berakhir. Silakan login kembali.");
-      else if (status === 403) setError("Akses ditolak. Anda tidak memiliki izin.");
-      else setError("Gagal memuat data kamar.");
+      if (status === 401) {
+        setError("Sesi berakhir. Silakan login kembali.");
+        toast.error("Sesi berakhir, silakan login ulang");
+      } else if (status === 403) {
+        setError("Akses ditolak.");
+        toast.error("Akses ditolak");
+      } else {
+        setError("Gagal memuat data kamar.");
+        toast.error("Gagal memuat data kamar");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchRooms();
-  }, [search, roomType, roomStatus, limit, offset]);
+  useEffect(() => { fetchRooms(); }, [search, roomType, roomStatus, limit, offset]);
 
-  // =====================
-  // UI HELPERS
-  // =====================
+  // ===================== UI HELPERS =====================
   const FallbackThumb = () => (
     <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-dashed border-amber-300 bg-amber-50">
       <svg className="h-6 w-6 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -187,9 +173,7 @@ export default function RoomPage() {
     return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${s.color}`}>{s.label}</span>;
   };
 
-  // =====================
-  // EDIT MODAL
-  // =====================
+  // ===================== EDIT MODAL =====================
   const openEdit = (r: Room) => {
     setEditing(r);
     setEditNumber(r.number);
@@ -214,12 +198,16 @@ export default function RoomPage() {
 
     if (!editNumber.trim()) {
       setSubmitError("Nomor kamar wajib diisi.");
+      toast.error("Nomor kamar wajib diisi");
       return;
     }
     if (Number(editCapacity) < 1) {
       setSubmitError("Kapasitas minimal 1.");
+      toast.error("Kapasitas minimal 1 orang");
       return;
     }
+
+    const toastId = toast.loading("Menyimpan perubahan...");
 
     setSubmitLoading(true);
     setSubmitError(null);
@@ -237,50 +225,93 @@ export default function RoomPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
+      toast.success("Kamar berhasil diperbarui!", { id: toastId });
       await fetchRooms();
       closeEdit();
     } catch (err: any) {
       const msg = err?.response?.data?.error || "Gagal memperbarui kamar.";
       setSubmitError(msg);
+      toast.error(msg, { id: toastId });
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const handleDelete = async (r: Room) => {
-    const ok = window.confirm(`HapusOperational kamar ${r.number}? Tindakan ini tidak bisa dibatalkan.`);
-    if (!ok) return;
+const handleDelete = async (room: Room) => {
+  const result = await Swal.fire({
+    title: `Hapus kamar ${room.number}?`,
+    text: "Tindakan ini tidak dapat dibatalkan!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Ya, Hapus!",
+    cancelButtonText: "Batal",
+    reverseButtons: true,
+    focusCancel: true,
 
-    try {
-      await api.delete(`/api/rooms/${r.id}`);
-      const newTotal = total - 1;
-      setTotal(newTotal);
+    // CUSTOM STYLING BIAR TOMBOL GA BEREMPETAN + CANTIK
+    buttonsStyling: false,
+    customClass: {
+      popup: "swal-popup",
+      title: "swal-title",
+      htmlContainer: "swal-text",
+      confirmButton: "swal-btn-confirm",
+      cancelButton: "swal-btn-cancel",
+      actions: "swal-actions",
+    },
+  });
 
-      if (rooms.length === 1 && offset > 0) {
-        setOffset(Math.max(0, offset - limit));
-      } else {
-        await fetchRooms();
-      }
-    } catch (err: any) {
-      alert(err?.response?.data?.error || "Gagal menghapus kamar.");
+  if (!result.isConfirmed) return;
+
+  Swal.fire({
+    title: "Menghapus...",
+    text: `Sedang menghapus kamar ${room.number}`,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    await api.delete(`/api/rooms/${room.id}`);
+    Swal.fire({
+      icon: "success",
+      title: "Berhasil!",
+      text: `Kamar ${room.number} telah dihapus`,
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    const newTotal = total - 1;
+    setTotal(newTotal);
+    if (rooms.length === 1 && offset > 0) {
+      setOffset(Math.max(0, offset - limit));
+    } else {
+      await fetchRooms();
     }
-  };
+  } catch (err: any) {
+    const msg = err?.response?.data?.error || "Gagal menghapus kamar.";
+    Swal.fire({
+      icon: "error",
+      title: "Gagal",
+      text: msg,
+    });
+  }
+};
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-amber-50 to-yellow-50">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Header */}
-      <header className="border-b border-yellow-200 bg-gradient-to-r from-yellow-50 to-amber-50 sticky top-[var(--app-header-h)] z-10 backdrop-blur-sm">
+      <header className="border-b border-yellow-200 bg-white dark:bg-gray-900  backdrop-blur-sm">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-black bg-clip-text text-transparent">
                 Manajemen Kamar
               </h1>
             </div>
             <div className="flex items-center gap-2">
               <Link
                 href="/admin/hotel/room/create"
-                className="rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 px-5 py-2.5 text-sm font-semibold text-black shadow-md hover:from-amber-600 hover:to-yellow-700 transition-all"
+                className="rounded-xl bg-gray-100 px-5 py-2.5 text-sm font-semibold text-black shadow-md hover:from-amber-600 hover:to-yellow-700 transition-all"
               >
                 + Tambah Kamar
               </Link>
@@ -289,7 +320,7 @@ export default function RoomPage() {
         </div>
       </header>
 
-      {/* Content */}
+      {/* Main Content */}
       <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Toolbar */}
         <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -341,19 +372,19 @@ export default function RoomPage() {
           </div>
         </div>
 
-        {/* List */}
-        <div className="overflow-hidden rounded-2xl border border-yellow-200 bg-white shadow-lg">
+        {/* Table */}
+        <div className="overflow-hidden rounded-2xl  bg-white shadow-lg">
           <table className="min-w-full divide-y divide-yellow-100">
-            <thead className="bg-gradient-to-r from-yellow-50 to-amber-50">
+            <thead className="bg-white">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Gambar</th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">No. Kamar</th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Tipe</th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Harga</th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Kapasitas</th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Diperbarui</th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-800">Aksi</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">Gambar</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">No. Kamar</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">Tipe</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">Harga</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">Kapasitas</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">Diperbarui</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-yellow-100">
@@ -362,8 +393,8 @@ export default function RoomPage() {
               ) : rooms.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-16 text-center">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-                      <svg className="h-8 w-8 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                      <svg className="h-8 w-8 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="3" y="4" width="18" height="16" rx="2" />
                         <path d="M7 8h10M7 12h6M7 16h8" />
                       </svg>
@@ -371,7 +402,7 @@ export default function RoomPage() {
                     <p className="text-gray-800 font-semibold text-lg">Belum ada data kamar.</p>
                     <p className="text-gray-600 text-sm mt-1">Mulai dengan menambahkan kamar baru.</p>
                     <div className="mt-5">
-                      <Link href="/admin/hotel/room/create" className="inline-flex items-center rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 px-5 py-2.5 text-sm font-semibold text-black shadow-md hover:from-amber-600 hover:to-yellow-700">
+                      <Link href="/admin/hotel/room/create" className="inline-flex items-center rounded-xl bg-gray-100 px-5 py-2.5 text-sm font-semibold text-black shadow-md hover:from-amber-600 hover:to-yellow-700">
                         + Tambah Kamar
                       </Link>
                     </div>
@@ -404,7 +435,7 @@ export default function RoomPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 align-top font-medium text-emerald-700">
-                      {rupiah(r.room_type.Price)} {/* <--- Gunakan Price */}
+                      {rupiah(r.room_type.Price)}
                     </td>
                     <td className="px-4 py-3 align-top text-gray-800">{r.capacity}</td>
                     <td className="px-4 py-3 align-top">{getStatusBadge(r.status)}</td>
@@ -480,7 +511,7 @@ export default function RoomPage() {
         </div>
       </main>
 
-      {/* EDIT MODAL */}
+      {/* EDIT MODAL – TETAP SAMA */}
       {isEditOpen && editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/30">
           <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-yellow-200">
@@ -517,7 +548,7 @@ export default function RoomPage() {
                   >
                     {roomTypes.map(rt => (
                       <option key={rt.id} value={rt.id}>
-                        {rt.type.charAt(0).toUpperCase() + rt.type.slice(1)} — {rupiah(rt.Price)} {/* <--- Gunakan Price */}
+                        {rt.type.charAt(0).toUpperCase() + rt.type.slice(1)} — {rupiah(rt.Price)}
                       </option>
                     ))}
                   </select>
@@ -609,6 +640,21 @@ export default function RoomPage() {
           </div>
         </div>
       )}
+
+      {/* TOASTER (untuk success/error biasa) */}
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        toastOptions={{
+          style: { fontSize: '14px' },
+          classNames: {
+            success: 'bg-emerald-600 text-white',
+            error: 'bg-rose-600 text-white',
+            loading: 'bg-amber-600 text-white',
+          },
+        }}
+      />
     </div>
   );
 }
