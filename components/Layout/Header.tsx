@@ -1,5 +1,4 @@
-
-      // components/Layout/Header.tsx
+// components/Layout/Header.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Menu, X, User, LogOut, Settings, Star, Calendar } from 'lucide-react';
+import {
+  Menu, X, User, LogOut, Settings, Star, Calendar,
+  Bell, CheckCircle2, Sparkles
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +17,21 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import axios from 'axios';
+import { useNotifications } from '../Notification';
+
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+});
+
+api.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
 interface User {
   id: number;
@@ -28,6 +45,10 @@ export default function Header() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
+  // NOTIFIKASI CONTEXT — SEKARANG PASTI JALAN!
+  const { notifications, addNotifications, markAllAsRead, unreadCount } = useNotifications();
+
+  // Load user dari sessionStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -70,6 +91,51 @@ export default function Header() {
     return () => window.removeEventListener('storage', loadUser);
   }, []);
 
+  // POLLING: Cek booking baru tiap 30 detik
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchLatestBookings = async () => {
+      try {
+        const lastSeen = localStorage.getItem(`booking_notif_last_seen_${user.id}`);
+        const { data } = await api.get('/public/bookings/me?limit=20&offset=0');
+        const bookings = data?.data?.data || [];
+
+        const newNotifs = bookings
+          .filter((booking: any) => {
+            const bookingTime = new Date(booking.created_at).toISOString();
+            return !lastSeen || bookingTime > lastSeen;
+          })
+          .map((booking: any) => ({
+            id: Date.now() + booking.id,
+            bookingId: booking.id,
+            title: `Pemesanan #${booking.id}`,
+            message:
+              booking.status === 'pending' ? 'Menunggu konfirmasi admin' :
+              booking.status === 'confirmed' ? 'Pemesanan telah dikonfirmasi!' :
+              booking.status === 'cancelled' ? 'Pemesanan dibatalkan' :
+              booking.status === 'checked_in' ? 'Check-in berhasil' :
+              booking.status === 'checked_out' ? 'Check-out selesai' : 'Status diperbarui',
+            status: booking.status,
+            createdAt: booking.created_at,
+            read: false,
+          }));
+
+        if (newNotifs.length > 0) {
+          addNotifications(newNotifs);
+          // Update last seen agar tidak duplikat
+          localStorage.setItem(`booking_notif_last_seen_${user.id}`, new Date().toISOString());
+        }
+      } catch (err) {
+        console.warn('Gagal fetch notifikasi:', err);
+      }
+    };
+
+    fetchLatestBookings();
+    const interval = setInterval(fetchLatestBookings, 30000);
+    return () => clearInterval(interval);
+  }, [user, addNotifications]);
+
   const handleLogout = () => {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
@@ -95,24 +161,99 @@ export default function Header() {
     return user.role === 'guest' ? '/dashboard' : '/admin';
   };
 
-  // PROFILE DROPDOWN — VERSI FINAL YANG KAMU MAU
+  // NOTIFIKASI LONCENG
+  const NotificationBell = () => {
+    const unread = notifications.filter(n => !n.read);
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="relative border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-yellow-300 transition-all rounded-full"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white animate-pulse">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" className="w-96 bg-black/95 backdrop-blur-xl border-white/20 text-white rounded-2xl p-0 overflow-hidden">
+          <div className="p-4 border-b border-white/10">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                Notifikasi Pemesanan
+              </h3>
+              {unreadCount > 0 && (
+                <Button size="sm" variant="ghost" onClick={markAllAsRead} className="text-amber-400 hover:bg-amber-500/20 text-xs">
+                  Tandai sudah dibaca
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="max-h-96 overflow-y-auto">
+            {unread.length === 0 ? (
+              <div className="p-8 text-center">
+                <Bell className="w-12 h-12 mx-auto text-gray-600 mb-3" />
+                <p className="text-gray-400">Tidak ada notifikasi baru</p>
+              </div>
+            ) : (
+              <div className="space-y-1 p-2">
+                {unread.map((notif) => (
+                  <div key={notif.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-all cursor-pointer">
+                    <div className={`mt-1 p-2 rounded-full ${
+                      notif.status === 'confirmed' ? 'bg-emerald-500/20' :
+                      notif.status === 'cancelled' ? 'bg-red-500/20' :
+                      notif.status === 'pending' ? 'bg-yellow-500/20' :
+                      'bg-blue-500/20'
+                    }`}>
+                      {notif.status === 'confirmed' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                      {notif.status === 'cancelled' && <X className="w-4 h-4 text-red-400" />}
+                      {notif.status === 'pending' && <Sparkles className="w-4 h-4 text-yellow-400" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{notif.title}</p>
+                      <p className="text-xs text-amber-200">{notif.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {format(new Date(notif.createdAt), 'dd MMM yyyy HH:mm', { locale: localeId })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {unread.length > 0 && (
+            <div className="p-3 border-t border-white/10 text-center">
+              <Link href="/user/profile?tab=bookings" className="text-amber-400 hover:text-amber-300 text-sm font-medium">
+                Lihat semua riwayat →
+              </Link>
+            </div>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
+  // PROFILE DROPDOWN — LENGKAP
   const ProfileDropdown = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-yellow-300 transition-all rounded-full"
-        >
+        <Button variant="outline" size="icon" className="border-white/30 hover:border-white/50 bg-transparent text-white/90 hover:text-yellow-300 transition-all rounded-full">
           <User size={20} />
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-80 bg-black/95 backdrop-blur-xl border-white/20 text-white p-0 overflow-hidden rounded-2xl">
         {user ? (
-          // USER SUDAH LOGIN → TAMPILKAN PROFIL LENGKAP
           <div className="p-5">
-            {/* Header Profil */}
             <div className="flex items-center space-x-4 mb-5">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-3 border-amber-400 shadow-lg">
                 <User className="w-7 h-7 text-white" />
@@ -127,7 +268,6 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Quick Stats */}
             <div className="grid grid-cols-2 gap-3 mb-5">
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center">
                 <Calendar className="w-5 h-5 text-amber-400 mx-auto mb-1" />
@@ -143,7 +283,6 @@ export default function Header() {
 
             <DropdownMenuSeparator className="bg-white/20" />
 
-            {/* Menu Actions */}
             <div className="space-y-1 pt-3">
               <DropdownMenuItem asChild>
                 <Link href="/user/profile" className="flex items-center px-3 py-3 hover:bg-amber-500/20 rounded-lg cursor-pointer transition-all">
@@ -173,7 +312,6 @@ export default function Header() {
             </DropdownMenuItem>
           </div>
         ) : (
-          // USER BELUM LOGIN → TAMPILKAN CARD LOGIN
           <div className="p-6 text-center">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-4 border-amber-400 mx-auto mb-4 shadow-xl">
               <User className="w-10 h-10 text-white" />
@@ -201,7 +339,6 @@ export default function Header() {
 
   return (
     <>
-      {/* ... bagian header lainnya tetap sama ... */}
       <header className="fixed top-3 sm:top-5 left-0 right-0 z-50 pointer-events-none">
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <div className="pointer-events-auto rounded-2xl border border-white/20 bg-black/30 backdrop-blur-xl shadow-lg hover:bg-black/40 transition-all">
@@ -229,8 +366,8 @@ export default function Header() {
                 </Link>
               </div>
 
-              {/* Right Nav + Profile */}
-              <div className="hidden md:flex items-center justify-end space-x-6">
+              {/* Right: Nav + Notifikasi + Profile */}
+              <div className="hidden md:flex items-center justify-end gap-4">
                 <nav className="flex gap-8">
                   {rightNav.map((item) => (
                     <Link key={item.name} href={item.href} className="text-white/90 hover:text-yellow-300 transition-colors hover:scale-105 text-base">
@@ -239,15 +376,14 @@ export default function Header() {
                   ))}
                 </nav>
 
-                {/* Profile Dropdown (yang baru) */}
+                {/* NOTIFIKASI & PROFILE */}
+                {user && <NotificationBell />}
                 <ProfileDropdown />
               </div>
             </div>
           </div>
         </div>
       </header>
-
-      
 
       {/* Mobile Sidebar */}
       <div className={`fixed inset-0 z-[60] bg-black/40 transition-opacity md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMenuOpen(false)} />
@@ -264,12 +400,10 @@ export default function Header() {
               {item.name}
             </Link>
           ))}
-          
-          {/* Mobile Profile Section */}
+
           <div className="border-t border-white/20 mt-3 pt-3 space-y-3">
             {user ? (
               <>
-                {/* Mobile Profile Info */}
                 <div className="flex items-center space-x-3 px-3 py-2 bg-amber-500/10 rounded-lg border border-amber-500/30">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center border-2 border-amber-400">
                     <User className="w-5 h-5 text-white" />
@@ -279,7 +413,7 @@ export default function Header() {
                     <p className="text-xs text-gray-400 truncate">{user.email}</p>
                   </div>
                 </div>
-                
+
                 <Button variant="outline" asChild className="w-full justify-start bg-transparent text-white/90 border-white/30">
                   <Link href="/user/profile" onClick={() => setIsMenuOpen(false)}>
                     <User size={16} className="mr-3" />
@@ -299,18 +433,11 @@ export default function Header() {
               </>
             ) : (
               <>
-                <div className="text-center px-3 py-2">
-                  <p className="text-sm text-gray-400 mb-3">Sign in to access your profile</p>
-                </div>
                 <Button variant="outline" asChild className="w-full bg-transparent text-white/90 border-white/30">
-                  <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>
-                    Sign In
-                  </Link>
+                  <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
                 </Button>
                 <Button asChild className="w-full bg-yellow-500/90 hover:bg-yellow-500 text-white">
-                  <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
-                    Sign Up
-                  </Link>
+                  <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>Sign Up</Link>
                 </Button>
               </>
             )}
