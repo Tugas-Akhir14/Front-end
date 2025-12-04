@@ -5,10 +5,10 @@ import Link from "next/link";
 
 export default function SuperiorSuiteDetail() {
   const images = [
-    "/superior-1.jpg",
-    "/superior-2.jpg",
-    "/superior-3.jpg",
-    "/superior-4.jpg",
+    "/superior.jpg",
+    "/superior.jpg",
+    "/superior.jpg",
+    "/superior.jpg",
   ];
 
   const amenities = [
@@ -33,7 +33,7 @@ export default function SuperiorSuiteDetail() {
         {/* Main Image Background */}
         <div className="absolute inset-0">
           <img
-            src="/superior-main.jpg"
+            src="/superior.jpg"
             alt="Superior Suite - Panoramic View"
             className="w-full h-full object-cover"
           />
@@ -145,9 +145,9 @@ export default function SuperiorSuiteDetail() {
                   {/* Price */}
                   <div className="text-center mb-10">
                     <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">
-                      IDR 8.800.000
+                      IDR 320.000
                     </div>
-                    <p className="text-gray-400 mt-2">per malam ++ · termasuk sarapan untuk 2 orang</p>
+                    <p className="text-gray-400 mt-2">per malam + · termasuk sarapan untuk 2 orang</p>
                   </div>
 
                   {/* Features Highlight */}
@@ -158,7 +158,7 @@ export default function SuperiorSuiteDetail() {
                     </div>
                     <div className="flex items-center justify-between text-gray-300">
                       <span className="font-light">Kapasitas</span>
-                      <span className="text-amber-400 font-semibold">2 Dewasa + 1 Anak</span>
+                      <span className="text-amber-400 font-semibold">2 Dewasa</span>
                     </div>
                     <div className="flex items-center justify-between text-gray-300">
                       <span className="font-light">View</span>
@@ -168,16 +168,20 @@ export default function SuperiorSuiteDetail() {
 
                   {/* CTA Buttons */}
                   <div className="space-y-4">
+                    <Link href="/user/rooms" className="w-full">
                     <Button className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 
                       text-white font-bold text-lg py-8 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-amber-500/50 
-                      border border-amber-400 transition-all duration-400">
+                      border border-amber-400 transition-all mb-5 duration-400">
                       Reserve Now
                     </Button>
+                    </Link>
 
+                    <Link href="/user/rooms" className="w-full">
                     <Button variant="outline" className="w-full border-2 border-amber-600 text-amber-400 
                       hover:bg-amber-950/50 hover:text-amber-300 py-8 rounded-2xl font-medium text-lg transition-all duration-400">
                       Check Availability
                     </Button>
+                    </Link>
                   </div>
 
                   {/* Trust Elements */}

@@ -5,11 +5,11 @@ import Link from "next/link";
 
 export default function ExecutiveSuiteDetail() {
   const gallery = [
-    "/executive-1.jpg",
-    "/executive-2.jpg",
-    "/executive-3.jpg",
-    "/executive-4.jpg",
-    "/executive-5.jpg",
+    "/executive.jpg",
+    "/executive.jpg",
+    "/executive.jpg",
+    "/executive.jpg",
+    "/executive.jpg",
   ];
 
   const amenities = [
@@ -35,7 +35,7 @@ export default function ExecutiveSuiteDetail() {
       <section className="relative h-screen min-h-[750px] overflow-hidden bg-black">
         <div className="absolute inset-0">
           <img
-            src="/executive-main.jpg"
+            src="/executive.jpg"
             alt="Executive Suite - Golden Skyline"
             className="w-full h-full object-cover"
           />
@@ -152,7 +152,7 @@ export default function ExecutiveSuiteDetail() {
                   <div className="text-center mb-10">
                     <div className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text 
                       bg-gradient-to-r from-amber-100 via-amber-400 to-yellow-600">
-                      IDR 6.800.000
+                      IDR 725.000
                     </div>
                     <p className="text-gray-400 mt-3 text-sm tracking-wide">
                       per malam ++ · termasuk Executive Lounge access
