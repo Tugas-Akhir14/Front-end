@@ -23,6 +23,12 @@ import {
   Eye,
   MapPin,
   ArrowRight,
+  Ship,
+  Anchor,
+  Compass,
+  LifeBuoy,
+  Gift,
+  BookOpen,
 } from 'lucide-react';
 import Footer from '@/components/Layout/Footer';
 import Header from '@/components/Layout/Header';
@@ -48,39 +54,129 @@ type Facility = {
 const facilitiesData: Facility[] = [
   {
     id: 1,
-    name: 'Souvenir',
-    description: 'Experience ultimate relaxation with our stunning infinity pool overlooking the city skyline and full-service Mutiara spa treatments. Our wellness facility offers a serene escape with professional therapists, heated pools, and private cabanas for complete privacy and comfort.',
-    image: 'https://images.pexels.com/photos/2613948/pexels-photo-2613948.jpeg',
-    icon: Waves,
-    features: ['Heated Infinity Pool', 'Professional Spa Treatments', 'Poolside Bar', 'Private Cabanas', 'Therapy Jacuzzi', 'Steam Room', 'Sauna'],
-    operatingHours: '6:00 AM - 10:00 PM',
-    location: 'Level 5, West Wing',
-    category: 'wellness',
+    name: 'Souvenir Shop',
+    description: 'Discover unique souvenirs and local handicrafts to commemorate your stay. Our boutique offers a curated collection of artisanal products, luxury gifts, and exclusive hotel merchandise.',
+    image: 'https://images.pexels.com/photos/1884581/pexels-photo-1884581.jpeg',
+    icon: Gift,
+    features: [
+      'Local Handicrafts',
+      'Artisanal Products',
+      'Luxury Gifts',
+      'Hotel Merchandise',
+      'Custom Engraving',
+      'Gift Wrapping Service',
+      'International Shipping',
+      'Tax-Free Shopping'
+    ],
+    operatingHours: '9:00 AM - 9:00 PM',
+    location: 'Lobby Level, Main Building',
+    category: 'service',
     url: '/user/facilities/souvenir',
   },
   {
     id: 2,
-    name: 'Book Store',
-    description: 'Award-winning culinary experience with international cuisine prepared by our world-class chefs in an elegant setting. Featuring seasonal menus, extensive wine collections, and private dining rooms for special occasions.',
-    image: 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
-    icon: Utensils,
-    features: ['International Buffet', 'À La Carte Menu', 'Wine Pairing', 'Chef Table Experience', 'Private Dining Rooms', 'Live Cooking Stations'],
-    operatingHours: '6:00 AM - 11:00 PM',
-    location: 'Lobby Level, Main Building',
-    category: 'dining',
+    name: 'Book Store & Library',
+    description: 'Immerse yourself in our extensive collection of books in a serene reading environment. Featuring both contemporary bestsellers and classic literature, with comfortable reading nooks.',
+    image: 'https://images.pexels.com/photos/1290141/pexels-photo-1290141.jpeg',
+    icon: BookOpen,
+    features: [
+      'Extensive Book Collection',
+      'Quiet Reading Rooms',
+      'International Magazines',
+      'Digital Reading Devices',
+      'Author Events',
+      'Book Club Meetings',
+      'Premium Coffee Corner',
+      'Private Study Booths'
+    ],
+    operatingHours: '8:00 AM - 10:00 PM',
+    location: 'Level 3, East Wing',
+    category: 'premium',
     url: '/user/facilities/book',
   },
   {
     id: 3,
-    name: 'Cafe',
-    description: 'State-of-the-art fitness facility with premium equipment, personal training, and wellness programs. Our 24/7 fitness center includes dedicated zones for cardio, strength training, yoga, and functional fitness.',
-    image: 'https://images.pexels.com/photos/1954524/pexels-photo-1954524.jpeg',
-    icon: Dumbbell,
-    features: ['24/7 Access', 'Personal Trainers', 'Yoga Studio', 'Cardio Zone', 'Weight Training', 'Group Classes', 'Wellness Coaching'],
-    operatingHours: '24 Hours',
-    location: 'Level 4, East Wing',
-    category: 'wellness',
+    name: 'Ocean View Cafe',
+    description: 'Enjoy specialty coffees, artisanal pastries, and light meals with breathtaking ocean views. Our baristas are trained in the art of coffee making, serving single-origin beans.',
+    image: 'https://images.pexels.com/photos/2062426/pexels-photo-2062426.jpeg',
+    icon: Coffee,
+    features: [
+      'Specialty Coffee',
+      'Artisanal Pastries',
+      'Ocean View Seating',
+      'Single-Origin Beans',
+      'Signature Beverages',
+      'Light Meals & Snacks',
+      'Outdoor Terrace',
+      'Free Wi-Fi Access'
+    ],
+    operatingHours: '6:00 AM - 11:00 PM',
+    location: 'Level 6, Ocean Wing',
+    category: 'dining',
     url: '/user/facilities/cafe',
+  },
+  {
+    id: 4,
+    name: 'Marina & Yacht Charter',
+    description: 'Experience luxury sailing with our private yacht charter service. Cruise through pristine waters on our premium yachts, complete with professional crew and exclusive access to secluded beaches.',
+    image: 'https://images.pexels.com/photos/2739666/pexels-photo-2739666.jpeg',
+    icon: Ship,
+    features: [
+      '1-Hour Yacht Charter',
+      'Fixed Route: Marina - Coral Bay',
+      'Professional Captain & Crew',
+      'Gourmet Catering Service',
+      'Snorkeling Equipment',
+      'Fishing Gear Provided',
+      'Sunset Cruise Option',
+      'Private Beach Access'
+    ],
+    operatingHours: '7:00 AM - 7:00 PM',
+    location: 'Private Marina, South Dock',
+    category: 'recreation',
+    url: '/user/facilities/marina',
+  },
+  {
+    id: 5,
+    name: 'Infinity Pool & Spa',
+    description: 'Experience ultimate relaxation with our stunning infinity pool overlooking the city skyline and full-service spa treatments. Our wellness facility offers a serene escape with professional therapists.',
+    image: 'https://images.pexels.com/photos/2613948/pexels-photo-2613948.jpeg',
+    icon: Waves,
+    features: [
+      'Heated Infinity Pool',
+      'Professional Spa Treatments',
+      'Poolside Bar',
+      'Private Cabanas',
+      'Therapy Jacuzzi',
+      'Steam Room',
+      'Sauna',
+      'Massage Services'
+    ],
+    operatingHours: '6:00 AM - 10:00 PM',
+    location: 'Level 5, West Wing',
+    category: 'wellness',
+    url: '/user/facilities/pool-spa',
+  },
+  {
+    id: 6,
+    name: 'Fine Dining Restaurant',
+    description: 'Award-winning culinary experience with international cuisine prepared by our world-class chefs in an elegant setting. Featuring seasonal menus, extensive wine collections, and private dining rooms.',
+    image: 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
+    icon: Utensils,
+    features: [
+      'International Buffet',
+      'À La Carte Menu',
+      'Wine Pairing',
+      'Chef Table Experience',
+      'Private Dining Rooms',
+      'Live Cooking Stations',
+      'Sommelier Service',
+      'Seasonal Menus'
+    ],
+    operatingHours: '6:00 AM - 11:00 PM',
+    location: 'Lobby Level, Main Building',
+    category: 'dining',
+    url: '/user/facilities/restaurant',
   },
 ];
 
@@ -109,10 +205,10 @@ const CATEGORY_CONFIG: Record<string, { label: string; bg: string; text: string;
   },
   recreation: {
     label: 'Recreation',
-    bg: 'bg-gradient-to-r from-purple-900/50 to-pink-900/50',
-    text: 'text-purple-400',
-    border: 'border-purple-600',
-    hover: 'hover:shadow-purple-500/20'
+    bg: 'bg-gradient-to-r from-cyan-900/50 to-blue-900/50',
+    text: 'text-cyan-400',
+    border: 'border-cyan-600',
+    hover: 'hover:shadow-cyan-500/20'
   },
   service: {
     label: 'Service',
@@ -146,7 +242,7 @@ export default function Facilities() {
     { id: 'all', name: 'All Facilities', icon: Star },
     { id: 'wellness', name: 'Wellness', icon: Heart },
     { id: 'dining', name: 'Dining', icon: Utensils },
-    { id: 'business', name: 'Business', icon: Users },
+    { id: 'recreation', name: 'Recreation', icon: Ship },
     { id: 'premium', name: 'Premium', icon: Crown },
     { id: 'service', name: 'Services', icon: Sparkles }
   ];
@@ -390,4 +486,4 @@ export default function Facilities() {
       </main>
     </div>
   );
-} 
+}
