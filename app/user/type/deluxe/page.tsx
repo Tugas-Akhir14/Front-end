@@ -5,10 +5,10 @@ import Link from "next/link";
 
 export default function DeluxeRoomDetail() {
   const gallery = [
-    "/deluxe-1.jpg",
-    "/deluxe-2.jpg",
-    "/deluxe-3.jpg",
-    "/deluxe-4.jpg",
+    "/deluxe.jpg",
+    "/deluxe.jpg",
+    "/deluxe.jpg",
+    "/deluxe.jpg",
   ];
 
   const amenities = [
@@ -32,7 +32,7 @@ export default function DeluxeRoomDetail() {
       <section className="relative h-screen min-h-[700px] overflow-hidden bg-black">
         <div className="absolute inset-0">
           <img
-            src="/deluxe-main.jpg"
+            src="/deluxe.jpg"
             alt="Deluxe Room - Golden Hour"
             className="w-full h-full object-cover"
           />
@@ -140,7 +140,7 @@ export default function DeluxeRoomDetail() {
                 <div className="p-10">
                   <div className="text-center mb-10">
                     <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">
-                      IDR 4.800.000
+                      IDR 630.000
                     </div>
                     <p className="text-gray-400 mt-2 text-sm">per malam ++ · termasuk sarapan untuk 2 orang</p>
                   </div>
@@ -148,7 +148,7 @@ export default function DeluxeRoomDetail() {
                   <div className="space-y-5 mb-10 bg-black/40 rounded-2xl p-6 border border-amber-900/50">
                     <div className="flex justify-between text-gray-300">
                       <span className="font-light">Luas</span>
-                      <span className="text-amber-400 font-semibold">45–52 m²</span>
+                      <span className="text-amber-400 font-semibold">45-52 m²</span>
                     </div>
                     <div className="flex justify-between text-gray-300">
                       <span className="font-light">Kapasitas</span>
@@ -161,16 +161,20 @@ export default function DeluxeRoomDetail() {
                   </div>
 
                   <div className="space-y-4">
+                    <Link href="/user/rooms" className="w-full">
                     <Button className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 
                       text-white font-bold text-lg py-8 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-amber-500/50 
-                      border border-amber-400 transition-all duration-400">
+                      border border-amber-400 transition-all mb-5 duration-400">
                       Reserve This Room
                     </Button>
+                    </Link>
 
+                  <Link href="/user/rooms" className="w-full"> 
                     <Button variant="outline" className="w-full border-2 border-amber-600 text-amber-400 
                       hover:bg-amber-950/50 hover:text-amber-300 py-8 rounded-2xl font-medium text-lg transition-all">
                       Check Dates & Rates
                     </Button>
+                    </Link>
                   </div>
 
                   <div className="mt-10 pt-8 border-t border-amber-900/40 text-center text-xs text-gray-500">
