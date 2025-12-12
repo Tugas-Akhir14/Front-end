@@ -17,9 +17,9 @@ export default function Footer() {
           {/* Brand Section */}
           <div className="md:col-span-1">
             <div className="flex items-center mb-4">
-              <Sparkles className="w-6 h-6 text-amber-400 mr-2" />
+              {/* <Sparkles className="w-6 h-6 text-amber-400 mr-2" /> */}
               <h3 className="text-3xl font-bold text-transparent bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 bg-clip-text">
-                MutiaraStay
+                Mutiara Hotel
               </h3>
             </div>
             <p className="text-gray-300 mb-6 leading-relaxed">
@@ -52,25 +52,25 @@ export default function Footer() {
             </h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/rooms" className="text-gray-300 hover:text-amber-400 transition-colors flex items-center group">
+                <Link href="/user/rooms" className="text-gray-300 hover:text-amber-400 transition-colors flex items-center group">
                   <span className="w-2 h-2 bg-amber-600 rounded-full mr-3 group-hover:bg-amber-400 transition-colors"></span>
                   Rooms & Suites
                 </Link>
               </li>
               <li>
-                <Link href="/gallery" className="text-gray-300 hover:text-amber-400 transition-colors flex items-center group">
+                <Link href="/user/gallery" className="text-gray-300 hover:text-amber-400 transition-colors flex items-center group">
                   <span className="w-2 h-2 bg-amber-600 rounded-full mr-3 group-hover:bg-amber-400 transition-colors"></span>
                   Gallery
                 </Link>
               </li>
               <li>
-                <Link href="/news" className="text-gray-300 hover:text-amber-400 transition-colors flex items-center group">
+                <Link href="/user/news" className="text-gray-300 hover:text-amber-400 transition-colors flex items-center group">
                   <span className="w-2 h-2 bg-amber-600 rounded-full mr-3 group-hover:bg-amber-400 transition-colors"></span>
                   News & Events
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-300 hover:text-amber-400 transition-colors flex items-center group">
+                <Link href="/user/contact" className="text-gray-300 hover:text-amber-400 transition-colors flex items-center group">
                   <span className="w-2 h-2 bg-amber-600 rounded-full mr-3 group-hover:bg-amber-400 transition-colors"></span>
                   Contact Us
                 </Link>
@@ -95,15 +95,15 @@ export default function Footer() {
               </li>
               <li className="text-gray-300 flex items-center group hover:text-amber-300 transition-colors">
                 <span className="w-2 h-2 bg-amber-600 rounded-full mr-3 group-hover:bg-amber-400 transition-colors"></span>
-                Fine Dining Restaurant
+                Kafe
               </li>
               <li className="text-gray-300 flex items-center group hover:text-amber-300 transition-colors">
                 <span className="w-2 h-2 bg-amber-600 rounded-full mr-3 group-hover:bg-amber-400 transition-colors"></span>
-                Business Center
+                Ship Rent
               </li>
               <li className="text-gray-300 flex items-center group hover:text-amber-300 transition-colors">
                 <span className="w-2 h-2 bg-amber-600 rounded-full mr-3 group-hover:bg-amber-400 transition-colors"></span>
-                Concierge Service
+                Bookstore
               </li>
             </ul>
           </div>
@@ -120,8 +120,9 @@ export default function Footer() {
                   <MapPin className="w-4 h-4 text-amber-400" />
                 </div>
                 <p className="text-gray-300 text-sm leading-relaxed group-hover:text-amber-200 transition-colors">
-                  123 Mutiara Avenue<br />
-                  Paradise City, PC 12345
+                 Jl. Tarutung No. 120 <br />
+                 22312 Balige
+                  
                 </p>
               </div>
               <div className="flex items-center space-x-3 group">
@@ -129,7 +130,7 @@ export default function Footer() {
                   <Phone className="w-4 h-4 text-amber-400" />
                 </div>
                 <p className="text-gray-300 text-sm group-hover:text-amber-200 transition-colors">
-                  +1 (555) 123-4567
+                  +62 632 322111
                 </p>
               </div>
               <div className="flex items-center space-x-3 group">
@@ -137,7 +138,7 @@ export default function Footer() {
                   <Mail className="w-4 h-4 text-amber-400" />
                 </div>
                 <p className="text-gray-300 text-sm group-hover:text-amber-200 transition-colors">
-                  info@mutiarastay.com
+                  info@mutiarabaligehotel.com
                 </p>
               </div>
             </div>

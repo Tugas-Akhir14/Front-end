@@ -50,16 +50,13 @@ export default async function CafePage() {
           <div className="text-center space-y-6">
             <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-800 px-4 py-2 rounded-full text-sm font-semibold">
               <Sparkles className="w-4 h-4" />
-              Kualitas Premium
+              
             </div>
             
             <div className="space-y-3">
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-900">
-                Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-yellow-500">Cafe</span>
-              </h1>
+              <Image className="inline-flex justify-center items-center" src="/cafe.png" alt="Cafe" width={300} height={300} />
               <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                Nikmati secangkir kehangatan di Golden Brew. Dari kopi premium hingga pastry artisan, 
-                setiap tegukan dan gigitan adalah perjalanan rasa yang tak terlupakan.
+                Nikmati secangkir Kopi Premium, Dengan pemandangan yang tak terlupakan. 
               </p>
             </div>
 
@@ -327,7 +324,7 @@ export default async function CafePage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">Jam Operasional</h3>
-                  <p className="text-sm text-gray-600">Senin - Minggu: 08:00 - 22:00 WIB</p>
+                  <p className="text-sm text-gray-600">Senin - Minggu: 10:00 - 22:00 WIB</p>
                 </div>
               </div>
               <div className="text-center md:text-right">

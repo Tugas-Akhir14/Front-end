@@ -449,7 +449,6 @@
       <CardDescription className="text-gray-400">Semua pemesanan kamar Anda</CardDescription>
     </div>
 
-<<<<<<< HEAD
 
   </div>
 </CardHeader>
@@ -459,34 +458,6 @@
                               <div className="space-y-4">
                                 {[...Array(5)].map((_, i) => (
                                   <div key={i} className="bg-gray-800/50 border border-amber-800/20 rounded-xl h-32 animate-pulse" />
-=======
-                  {/* Security Tab */}
-                  <TabsContent value="security">
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                      <Card className="bg-gray-900/80 backdrop-blur border-2 border-amber-700/50 shadow-2xl">
-                        <CardHeader>
-                          <CardTitle className="text-3xl bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent flex items-center gap-3">
-                            <Shield className="w-10 h-10" /> Keamanan Akun
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <Dialog open={openPasswordModal} onOpenChange={setOpenPasswordModal}>
-                            <DialogTrigger asChild>
-                              <motion.div whileHover={{ scale: 1.05 }}>
-                                <Button size="lg" className="bg-gradient-to-r from-amber-500 to-yellow-600">
-                                  <Key className="w-6 h-6 mr-3" /> Ganti Password
-                                </Button>
-                              </motion.div>
-                            </DialogTrigger>
-                            <DialogContent className="bg-gray-900 border-2 border-amber-700">
-                              <DialogHeader><DialogTitle className="text-2xl">Ganti Password</DialogTitle></DialogHeader>
-                              <div className="space-y-5 py-4">
-                                {['old_password', 'new_password', 'confirm_password'].map((field) => (
-                                  <div key={field}>
-                                    <Label>{field === 'old_password' ? 'Password Lama' : field === 'new_password' ? 'Password Baru' : 'Konfirmasi Password'}</Label>
-                                    <Input type="password" value={passwordForm[field as keyof typeof passwordForm]} onChange={(e) => setPasswordForm({ ...passwordForm, [field]: e.target.value })} className="mt-2 bg-gray-800 border-amber-600/50" />
-                                  </div>
->>>>>>> 1bfa76f (h-1)
                                 ))}
                               </div>
                             ) : bookings.length === 0 ? (

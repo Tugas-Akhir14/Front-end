@@ -29,6 +29,7 @@ import {
   LifeBuoy,
   Gift,
   BookOpen,
+  ShoppingBag,
 } from 'lucide-react';
 import Footer from '@/components/Layout/Footer';
 import Header from '@/components/Layout/Header';
@@ -47,7 +48,7 @@ type Facility = {
   url: string;
   operatingHours: string;
   location: string;
-  category: 'wellness' | 'dining' | 'business' | 'recreation' | 'service' | 'premium';
+  category: 'store' | 'cafe' | 'recreation' | 'premium';
 };
 
 // ===== Data Fasilitas =====
@@ -55,139 +56,72 @@ const facilitiesData: Facility[] = [
   {
     id: 1,
     name: 'Souvenir',
-    description: 'Experience ultimate relaxation with our stunning infinity pool overlooking the city skyline and full-service Mutiara spa treatments. Our wellness facility offers a serene escape with professional therapists, heated pools, and private cabanas for complete privacy and comfort.',
+    description: 'Discover authentic local souvenirs and handcrafted gifts from Balige. Our curated selection features traditional Batak handicrafts, cultural artifacts, and unique keepsakes perfect for remembering your stay at Hotel Mutiara Balige.',
     image: '/souvenir.jpg',
-    icon: Waves,
-    features: ['Heated Infinity Pool', 'Professional Spa Treatments', 'Poolside Bar', 'Private Cabanas', 'Therapy Jacuzzi', 'Steam Room', 'Sauna'],
+    icon: Gift,
+    features: ['Traditional Batak Crafts', 'Local Handicrafts', 'Cultural Artifacts', 'Gift Packaging Service', 'Authentic Souvenirs', 'Handmade Products', 'Cultural Items'],
     operatingHours: '6:00 AM - 10:00 PM',
     location: 'Level 5, West Wing',
-    category: 'wellness',
+    category: 'store',
     url: '/user/facilities/souvenir',
   },
   {
     id: 2,
     name: 'Book Store',
-    description: 'Award-winning culinary experience with international cuisine prepared by our world-class chefs in an elegant setting. Featuring seasonal menus, extensive wine collections, and private dining rooms for special occasions.',
+    description: 'Browse our collection of books featuring local literature, cultural guides, and travel inspiration. From Batak folklore to modern novels and regional history, find the perfect reading companion for your journey and explore the rich culture of Lake Toba.',
     image: '/buku.jpg',
-    icon: Dumbbell,
-    features: ['International Buffet', 'À La Carte Menu', 'Wine Pairing', 'Chef Table Experience', 'Private Dining Rooms', 'Live Cooking Stations'],
+    icon: BookOpen,
+    features: ['Local Literature Collection', 'Cultural & History Books', 'Travel Guides', 'Children\'s Books', 'Magazines & Periodicals', 'Regional Authors'],
     operatingHours: '6:00 AM - 11:00 PM',
     location: 'Lobby Level, Main Building',
-    category: 'dining',
+    category: 'store',
     url: '/user/facilities/book',
   },
   {
     id: 3,
-    name: 'Cafe',
-    description: 'State-of-the-art fitness facility with premium equipment, personal training, and wellness programs. Our 24/7 fitness center includes dedicated zones for cardio, strength training, yoga, and functional fitness.',
+    name: 'Kopi Dari Hati Cafe',
+    description: 'Indulge in freshly brewed artisan coffee and delicious homemade pastries in our cozy cafe. From traditional Indonesian coffee to international blends, enjoy a warm atmosphere perfect for relaxation, casual meetings, or a delightful coffee break.',
     image: '/cafe.jpg',
-    icon: Utensils,
-    features: ['24/7 Access', 'Personal Trainers', 'Yoga Studio', 'Cardio Zone', 'Weight Training', 'Group Classes', 'Wellness Coaching'],
-    operatingHours: '24 Hours',
-    location: 'Level 4, East Wing',
-    category: 'dining',
+    icon: Coffee,
+    features: ['Artisan Coffee Selection', 'Homemade Pastries', 'Local & International Blends', 'Free Wi-Fi', 'Cozy Seating Area', 'Light Meals & Snacks', 'Takeaway Service'],
+    operatingHours: '10:00 AM - 22:00 PM',
+    location: 'Lobby Level, Main Building',
+    category: 'cafe',
     url: '/user/facilities/cafe',
   },
   {
     id: 4,
     name: 'Ship Rent',
-    description: 'State-of-the-art fitness facility with premium equipment, personal training, and wellness programs. Our 24/7 fitness center includes dedicated zones for cardio, strength training, yoga, and functional fitness.',
+    description: 'Experience the beauty of Lake Toba with our boat rental service. Explore the pristine waters, visit nearby islands, or enjoy a peaceful cruise with family and friends in our well-maintained vessels with professional crew assistance.',
     image: '/pelabuhan.jpg',
-    icon: Waves,
-    features: ['24/7 Access', 'Personal Trainers', 'Yoga Studio', 'Cardio Zone', 'Weight Training', 'Group Classes', 'Wellness Coaching'],
+    icon: Ship,
+    features: ['Various Boat Types Available', 'Professional Crew Service', 'Lake Toba Tours', 'Island Hopping Trips', 'Safety Equipment Included', 'Flexible Rental Duration', 'Scenic Route Guidance'],
     operatingHours: '24 Hours',
     location: 'Level 4, East Wing',
-    category: 'wellness',
+    category: 'recreation',
     url: '/user/facilities/',
   },
-  {
-    id: 4,
-    name: 'Marina & Yacht Charter',
-    description: 'Experience luxury sailing with our private yacht charter service. Cruise through pristine waters on our premium yachts, complete with professional crew and exclusive access to secluded beaches.',
-    image: 'https://images.pexels.com/photos/2739666/pexels-photo-2739666.jpeg',
-    icon: Ship,
-    features: [
-      '1-Hour Yacht Charter',
-      'Fixed Route: Marina - Coral Bay',
-      'Professional Captain & Crew',
-      'Gourmet Catering Service',
-      'Snorkeling Equipment',
-      'Fishing Gear Provided',
-      'Sunset Cruise Option',
-      'Private Beach Access'
-    ],
-    operatingHours: '7:00 AM - 7:00 PM',
-    location: 'Private Marina, South Dock',
-    category: 'recreation',
-    url: '/user/facilities/marina',
-  },
-  {
-    id: 5,
-    name: 'Infinity Pool & Spa',
-    description: 'Experience ultimate relaxation with our stunning infinity pool overlooking the city skyline and full-service spa treatments. Our wellness facility offers a serene escape with professional therapists.',
-    image: 'https://images.pexels.com/photos/2613948/pexels-photo-2613948.jpeg',
-    icon: Waves,
-    features: [
-      'Heated Infinity Pool',
-      'Professional Spa Treatments',
-      'Poolside Bar',
-      'Private Cabanas',
-      'Therapy Jacuzzi',
-      'Steam Room',
-      'Sauna',
-      'Massage Services'
-    ],
-    operatingHours: '6:00 AM - 10:00 PM',
-    location: 'Level 5, West Wing',
-    category: 'wellness',
-    url: '/user/facilities/pool-spa',
-  },
-  {
-    id: 6,
-    name: 'Fine Dining Restaurant',
-    description: 'Award-winning culinary experience with international cuisine prepared by our world-class chefs in an elegant setting. Featuring seasonal menus, extensive wine collections, and private dining rooms.',
-    image: 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
-    icon: Utensils,
-    features: [
-      'International Buffet',
-      'À La Carte Menu',
-      'Wine Pairing',
-      'Chef Table Experience',
-      'Private Dining Rooms',
-      'Live Cooking Stations',
-      'Sommelier Service',
-      'Seasonal Menus'
-    ],
-    operatingHours: '6:00 AM - 11:00 PM',
-    location: 'Lobby Level, Main Building',
-    category: 'dining',
-    url: '/user/facilities/restaurant',
-  },
+
+
 ];
 
 // ===== Category Config (hitam & emas) =====
 const CATEGORY_CONFIG: Record<string, { label: string; bg: string; text: string; border: string; hover: string }> = {
-  wellness: {
-    label: 'Wellness',
+  store: {
+    label: 'Store',
     bg: 'bg-gradient-to-r from-emerald-900/50 to-teal-900/50',
     text: 'text-emerald-400',
     border: 'border-emerald-600',
     hover: 'hover:shadow-emerald-500/20'
   },
-  dining: {
-    label: 'Dining',
+  cafe: {
+    label: 'Cafe',
     bg: 'bg-gradient-to-r from-amber-900/50 to-orange-900/50',
     text: 'text-amber-400',
     border: 'border-amber-600',
     hover: 'hover:shadow-amber-500/20'
   },
-  business: {
-    label: 'Business',
-    bg: 'bg-gradient-to-r from-blue-900/50 to-indigo-900/50',
-    text: 'text-blue-400',
-    border: 'border-blue-600',
-    hover: 'hover:shadow-blue-500/20'
-  },
+
   recreation: {
     label: 'Recreation',
     bg: 'bg-gradient-to-r from-cyan-900/50 to-blue-900/50',
@@ -195,13 +129,7 @@ const CATEGORY_CONFIG: Record<string, { label: string; bg: string; text: string;
     border: 'border-cyan-600',
     hover: 'hover:shadow-cyan-500/20'
   },
-  service: {
-    label: 'Service',
-    bg: 'bg-gradient-to-r from-gray-800 to-slate-800',
-    text: 'text-gray-400',
-    border: 'border-gray-600',
-    hover: 'hover:shadow-gray-500/20'
-  },
+
   premium: {
     label: 'Premium',
     bg: 'bg-gradient-to-r from-amber-900/50 to-yellow-900/50',
@@ -212,31 +140,30 @@ const CATEGORY_CONFIG: Record<string, { label: string; bg: string; text: string;
 };
 
 const getCategoryConfig = (category: string) => {
-  return CATEGORY_CONFIG[category] || CATEGORY_CONFIG.service;
+  return CATEGORY_CONFIG[category] || CATEGORY_CONFIG.store;
 };
 
 // ===== KOMPONEN UTAMA =====
 export default function Facilities() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const filteredFacilities = selectedCategory === 'all' 
-    ? facilitiesData 
+  const filteredFacilities = selectedCategory === 'all'
+    ? facilitiesData
     : facilitiesData.filter(facility => facility.category === selectedCategory);
 
   const categories = [
     { id: 'all', name: 'All Facilities', icon: Star },
-    { id: 'wellness', name: 'Wellness', icon: Heart },
-    { id: 'dining', name: 'Dining', icon: Utensils },
+    { id: 'store', name: 'Store', icon: ShoppingBag },
+    { id: 'cafe', name: 'Cafe', icon: Coffee },
     { id: 'recreation', name: 'Recreation', icon: Ship },
-    { id: 'premium', name: 'Premium', icon: Crown },
-    { id: 'service', name: 'Services', icon: Sparkles }
+    { id: 'premium', name: 'Premium', icon: Crown }
   ];
 
   return (
     <div className="bg-black min-h-screen">
       <main>
-        <Header />  
-        
+        <Header />
+
         {/* Hero Section - Hitam & Emas */}
         <section className="relative h-[600px] bg-gradient-to-br from-black via-gray-900 to-amber-950 overflow-hidden">
           {/* Subtle gold pattern */}
@@ -295,11 +222,10 @@ export default function Facilities() {
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`flex items-center space-x-3 px-6 py-4 rounded-full border-2 transition-all duration-300 font-semibold shadow-md backdrop-blur-sm ${
-                      isActive
-                        ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-black border-amber-500 shadow-amber-500/30'
-                        : 'bg-gray-800 text-gray-300 border-gray-600 hover:border-amber-500 hover:shadow-lg hover:bg-amber-950/30'
-                    }`}
+                    className={`flex items-center space-x-3 px-6 py-4 rounded-full border-2 transition-all duration-300 font-semibold shadow-md backdrop-blur-sm ${isActive
+                      ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-black border-amber-500 shadow-amber-500/30'
+                      : 'bg-gray-800 text-gray-300 border-gray-600 hover:border-amber-500 hover:shadow-lg hover:bg-amber-950/30'
+                      }`}
                   >
                     <IconComponent className={`w-5 h-5 ${isActive ? 'text-black' : 'text-amber-400'}`} />
                     <span>{category.name}</span>

@@ -497,15 +497,15 @@ export default function ContactPage() {
               <h3 className="text-4xl md:text-5xl font-bold text-amber-400 mb-12">Ikuti Kami di Media Sosial</h3>
               <div className="flex justify-center gap-12 flex-wrap">
                 {[
-                  { icon: Facebook, label: "Facebook" },
-                  { icon: Instagram, label: "Instagram" },
-                  { icon: Twitter, label: "Twitter" },
-                  { icon: Youtube, label: "YouTube" },
-                  { icon: Linkedin, label: "LinkedIn" },
+                  { icon: Facebook, label: "Facebook", url: "https://www.facebook.com/mutiarabaligehotel/" },
+                  { icon: Instagram, label: "Instagram", url: "#" },
+                  { icon: Twitter, label: "Twitter", url: "#" },
+                  { icon: Youtube, label: "YouTube", url: "#" },
+
                 ].map((social, i) => (
                   <a
                     key={i}
-                    href="#"
+                    href={social.url}
                     className="group"
                     aria-label={social.label}
                   >
@@ -524,7 +524,7 @@ export default function ContactPage() {
           <Card className="bg-gradient-to-br from-black/90 to-gray-950 border-2 border-amber-700/50 shadow-2xl rounded-3xl overflow-hidden">
             <CardHeader className="text-center py-12 bg-gradient-to-b from-amber-900/20 to-transparent">
               <CardTitle className="text-5xl font-bold text-amber-400">Lokasi Kami</CardTitle>
-              <p className="text-xl text-gray-300 mt-4">Berada di jantung kota Medan</p>
+              <p className="text-xl text-gray-300 mt-4">Berada Dekat Dengan Pusat Kota Balige</p>
             </CardHeader>
             <CardContent className="p-0">
               <div className="relative overflow-hidden rounded-b-3xl">
@@ -548,10 +548,10 @@ export default function ContactPage() {
           <div className="text-center mb-20">
             <h2 className="text-6xl md:text-7xl font-extrabold mb-6">
               <span className="bg-gradient-to-r from-amber-300 via-amber-500 to-amber-700 bg-clip-text text-transparent">
-                Kelola Ulasan Anda
+                Review
               </span>
             </h2>
-            <p className="text-2xl text-gray-400">Tambah, edit, atau hapus ulasan kapan saja dengan mudah</p>
+            <p className="text-2xl text-gray-400">Berikan Ulasan Anda</p>
           </div>
           <ReviewSection />
         </div>

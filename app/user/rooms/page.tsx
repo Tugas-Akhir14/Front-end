@@ -246,7 +246,7 @@ export default function RoomBookingPage() {
               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step === 2 ? 'bg-white text-emerald-600' : 'bg-gray-700 text-gray-400'}`}>
                 2
               </div>
-              <span className={`font-semibold ${step === 2 ? 'text-white' : 'text-gray-400'}`}>Data Tamu</span>
+              <span className={`font-semibold ${step === 2 ? 'text-white' : 'text-gray-400'}`}>Reservasi</span>
             </div>
           </div>
         </div>
@@ -385,7 +385,7 @@ export default function RoomBookingPage() {
                   className="w-full mt-10 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-black font-bold py-7 rounded-2xl text-2xl hover:shadow-2xl hover:shadow-amber-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 relative overflow-hidden group"
                 >
                   <span className="relative z-10">
-                    {loading ? 'Memeriksa Ketersediaan...' : 'Lanjut ke Data Tamu →'}
+                    {loading ? 'Memeriksa Ketersediaan...' : 'Lanjut ke Reservasi →'}
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </button>
