@@ -141,7 +141,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
           </div>
         )}
       </div>
-      {effectiveExpanded && <I name="chevron-down" className="h-4 w-4 opacity-60 dark:opacity-70 text-amber-600" />}
+      {/* {effectiveExpanded && <I name="chevron-down" className="h-4 w-4 opacity-60 dark:opacity-70 text-amber-600" />} */}
     </Link>
   );
 

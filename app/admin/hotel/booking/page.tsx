@@ -1,3 +1,4 @@
+// src/app/admin/hotel/booking/page.tsx (atau sesuai path kamu)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,9 +12,11 @@ import { Toaster, toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import Link from 'next/link';
 import {
   CheckCircle2, XCircle, Calendar, User, Phone, Hotel, DollarSign,
-  Clock, RefreshCw, Edit3, Users, Home, MessageSquare, AlertCircle
+  Clock, RefreshCw, Edit3, Users, Home, MessageSquare, AlertCircle,
+  PlusCircle, Globe, Store, Ticket
 } from 'lucide-react';
 
 function getToken(): string | null {
@@ -31,7 +34,7 @@ interface Booking {
   check_in: string;
   check_out: string;
   guests: number;
-  rooms: number;           // jumlah kamar yang dipesan
+  rooms: number;
   total_nights: number;
   total_price: number;
   extra_guests: number;
@@ -39,6 +42,8 @@ interface Booking {
   status: 'pending' | 'confirmed' | 'cancelled' | 'checked_in' | 'checked_out';
   notes: string | null;
   created_at: string;
+  source: 'web' | 'onsite' | 'traveloka' | 'agoda' | 'tiket.com';
+  ota_reference?: string | null;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080';
@@ -88,14 +93,15 @@ export default function AdminBookingPage() {
       const mappedBookings: Booking[] = rawBookings.map((b: any) => ({
         id: b.id,
         name: b.name,
-        phone: b.phone,
+        phone: b.phone || '-',
         email: b.email,
-        room_number: b.room.number,
-        room_type: b.room.room_type.type.charAt(0).toUpperCase() + b.room.room_type.type.slice(1),
+        room_number: b.room?.number || '-',
+        room_type: b.room?.room_type?.type ? 
+          b.room.room_type.type.charAt(0).toUpperCase() + b.room.room_type.type.slice(1) : '-',
         check_in: b.check_in,
         check_out: b.check_out,
         guests: b.guests,
-        rooms: b.rooms,
+        rooms: b.rooms || 1,
         total_nights: b.total_nights,
         total_price: b.total_price,
         extra_guests: b.extra_guests || 0,
@@ -103,6 +109,8 @@ export default function AdminBookingPage() {
         status: b.status,
         notes: b.notes,
         created_at: b.created_at,
+        source: b.source || 'web',
+        ota_reference: b.ota_reference,
       }));
 
       setBookings(mappedBookings);
@@ -221,6 +229,30 @@ export default function AdminBookingPage() {
     return <Badge className={`${item.className} font-medium`}>{item.text}</Badge>;
   };
 
+  const getSourceBadge = (source: string, otaRef?: string | null) => {
+    const map: Record<string, { text: string; icon: React.ReactNode; className: string }> = {
+      web: { text: 'Website', icon: <Globe className="w-3 h-3" />, className: 'bg-indigo-100 text-indigo-800' },
+      onsite: { text: 'On-site', icon: <Store className="w-3 h-3" />, className: 'bg-purple-100 text-purple-800' },
+      traveloka: { text: 'Traveloka', icon: <Ticket className="w-3 h-3" />, className: 'bg-orange-100 text-orange-800' },
+      agoda: { text: 'Agoda', icon: <Ticket className="w-3 h-3" />, className: 'bg-red-100 text-red-800' },
+      'tiket.com': { text: 'Tiket.com', icon: <Ticket className="w-3 h-3" />, className: 'bg-cyan-100 text-cyan-800' },
+    };
+
+    const item = map[source] || { text: source, icon: <Globe className="w-3 h-3" />, className: 'bg-gray-100 text-gray-800' };
+
+    return (
+      <div className="flex flex-col gap-1">
+        <Badge className={`${item.className} font-medium flex items-center gap-1`}>
+          {item.icon}
+          {item.text}
+        </Badge>
+        {otaRef && (
+          <span className="text-xs text-gray-500 font-mono">Ref: {otaRef}</span>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-amber-50">
@@ -268,7 +300,13 @@ export default function AdminBookingPage() {
                     Kelola semua pemesanan secara real-time • Total: {bookings.length} booking
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link href="/admin/hotel/booking/manual">
+                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
+                      <PlusCircle className="w-5 h-5 mr-2" />
+                      Tambah Manual
+                    </Button>
+                  </Link>
                   <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
                     <SelectTrigger className="w-48 border-yellow-300">
                       <SelectValue />
@@ -307,6 +345,7 @@ export default function AdminBookingPage() {
                       <TableRow className="bg-gradient-to-r from-amber-50 to-yellow-50">
                         <TableHead className="font-bold">ID</TableHead>
                         <TableHead className="font-bold">Pelanggan</TableHead>
+                        <TableHead className="font-bold">Sumber</TableHead>
                         <TableHead className="font-bold">Kamar & Tipe</TableHead>
                         <TableHead className="font-bold">Tanggal Menginap</TableHead>
                         <TableHead className="font-bold">Detail</TableHead>
@@ -324,7 +363,7 @@ export default function AdminBookingPage() {
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 font-semibold">
                                 <User className="w-4 h-4 text-amber-600" />
-                                {b.name}  
+                                {b.name}
                               </div>
                               <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <Phone className="w-4 h-4" />
@@ -332,6 +371,10 @@ export default function AdminBookingPage() {
                               </div>
                               {b.email && <div className="text-xs text-gray-500">{b.email}</div>}
                             </div>
+                          </TableCell>
+
+                          <TableCell>
+                            {getSourceBadge(b.source, b.ota_reference)}
                           </TableCell>
 
                           <TableCell>
@@ -440,7 +483,7 @@ export default function AdminBookingPage() {
                   <SelectItem value="pending">Menunggu</SelectItem>
                   <SelectItem value="confirmed">Dikonfirmasi</SelectItem>
                   <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                  <SelectItem value="checked_in">Check-in</SelectItem>
+                  <SelectItem value="checked_in">Check-in</SelectItem>  
                   <SelectItem value="checked_out">Check-out</SelectItem>
                 </SelectContent>
               </Select>
