@@ -470,9 +470,9 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-6 mb-24">
           <div className="grid md:grid-cols-3 gap-10">
             {[
-              { title: "Alamat", icon: MapPin, content: "Jl. Sisingamangaraja No. 1\nMedan, Sumatera Utara\nIndonesia 20217" },
-              { title: "Kontak", icon: Phone, content: "☎ +62 812-3456-7890\n✉ info@grandhotel.com" },
-              { title: "Jam Operasional", icon: Clock, content: "Check-in: 14:00\nCheck-out: 12:00\nResepsionis: 24 Jam" },
+              { title: "Alamat", icon: MapPin, content: " Jl. Tarutung No. 120\n22312 Balige\nIndonesia " },
+              { title: "Kontak", icon: Phone, content: "☎  +62 632 322111\n✉ info@hotelmutiarabalige.com" },
+              { title: "Jam Operasional", icon: Clock, content: "Resepsionis: 24 Jam" },
             ].map((item, i) => (
               <Card
                 key={i}
@@ -498,7 +498,7 @@ export default function ContactPage() {
               <div className="flex justify-center gap-12 flex-wrap">
                 {[
                   { icon: Facebook, label: "Facebook", url: "https://www.facebook.com/mutiarabaligehotel/" },
-                  { icon: Instagram, label: "Instagram", url: "#" },
+                  { icon: Instagram, label: "Instagram", url: "https://www.instagram.com/mutiara.balige.hotel?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" },
                   { icon: Twitter, label: "Twitter", url: "#" },
                   { icon: Youtube, label: "YouTube", url: "#" },
 

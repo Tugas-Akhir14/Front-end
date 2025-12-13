@@ -32,15 +32,13 @@ export default function Footer() {
               <span className="ml-2 text-gray-400 text-sm">5-Star Excellence</span>
             </div>
             <div className="flex space-x-4">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-900/50 to-yellow-900/50 border border-amber-700 flex items-center justify-center hover:border-amber-500 hover:shadow-amber-500/30 hover:shadow-lg hover:scale-110 transition-all cursor-pointer group backdrop-blur-sm">
+              <a href="https://www.facebook.com/mutiarabaligehotel" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-900/50 to-yellow-900/50 border border-amber-700 flex items-center justify-center hover:border-amber-500 hover:shadow-amber-500/30 hover:shadow-lg hover:scale-110 transition-all cursor-pointer group backdrop-blur-sm">
                 <Facebook className="w-5 h-5 text-amber-300 group-hover:text-amber-400 transition-colors" />
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-900/50 to-yellow-900/50 border border-amber-700 flex items-center justify-center hover:border-amber-500 hover:shadow-amber-500/30 hover:shadow-lg hover:scale-110 transition-all cursor-pointer group backdrop-blur-sm">
-                <Twitter className="w-5 h-5 text-amber-300 group-hover:text-amber-400 transition-colors" />
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-900/50 to-yellow-900/50 border border-amber-700 flex items-center justify-center hover:border-amber-500 hover:shadow-amber-500/30 hover:shadow-lg hover:scale-110 transition-all cursor-pointer group backdrop-blur-sm">
+              </a>
+
+              <a href="https://www.instagram.com/mutiarabaligehotel" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-900/50 to-yellow-900/50 border border-amber-700 flex items-center justify-center hover:border-amber-500 hover:shadow-amber-500/30 hover:shadow-lg hover:scale-110 transition-all cursor-pointer group backdrop-blur-sm">
                 <Instagram className="w-5 h-5 text-amber-300 group-hover:text-amber-400 transition-colors" />
-              </div>
+              </a>
             </div>
           </div>
 
@@ -120,9 +118,9 @@ export default function Footer() {
                   <MapPin className="w-4 h-4 text-amber-400" />
                 </div>
                 <p className="text-gray-300 text-sm leading-relaxed group-hover:text-amber-200 transition-colors">
-                 Jl. Tarutung No. 120 <br />
-                 22312 Balige
-                  
+                  Jl. Tarutung No. 120 <br />
+                  22312 Balige
+
                 </p>
               </div>
               <div className="flex items-center space-x-3 group">
@@ -148,10 +146,10 @@ export default function Footer() {
         {/* Bottom Section */}
         <div className="relative mt-12 pt-8">
           <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-amber-700 to-transparent"></div>
-          
+
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-gray-500 text-sm">
-              &copy; 2025 MutiaraStay Hotel. All rights reserved.
+              &copy; 2025 Mutiara Hotel Balige. All rights reserved.
             </p>
             <div className="flex items-center space-x-6 text-sm">
               <Link href="/privacy" className="text-gray-500 hover:text-amber-400 transition-colors">

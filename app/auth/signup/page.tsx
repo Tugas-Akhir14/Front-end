@@ -59,11 +59,11 @@ export default function SignUp() {
 
       setSuccess(
         role === 'guest'
-          ? 'Registrasi berhasil! Silakan login.'
-          : 'Registrasi berhasil! Menunggu persetujuan Superadmin.'
+          ? 'Registrasi berhasil! Silakan verifikasi email Anda.'
+          : 'Registrasi berhasil! Silakan verifikasi email Anda.'
       );
-
-      setTimeout(() => router.push('/auth/signin'), 2000);
+      
+      setTimeout(() => router.push('/auth/signup/verify-otp'), 2000);
     } catch {
       setError('Terjadi kesalahan jaringan');
     } finally {
@@ -84,19 +84,19 @@ export default function SignUp() {
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-amber-200/50 overflow-hidden relative">
           {/* Top golden accent */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
-          
+
           {/* Header Section */}
           <div className="px-8 pt-10 pb-6 text-center relative">
-             <div className="inline-flex items-center justify-center w-16 h-16  rounded-2xl mb-4 shadow-lg">
-                        <Image
-                          src="/logo.png"
-                          alt="Logo"
-                          width={64}
-                          height={64}
-                          className="object-contain"
-                          priority
-                        />
-                      </div>
+            <div className="inline-flex items-center justify-center w-16 h-16  rounded-2xl mb-4 shadow-lg">
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                width={64}
+                height={64}
+                className="object-contain"
+                priority
+              />
+            </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
               Join Mutiara
             </h1>
@@ -112,7 +112,7 @@ export default function SignUp() {
                   <span>{error}</span>
                 </div>
               )}
-              
+
               {/* Success Message */}
               {success && (
                 <div className="md:col-span-2 rounded-2xl border border-green-300/50 bg-green-50/80 backdrop-blur-sm px-5 py-4 text-sm text-green-700 flex items-start gap-3 shadow-sm">
@@ -127,11 +127,11 @@ export default function SignUp() {
                   <Label className="text-gray-700 font-medium">Full Name</Label>
                   <div className="relative group">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500 w-5 h-5 transition-colors group-focus-within:text-amber-600" />
-                    <Input 
-                      value={fullName} 
-                      onChange={(e) => setFullName(e.target.value)} 
-                      required 
-                      className="pl-12 h-12 border-2 border-amber-200/50 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-100 transition-all bg-white/50 backdrop-blur-sm" 
+                    <Input
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      className="pl-12 h-12 border-2 border-amber-200/50 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-100 transition-all bg-white/50 backdrop-blur-sm"
                       placeholder="John Doe"
                     />
                   </div>
@@ -141,12 +141,12 @@ export default function SignUp() {
                   <Label className="text-gray-700 font-medium">Email Address</Label>
                   <div className="relative group">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500 w-5 h-5 transition-colors group-focus-within:text-amber-600" />
-                    <Input 
-                      type="email" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      required 
-                      className="pl-12 h-12 border-2 border-amber-200/50 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-100 transition-all bg-white/50 backdrop-blur-sm" 
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="pl-12 h-12 border-2 border-amber-200/50 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-100 transition-all bg-white/50 backdrop-blur-sm"
                       placeholder="you@example.com"
                     />
                   </div>
@@ -156,11 +156,11 @@ export default function SignUp() {
                   <Label className="text-gray-700 font-medium">Phone Number</Label>
                   <div className="relative group">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500 w-5 h-5 transition-colors group-focus-within:text-amber-600" />
-                    <Input 
-                      value={phoneNumber} 
-                      onChange={(e) => setPhoneNumber(e.target.value)} 
-                      required 
-                      className="pl-12 h-12 border-2 border-amber-200/50 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-100 transition-all bg-white/50 backdrop-blur-sm" 
+                    <Input
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      required
+                      className="pl-12 h-12 border-2 border-amber-200/50 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-100 transition-all bg-white/50 backdrop-blur-sm"
                       placeholder="+62 812 3456 7890"
                     />
                   </div>
@@ -233,9 +233,9 @@ export default function SignUp() {
 
               {/* Submit Button */}
               <div className="md:col-span-2 mt-2">
-                <Button 
-                  type="submit" 
-                  className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01]" 
+                <Button
+                  type="submit"
+                  className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01]"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -262,10 +262,10 @@ export default function SignUp() {
                     <span className="bg-white px-3 text-gray-500">Already a member?</span>
                   </div>
                 </div>
-                
+
                 <p className="text-gray-600">
-                  <Link 
-                    href="/auth/signin" 
+                  <Link
+                    href="/auth/signin"
                     className="font-semibold text-amber-600 hover:text-amber-700 transition-colors inline-flex items-center gap-1 group"
                   >
                     Sign in here
