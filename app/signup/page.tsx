@@ -269,7 +269,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     <span className="bg-white px-3 text-gray-500">Already a member?</span>
                   </div>
                 </div>
-                
+
                 <p className="text-gray-600">
                   <Link 
                     href="/auth/signin" 
@@ -281,12 +281,11 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </p>
               </div>
             </div>
+            
           </form>
-
           {/* Bottom golden accent */}
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
         </div>
-
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500 flex items-center justify-center gap-2">

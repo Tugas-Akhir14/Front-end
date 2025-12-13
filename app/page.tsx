@@ -8,8 +8,20 @@ import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
 import ChatBot from '@/components/Chatbot/ChatBot';
 import axios from 'axios';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import Link from 'next/link';
 import { link } from 'node:fs';
+import Swal from 'sweetalert2';
 
 // ================== Types ==================
 type Review = {
@@ -54,9 +66,60 @@ const staticRooms = [
   }
 ];
 
+
+
 export default function Home() {
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [open, setOpen] = useState(false);
+  const [otaAnswer, setOtaAnswer] = useState<string>("");
 
+
+
+
+const handleConfirm = async () => {
+  if (otaAnswer === "ya") {
+    await Swal.fire({
+      icon: "info",
+      iconColor: "#0ea5e9", // Warna biru muda untuk icon info (match screenshot)
+      title: "<strong>Terima Kasih atas Kejujuran Anda!</strong>",
+      html: `
+        <p class="text-gray-600 text-base leading-relaxed">
+          Proses pemesanan dibatalkan untuk menghindari double booking.<br>
+          Silakan gunakan booking OTA Anda atau batalkan terlebih dahulu jika ingin memesan langsung di sini.
+        </p>
+      `,
+      confirmButtonText: "OK",
+      confirmButtonColor: "#0ea5e9",        // Biru muda seperti di screenshot
+      color: "#374151",                     // Abu-abu gelap untuk teks (sama seperti gambar)
+      background: "#ffffff",
+      backdrop: "rgba(0,0,0,0.4)",
+      customClass: {
+        title: "text-2xl font-bold text-gray-800",
+        confirmButton: "px-8 py-3 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all",
+      },
+      buttonsStyling: false, // Biar customClass jalan sempurna
+    });
+
+    setOtaAnswer("");
+    setOpen(false);
+  } 
+  else if (otaAnswer === "tidak") {
+    await Swal.fire({
+      icon: "success",
+      title: "Sedang mengalihkan...",
+      text: "Menuju halaman pemesanan kamar",
+      timer: 1600,
+      timerProgressBar: true,
+      showConfirmButton: false,
+      iconColor: "#10b981",
+      background: "#ffffff",
+    });
+
+    // Lebih baik pakai router di Next.js (uncomment kalau sudah import useRouter)
+    // router.push("/user/rooms");
+    window.location.href = "/user/rooms";
+  }
+};
   // ================== Fetch Reviews ==================
   useEffect(() => {
     const fetchReviews = async () => {
@@ -161,15 +224,56 @@ export default function Home() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white border-2 border-amber-400 hover:border-amber-500 px-10 py-6 text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 rounded-full"
-                >  
-                  <Link href={"user/rooms"}>
-                    <Calendar className="w-5 h-5 mr-2" />
-                    Book Now
-                  </Link>
-                </Button>
+              <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="lg"
+          className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white border-2 border-amber-400 hover:border-amber-500 px-10 py-6 text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 rounded-full"
+        >
+          <Calendar className="w-5 h-5 mr-2" />
+          Book Now
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Konfirmasi Pemesanan</DialogTitle>
+          <DialogDescription className="text-base">
+            Untuk menghindari double booking, mohon jawab pertanyaan berikut dengan jujur.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-6">
+          <RadioGroup value={otaAnswer} onValueChange={setOtaAnswer} required>
+            <div className="flex items-center space-x-3 space-y-4">
+              <RadioGroupItem value="ya" id="ya" />
+              <Label htmlFor="ya" className="text-lg cursor-pointer">
+                Ya, saya sudah memesan kamar yang sama melalui OTA (Traveloka, Agoda, Tiket.com, dll.)
+              </Label>
+            </div>
+            <div className="flex items-center space-x-3 space-y-4 mt-4">
+              <RadioGroupItem value="tidak" id="tidak" />
+              <Label htmlFor="tidak" className="text-lg cursor-pointer">
+                Tidak, saya belum memesan melalui OTA manapun.
+              </Label>
+            </div>
+          </RadioGroup>
+          <p className="text-sm text-muted-foreground mt-4">
+            * Kami menghargai kejujuran Anda untuk mencegah pembatalan sepihak di kemudian hari.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Batal
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={!otaAnswer} // Harus pilih dulu
+            className="bg-green-600 hover:bg-green-700"
+          >
+            Konfirmasi & Lanjutkan
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
                 <Button
                   asChild
                   size="lg"
@@ -358,17 +462,71 @@ export default function Home() {
 
               {/* Buttons */}
               <div className="flex flex-col gap-4">
-                <Button asChild size="lg" className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 
-                  hover:from-amber-600 hover:to-yellow-700 text-white font-semibold text-lg py-7 rounded-2xl 
-                  shadow-xl hover:shadow-2xl hover:shadow-amber-500/40 border border-amber-400 
-                  transition-all duration-400 group/btn">
-                  <Link href="/user/rooms" className="flex items-center justify-center">
-                    Reserve This Suite
-                    <svg className="w-5 h-5 ml-3 group-hover/btn:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </Link>
-                </Button>
+               <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="lg"
+          className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 
+                     hover:from-amber-600 hover:to-yellow-700 text-white font-semibold text-lg py-7 rounded-2xl 
+                     shadow-xl hover:shadow-2xl hover:shadow-amber-500/40 border border-amber-400 
+                     transition-all duration-400 group/btn"
+        >
+          <div className="flex items-center justify-center w-full">
+            Reserve This Suite
+            <svg
+              className="w-5 h-5 ml-3 group-hover/btn:translate-x-2 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </div>
+        </Button>
+      </DialogTrigger>
+
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Konfirmasi Reservasi</DialogTitle>
+          <DialogDescription className="text-base">
+            Untuk menghindari double booking, mohon jawab pertanyaan berikut dengan jujur.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="py-6">
+          <RadioGroup value={otaAnswer} onValueChange={setOtaAnswer} required>
+            <div className="flex items-center space-x-3 mb-5">
+              <RadioGroupItem value="ya" id="ya" />
+              <Label htmlFor="ya" className="text-lg cursor-pointer leading-tight">
+                Ya, saya sudah memesan suite ini melalui OTA (Traveloka, Agoda, Tiket.com, dll.)
+              </Label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value="tidak" id="tidak" />
+              <Label htmlFor="tidak" className="text-lg cursor-pointer leading-tight">
+                Tidak, saya belum memesan melalui OTA manapun.
+              </Label>
+            </div>
+          </RadioGroup>
+          <p className="text-sm text-muted-foreground mt-5">
+            * Kami sangat menghargai kejujuran Anda demi kenyamanan bersama.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Batal
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={!otaAnswer}
+            className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white font-semibold"
+          >
+            Konfirmasi & Lanjutkan
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
                 <Button asChild variant="ghost" size="lg" className="w-full border border-amber-700 text-amber-400 
                   hover:bg-amber-950/40 hover:text-amber-300 py-7 rounded-2xl font-medium transition-all duration-400">
@@ -568,11 +726,58 @@ export default function Home() {
               Book your stay now and discover what makes Mutiara Hotel the premier destination
             </p>
             <div className="space-x-4 space-y-4 sm:space-y-0">
-              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white border-2 border-amber-400 hover:border-amber-500 text-lg px-8 py-3 font-semibold transition-all duration-300 shadow-lg hover:shadow-amber-500/30">
-                <Link href="user/rooms">
-                  Book Your Stay
-                </Link>
-              </Button>
+             <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="lg"
+          className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white border-2 border-amber-400 hover:border-amber-500 text-lg px-8 py-3 font-semibold transition-all duration-300 shadow-lg hover:shadow-amber-500/30"
+        >
+          Book Your Stay
+        </Button>
+      </DialogTrigger>
+
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Konfirmasi Pemesanan</DialogTitle>
+          <DialogDescription className="text-base">
+            Untuk menghindari double booking, mohon jawab pertanyaan berikut dengan jujur            
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="py-6">
+          <RadioGroup value={otaAnswer} onValueChange={setOtaAnswer} required>
+            <div className="flex items-center space-x-3 mb-5">
+              <RadioGroupItem value="ya" id="ya" />
+              <Label htmlFor="ya" className="text-lg cursor-pointer leading-tight">
+                Ya, saya sudah memesan melalui OTA (Traveloka, Agoda, Tiket.com, dll.)
+              </Label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value="tidak" id="tidak" />
+              <Label htmlFor="tidak" className="text-lg cursor-pointer leading-tight">
+                Tidak, saya belum memesan melalui OTA manapun.
+              </Label>
+            </div>
+          </RadioGroup>
+          <p className="text-sm text-muted-foreground mt-5">
+            * Kami sangat menghargai kejujuran Anda demi kenyamanan bersama.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Batal
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={!otaAnswer}
+            className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white font-semibold border-2 border-amber-400"
+          >
+            Konfirmasi & Lanjutkan
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
               <Button size="lg" variant="outline" className="border-2 border-amber-500 text-amber-300 hover:bg-amber-950 hover:text-amber-200 text-lg px-8 py-3 font-semibold transition-all duration-300 bg-black/50 backdrop-blur-sm">
                 Contact Us
               </Button>
