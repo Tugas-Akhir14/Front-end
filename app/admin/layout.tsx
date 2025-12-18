@@ -87,6 +87,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
         { icon: 'list', label: 'Type', href: '/admin/hotel/type',  },
         { icon: 'newspaper', label: 'News', href: '/admin/hotel/news',  },
         { icon: 'booking', label: 'Booking', href: '/admin/hotel/booking',  },
+        { icon: 'booking', label: 'Availability', href: '/admin/hotel/availability',  },
         { icon: 'gallery', label: 'Gallery', href: '/admin/hotel/gallery' },  
         { icon: 'review', label: 'Review', href: '/admin/hotel/review' },
       ],
