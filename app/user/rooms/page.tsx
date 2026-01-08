@@ -3,10 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { Calendar, Users, MapPin, Phone, Mail, MessageSquare, Sparkles, Check } from 'lucide-react';
+import { Calendar, Users, MapPin, Phone, Mail, MessageSquare, Sparkles, Check, ArrowRight } from 'lucide-react';
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+const GOLD = '#d4af37';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080',
@@ -106,8 +110,8 @@ export default function RoomBookingPage() {
       const res = await api.get(`/public/availability?${params}`);
       const data = Array.isArray(res) ? res : res.data || [];
 
-      const result = data.find((item: any) => 
-        item.room_type?.toLowerCase() === form.type.toLowerCase() || 
+      const result = data.find((item: any) =>
+        item.room_type?.toLowerCase() === form.type.toLowerCase() ||
         item.type?.toLowerCase() === form.type.toLowerCase()
       );
 
@@ -187,8 +191,8 @@ export default function RoomBookingPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black to-gray-900 flex items-center justify-center">
-        <div className="text-amber-400 text-xl">Redirecting ke login...</div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-gray-300 text-xl animate-pulse">Redirecting to login...</div>
       </div>
     );
   }
@@ -196,39 +200,41 @@ export default function RoomBookingPage() {
   return (
     <>
       <Header />
-      
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+
+      <div className="min-h-screen bg-black text-gray-100">
         {/* Hero Section */}
         <div className="relative h-[500px] w-full overflow-hidden">
-          <div 
-            className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+          <div
+            className="absolute inset-0 bg-cover bg-center transition-all duration-700 opacity-60"
             style={{ backgroundImage: `url('${getBackgroundImage()}')` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-gray-900"></div>
-          </div>
-          
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/50 to-black"></div>
+          {/* Gold Radial */}
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              background: `radial-gradient(60% 80% at 50% 0%, ${GOLD} 0%, transparent 70%)`,
+            }}
+          />
+
           <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6">
-            <div className="flex items-center gap-2 mb-4 animate-pulse">
-              <Sparkles className="text-amber-400" size={24} />
-              <span className="text-amber-400 font-semibold tracking-wider">LUXURY BOOKING</span>
-              <Sparkles className="text-amber-400" size={24} />
+            <div className="flex items-center gap-2 mb-4 animate-fade-in">
+              <Sparkles className="w-5 h-5" style={{ color: GOLD }} />
+              <span className="font-semibold tracking-wider text-sm text-gray-300">LUXURY BOOKING</span>
+              <Sparkles className="w-5 h-5" style={{ color: GOLD }} />
             </div>
-            
-            <h1 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
-              Pesan Kamar Impian Anda
+
+            <h1 className="text-6xl md:text-7xl font-extrabold mb-6 text-white tracking-tight">
+              Book Your <span style={{ color: GOLD }}>Stay</span>
             </h1>
-            
-            <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mb-8 leading-relaxed">
-              Pengalaman menginap tak terlupakan menanti Anda
-            </p>
 
             {form.type && availability && (
-              <div className="mt-6 px-12 py-6 bg-gradient-to-r from-amber-600/40 to-yellow-600/40 backdrop-blur-xl rounded-3xl border-2 border-amber-400/50 shadow-2xl shadow-amber-500/20 transform hover:scale-105 transition-all duration-300">
-                <p className="text-amber-200 font-bold text-3xl capitalize tracking-wide">
+              <div className="mt-8 px-8 py-4 bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-700 animate-fade-in-up">
+                <p className="font-bold text-2xl capitalize text-white mb-1">
                   {roomTypes[form.type as keyof typeof roomTypes]?.name || form.type}
                 </p>
-                <p className="text-amber-400/80 text-sm mt-1">
-                  {formatRupiah(availability.price_per_night)} / malam
+                <p className="text-sm font-light text-gray-400">
+                  <span style={{ color: GOLD, fontWeight: 'bold' }}>{formatRupiah(availability.price_per_night)}</span> / night
                 </p>
               </div>
             )}
@@ -236,106 +242,86 @@ export default function RoomBookingPage() {
 
           {/* Progress Steps */}
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-4 z-20">
-            <div className={`flex items-center gap-2 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-300 ${step === 1 ? 'bg-amber-500/90 scale-110' : 'bg-gray-800/60'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step === 1 ? 'bg-white text-amber-600' : 'bg-gray-700 text-gray-400'}`}>
-                {step > 1 ? <Check size={18} /> : '1'}
+            {[1, 2].map((s) => (
+              <div key={s} className={`flex items-center gap-3 px-5 py-2 rounded-full backdrop-blur-md transition-all duration-500 border ${step === s ? 'bg-gray-900 border-yellow-700' : 'bg-black/50 border-gray-800'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step === s ? 'text-black' : 'text-gray-500 bg-gray-800'}`} style={{ backgroundColor: step === s ? GOLD : undefined }}>
+                  {step > s ? <Check size={16} /> : s}
+                </div>
+                <span className={`font-medium text-sm ${step === s ? 'text-white' : 'text-gray-500'}`}>
+                  {s === 1 ? 'Select Room' : 'Confirm'}
+                </span>
               </div>
-              <span className={`font-semibold ${step === 1 ? 'text-white' : 'text-gray-400'}`}>Pilih Kamar</span>
-            </div>
-            <div className={`flex items-center gap-2 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-300 ${step === 2 ? 'bg-emerald-500/90 scale-110' : 'bg-gray-800/60'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step === 2 ? 'bg-white text-emerald-600' : 'bg-gray-700 text-gray-400'}`}>
-                2
-              </div>
-              <span className={`font-semibold ${step === 2 ? 'text-white' : 'text-gray-400'}`}>Reservasi</span>
-            </div>
+            ))}
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-6 py-16 -mt-12 relative z-10">
-          
+        <div className="max-w-6xl mx-auto px-6 py-12 -mt-10 relative z-10">
+
           {error && (
-            <div className="mb-8 p-6 bg-gradient-to-r from-red-900/80 to-red-800/80 border-2 border-red-500 rounded-2xl text-center font-medium backdrop-blur-sm shadow-2xl">
-              <p className="text-red-200 text-lg">{error}</p>
+            <div className="mb-8 p-6 bg-red-950/50 border border-red-900/50 rounded-2xl text-center font-medium backdrop-blur-md">
+              <p className="text-red-200">{error}</p>
             </div>
           )}
 
           {/* Step 1: Room Selection */}
           {step === 1 && (
-            <div className="space-y-8">
-              <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-2xl p-12 rounded-3xl border-2 border-amber-600/30 shadow-2xl shadow-amber-900/20">
-                
-                <div className="flex items-center gap-3 mb-10">
-                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Calendar className="text-white" size={24} />
+            <div className="space-y-8 animate-fade-in">
+              <Card className="bg-gray-900 border-gray-800 p-10 rounded-3xl shadow-xl">
+                <div className="flex items-center gap-4 mb-10 pb-6 border-b border-gray-800">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-black border border-gray-800">
+                    <Calendar className="w-6 h-6" style={{ color: GOLD }} />
                   </div>
-                  <h2 className="text-4xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
-                    Tentukan Tanggal & Kamar
+                  <h2 className="text-3xl font-bold text-white">
+                    Select Dates
                   </h2>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-8 mb-8">
-                  {/* Check In */}
-                  <div className="group">
-                    <label className="flex items-center gap-2 text-amber-400 font-bold text-lg mb-3">
-                      <Calendar size={20} />
-                      Tanggal Check In
-                    </label>
-                    <input 
-                      type="date" 
-                      min={new Date().toISOString().split('T')[0]} 
-                      value={form.check_in}
-                      onChange={e => setForm({ ...form, check_in: e.target.value })}
-                      className="w-full p-5 text-lg bg-gray-950/80 border-2 border-amber-600/50 rounded-2xl focus:ring-4 focus:ring-amber-500/50 focus:border-amber-500 transition-all group-hover:border-amber-500/70 text-white" 
-                    />
-                  </div>
-
-                  {/* Check Out */}
-                  <div className="group">
-                    <label className="flex items-center gap-2 text-amber-400 font-bold text-lg mb-3">
-                      <Calendar size={20} />
-                      Tanggal Check Out
-                    </label>
-                    <input 
-                      type="date" 
-                      min={form.check_in || new Date().toISOString().split('T')[0]} 
-                      value={form.check_out}
-                      onChange={e => setForm({ ...form, check_out: e.target.value })}
-                      className="w-full p-5 text-lg bg-gray-950/80 border-2 border-amber-600/50 rounded-2xl focus:ring-4 focus:ring-amber-500/50 focus:border-amber-500 transition-all group-hover:border-amber-500/70 text-white" 
-                    />
-                  </div>
+                <div className="grid md:grid-cols-2 gap-8 mb-10">
+                  {/* Check In/Out */}
+                  {['check_in', 'check_out'].map((field) => (
+                    <div key={field} className="group">
+                      <label className="flex items-center gap-2 font-bold text-gray-400 mb-3 text-sm uppercase tracking-wider">
+                        <Calendar size={16} style={{ color: GOLD }} />
+                        {field === 'check_in' ? 'Check In' : 'Check Out'}
+                      </label>
+                      <input
+                        type="date"
+                        min={field === 'check_in' ? new Date().toISOString().split('T')[0] : (form.check_in || new Date().toISOString().split('T')[0])}
+                        value={form[field as keyof typeof form] as string}
+                        onChange={e => setForm({ ...form, [field]: e.target.value })}
+                        className="w-full p-4 bg-black border border-gray-700 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all text-white outline-none"
+                      />
+                    </div>
+                  ))}
                 </div>
 
-                {/* Room Type - Card Style */}
-                <div className="mb-8">
-                  <label className="flex items-center gap-2 text-amber-400 font-bold text-lg mb-4">
-                    <MapPin size={20} />
-                    Pilih Tipe Kamar
+                {/* Room Type */}
+                <div className="mb-10">
+                  <label className="flex items-center gap-2 font-bold text-gray-400 mb-4 text-sm uppercase tracking-wider">
+                    <MapPin size={16} style={{ color: GOLD }} />
+                    Room Type
                   </label>
-                  <div className="grid md:grid-cols-3 gap-6">
+                  <div className="grid md:grid-cols-3 gap-4">
                     {Object.entries(roomTypes).map(([key, room]) => (
                       <button
                         key={key}
                         type="button"
                         onClick={() => setForm({ ...form, type: key })}
-                        className={`p-6 rounded-2xl border-2 transition-all duration-300 ${
-                          form.type === key
-                            ? 'bg-gradient-to-br from-amber-600/40 to-yellow-600/40 border-amber-400 shadow-2xl shadow-amber-500/30 scale-105'
-                            : 'bg-gray-950/50 border-gray-700 hover:border-amber-600/50 hover:scale-102'
-                        }`}
+                        className={`relative p-6 rounded-2xl border-2 text-left transition-all duration-300 ${form.type === key
+                            ? 'bg-gray-800 border-yellow-600 shadow-lg'
+                            : 'bg-black border-gray-800 hover:border-gray-700'
+                          }`}
                       >
-                        <div className="text-left">
-                          <h3 className={`font-bold text-xl mb-2 ${form.type === key ? 'text-amber-300' : 'text-gray-300'}`}>
-                            {room.name}
-                          </h3>
-                          <p className={`text-sm ${form.type === key ? 'text-amber-200/80' : 'text-gray-500'}`}>
-                            Kapasitas: {room.capacity} orang
-                          </p>
-                        </div>
+                        <h3 className={`font-bold text-lg mb-1 ${form.type === key ? 'text-white' : 'text-gray-400'}`}>
+                          {room.name}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          Max Capacity: {room.capacity}
+                        </p>
                         {form.type === key && (
-                          <div className="mt-4 flex items-center gap-2 text-amber-300">
-                            <Check size={18} />
-                            <span className="text-sm font-semibold">Dipilih</span>
+                          <div className="absolute top-4 right-4">
+                            <Check size={18} style={{ color: GOLD }} />
                           </div>
                         )}
                       </button>
@@ -344,212 +330,128 @@ export default function RoomBookingPage() {
                 </div>
 
                 {/* Number of Rooms */}
-                <div className="group">
-                  <label className="flex items-center gap-2 text-amber-400 font-bold text-lg mb-3">
-                    <Users size={20} />
-                    Jumlah Kamar
+                <div className="mb-10">
+                  <label className="flex items-center gap-2 font-bold text-gray-400 mb-3 text-sm uppercase tracking-wider">
+                    <Users size={16} style={{ color: GOLD }} />
+                    Rooms Required
                   </label>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    max="10" 
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
                     value={form.total_rooms}
                     onChange={e => setForm({ ...form, total_rooms: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-full p-5 text-2xl text-center font-bold bg-gray-950/80 border-2 border-amber-600/50 rounded-2xl focus:ring-4 focus:ring-amber-500/50 focus:border-amber-500 transition-all group-hover:border-amber-500/70 text-white" 
+                    className="w-full p-4 bg-black border border-gray-700 rounded-xl focus:ring-2 focus:ring-yellow-600 text-white outline-none text-center font-bold text-xl"
                   />
                 </div>
 
-                {/* Price Estimation */}
-                {availability && nights > 0 && (
-                  <div className="mt-10 p-10 bg-gradient-to-br from-amber-900/30 via-yellow-900/30 to-amber-900/30 rounded-3xl border-2 border-amber-500/50 text-center backdrop-blur-sm shadow-2xl">
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      <Sparkles className="text-amber-400" size={24} />
-                      <p className="text-2xl text-amber-300 font-semibold">Estimasi Total</p>
-                    </div>
-                    <p className="text-7xl font-bold bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent mb-4">
-                      {formatRupiah(nights * availability.price_per_night * form.total_rooms)}
-                    </p>
-                    <div className="flex items-center justify-center gap-4 text-gray-300 text-lg">
-                      <span>{nights} malam</span>
-                      <span>×</span>
-                      <span>{form.total_rooms} kamar</span>
-                      <span>×</span>
-                      <span>{formatRupiah(availability.price_per_night)}</span>
-                    </div>
-                  </div>
-                )}
-
-                <button 
-                  onClick={handleCheck} 
+                {/* Submit */}
+                <Button
+                  onClick={handleCheck}
                   disabled={loading}
-                  className="w-full mt-10 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-black font-bold py-7 rounded-2xl text-2xl hover:shadow-2xl hover:shadow-amber-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 relative overflow-hidden group"
+                  className="w-full h-16 text-lg font-bold text-black rounded-xl hover:opacity-90 transition-all"
+                  style={{ backgroundColor: GOLD }}
                 >
-                  <span className="relative z-10">
-                    {loading ? 'Memeriksa Ketersediaan...' : 'Lanjut ke Reservasi →'}
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </button>
-              </div>
+                  {loading ? 'Checking Availability...' : 'Continue to Reservation'}
+                </Button>
+              </Card>
             </div>
           )}
 
           {/* Step 2: Guest Information */}
           {step === 2 && availability && (
-            <div className="space-y-8">
-              <div className="bg-gradient-to-br from-emerald-950/95 via-green-900/95 to-emerald-950/95 backdrop-blur-2xl p-12 rounded-3xl border-2 border-emerald-500/40 shadow-2xl shadow-emerald-900/30">
-                
-                <div className="flex items-center gap-3 mb-10">
-                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Users className="text-white" size={24} />
+            <div className="space-y-8 animate-fade-in">
+              <Card className="bg-gray-900 border-gray-800 p-10 rounded-3xl shadow-xl">
+                <div className="flex items-center gap-4 mb-10 pb-6 border-b border-gray-800">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-black border border-gray-800">
+                    <Users className="w-6 h-6" style={{ color: GOLD }} />
                   </div>
-                  <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-                    Informasi Tamu
+                  <h2 className="text-3xl font-bold text-white">
+                    Guest Details
                   </h2>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-8">
-                  {/* Number of Guests */}
-                  <div className="group md:col-span-2">
-                    <label className="flex items-center gap-2 text-emerald-400 font-bold text-lg mb-3">
-                      <Users size={20} />
-                      Jumlah Tamu (maksimal {maxGuestsAllowed})
-                    </label>
-                    <input 
-                      type="number" 
-                      min="1" 
-                      max={maxGuestsAllowed} 
+                <div className="grid md:grid-cols-2 gap-8 mb-8">
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">Number of Guests</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={maxGuestsAllowed}
                       value={form.guests}
                       onChange={e => setForm({ ...form, guests: Math.min(maxGuestsAllowed, parseInt(e.target.value) || 1) })}
-                      className="w-full p-6 text-3xl text-center font-bold bg-gray-950/80 border-2 border-emerald-600/50 rounded-2xl focus:ring-4 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all group-hover:border-emerald-500/70 text-white" 
+                      className="w-full p-4 bg-black border border-gray-700 rounded-xl text-white outline-none focus:border-yellow-600 text-center font-bold text-xl"
                     />
-                    <p className="text-sm text-emerald-300/70 mt-3 text-center">
-                      ℹ️ Extra tamu: +Rp150.000/orang/malam
-                    </p>
+                    <p className="text-xs text-gray-500 text-center">Max {maxGuestsAllowed} guests for {form.total_rooms} rooms</p>
                   </div>
 
-                  {/* Full Name */}
-                  <div className="group">
-                    <label className="flex items-center gap-2 text-emerald-400 font-bold text-lg mb-3">
-                      <Users size={20} />
-                      Nama Lengkap
-                    </label>
-                    <input 
-                      value={form.name} 
-                      onChange={e => setForm({ ...form, name: e.target.value })}
-                      placeholder="Masukkan nama lengkap"
-                      className="w-full p-5 text-lg bg-gray-950/80 border-2 border-emerald-600/50 rounded-2xl focus:ring-4 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all group-hover:border-emerald-500/70 text-white placeholder-gray-500" 
-                    />
-                  </div>
+                  {['name', 'phone', 'email'].map((field) => (
+                    <div key={field} className={field === 'email' ? 'md:col-span-2 space-y-2' : 'space-y-2'}>
+                      <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                        {{ name: 'Full Name', phone: 'WhatsApp Number', email: 'Email Address' }[field]}
+                      </label>
+                      <input
+                        value={form[field as keyof typeof form] as string}
+                        onChange={e => setForm({ ...form, [field]: e.target.value })}
+                        placeholder={field === 'phone' ? 'e.g. 628123456789' : ''}
+                        className="w-full p-4 bg-black border border-gray-700 rounded-xl text-white outline-none focus:border-yellow-600"
+                      />
+                    </div>
+                  ))}
 
-                  {/* WhatsApp */}
-                  <div className="group">
-                    <label className="flex items-center gap-2 text-emerald-400 font-bold text-lg mb-3">
-                      <Phone size={20} />
-                      Nomor WhatsApp
-                    </label>
-                    <input 
-                      value={form.phone} 
-                      onChange={e => setForm({ ...form, phone: e.target.value })}
-                      placeholder="6281234567890"
-                      className="w-full p-5 text-lg bg-gray-950/80 border-2 border-emerald-600/50 rounded-2xl focus:ring-4 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all group-hover:border-emerald-500/70 text-white placeholder-gray-500" 
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div className="group md:col-span-2">
-                    <label className="flex items-center gap-2 text-emerald-400 font-bold text-lg mb-3">
-                      <Mail size={20} />
-                      Email (opsional)
-                    </label>
-                    <input 
-                      type="email" 
-                      value={form.email} 
-                      onChange={e => setForm({ ...form, email: e.target.value })}
-                      placeholder="email@example.com"
-                      className="w-full p-5 text-lg bg-gray-950/80 border-2 border-emerald-600/50 rounded-2xl focus:ring-4 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all group-hover:border-emerald-500/70 text-white placeholder-gray-500" 
-                    />
-                  </div>
-
-                  {/* Notes */}
-                  <div className="group md:col-span-2">
-                    <label className="flex items-center gap-2 text-emerald-400 font-bold text-lg mb-3">
-                      <MessageSquare size={20} />
-                      Permintaan Khusus
-                    </label>
-                    <textarea 
-                      rows={5} 
-                      value={form.notes} 
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">Special Requests</label>
+                    <textarea
+                      rows={4}
+                      value={form.notes}
                       onChange={e => setForm({ ...form, notes: e.target.value })}
-                      placeholder="Contoh: Connecting room, extra bed, view laut, early check-in, honeymoon package, dll..."
-                      className="w-full p-5 text-lg bg-gray-950/80 border-2 border-emerald-600/50 rounded-2xl focus:ring-4 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all group-hover:border-emerald-500/70 resize-none text-white placeholder-gray-500" 
+                      className="w-full p-4 bg-black border border-gray-700 rounded-xl text-white outline-none focus:border-yellow-600 resize-none"
                     />
                   </div>
                 </div>
 
-                {/* Booking Summary */}
-                <div className="mt-10 p-8 bg-gradient-to-r from-gray-900/80 to-gray-800/80 rounded-2xl border border-emerald-500/30">
-                  <h3 className="text-2xl font-bold text-emerald-400 mb-6">Ringkasan Pesanan</h3>
-                  <div className="space-y-3 text-gray-300">
-                    <div className="flex justify-between items-center">
-                      <span>Tipe Kamar:</span>
-                      <span className="font-bold text-emerald-400 capitalize">{roomTypes[form.type as keyof typeof roomTypes]?.name || form.type}</span>
+                {/* Summary */}
+                <div className="bg-black/50 p-8 rounded-2xl border border-gray-800 mb-8">
+                  <h3 className="text-xl font-bold text-white mb-6">Booking Summary</h3>
+                  <div className="space-y-4 text-gray-400">
+                    <div className="flex justify-between">
+                      <span>Room Type</span>
+                      <span className="text-white font-medium capitalize">{roomTypes[form.type as keyof typeof roomTypes]?.name}</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span>Jumlah Kamar:</span>
-                      <span className="font-bold text-emerald-400">{form.total_rooms} kamar</span>
+                    <div className="flex justify-between">
+                      <span>Duration</span>
+                      <span className="text-white font-medium">{nights} Nights ({form.total_rooms} Rooms)</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span>Durasi:</span>
-                      <span className="font-bold text-emerald-400">{nights} malam</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Jumlah Tamu:</span>
-                      <span className="font-bold text-emerald-400">{form.guests} orang</span>
-                    </div>
-                    <div className="h-px bg-emerald-500/30 my-4"></div>
-                    <div className="flex justify-between items-center text-xl">
-                      <span className="font-bold">Total:</span>
-                      <span className="font-bold text-3xl bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-                        {formatRupiah(nights * availability.price_per_night * form.total_rooms)}
-                      </span>
+                    <div className="h-px bg-gray-800 my-4" />
+                    <div className="flex justify-between text-lg font-bold text-white">
+                      <span>Total Estimate</span>
+                      <span style={{ color: GOLD }}>{formatRupiah(nights * availability.price_per_night * form.total_rooms)}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-6 mt-12">
-                  <button 
-                    onClick={() => {
-                      setAvailability(null);
-                      setStep(1);
-                    }}
-                    className="flex-1 bg-gray-800 border-2 border-gray-700 py-6 rounded-2xl font-bold text-xl hover:bg-gray-700 hover:border-gray-600 transition-all"
+                <div className="flex gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => { setAvailability(null); setStep(1); }}
+                    className="flex-1 h-14 border-gray-700 text-gray-300 hover:bg-gray-800 font-bold rounded-xl"
                   >
-                    ← Ubah Pencarian
-                  </button>
-                  
-                  <button 
-                    onClick={handleBook} 
+                    Back
+                  </Button>
+                  <Button
+                    onClick={handleBook}
                     disabled={loading}
-                    className="flex-1 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white font-bold py-7 rounded-2xl text-2xl hover:shadow-2xl hover:shadow-emerald-500/50 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 transition-all relative overflow-hidden group"
+                    className="flex-[2] h-14 text-black font-bold rounded-xl hover:opacity-90"
+                    style={{ backgroundColor: GOLD }}
                   >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      {loading ? 'Memproses...' : (
-                        <>
-                          <Phone size={24} />
-                          Pesan via WhatsApp
-                        </>
-                      )}
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  </button>
+                    {loading ? 'Processing...' : 'Confirm & Book via WhatsApp'}
+                  </Button>
                 </div>
-              </div>
+              </Card>
             </div>
           )}
         </div>
       </div>
-
       <Footer />
     </>
   );

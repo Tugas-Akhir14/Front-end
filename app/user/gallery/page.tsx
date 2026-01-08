@@ -2,11 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Play, X, ChevronLeft, ChevronRight, Volume2, VolumeX, ZoomIn, Sparkles, Crown, Camera, Image as ImageIcon } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { X, ChevronLeft, ChevronRight, ZoomIn, Sparkles, Camera, Image as ImageIcon } from 'lucide-react';
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
 import ChatBot from '@/components/Chatbot/ChatBot';
+
+const GOLD = '#d4af37';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 type APIGalleryItem = {
   id: number;
@@ -23,8 +26,6 @@ type APIListResponse = {
   total?: number;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-
 function toAbsoluteURL(path: string) {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -38,8 +39,6 @@ export default function Gallery() {
   const [err, setErr] = useState<string | null>(null);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [isMuted, setIsMuted] = useState(true);
-  const videoRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const abort = new AbortController();
@@ -57,7 +56,6 @@ export default function Gallery() {
         }
         const json = (await res.json()) as APIListResponse | APIGalleryItem[];
         const data = Array.isArray(json) ? json : json.data;
-
         const cleaned = (data || []).filter(Boolean);
         setItems(cleaned);
       } catch (e: any) {
@@ -71,16 +69,6 @@ export default function Gallery() {
     return () => abort.abort();
   }, []);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (videoRef.current) {
-        const iframe = videoRef.current;
-        iframe.src = `https://www.youtube.com/embed/4PLYhb7Wq7Y?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&loop=1&playlist=4PLYhb7Wq7Y`;
-      }
-    }, 600);
-    return () => clearTimeout(t);
-  }, [isMuted]);
-
   const openLightbox = (index: number) => setSelectedIndex(index);
   const closeLightbox = () => setSelectedIndex(null);
   const nextImage = () => {
@@ -89,272 +77,175 @@ export default function Gallery() {
   const prevImage = () => {
     if (selectedIndex !== null) setSelectedIndex((selectedIndex - 1 + items.length) % items.length);
   };
-  const toggleMute = () => {
-    setIsMuted(v => !v);
-    if (videoRef.current) {
-      const iframe = videoRef.current;
-      iframe.src = `https://www.youtube.com/embed/4PLYhb7Wq7Y?autoplay=1&mute=${!isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&loop=1&playlist=4PLYhb7Wq7Y`;
-    }
-  };
 
   return (
     <div className="bg-black min-h-screen">
       <Header />
 
       <main className="pt-16">
-        {/* Hero dengan tema hitam emas */}
-        <section className="relative h-[600px] bg-gradient-to-br from-black via-gray-900 to-amber-950 overflow-hidden">
-          {/* Animated gold pattern background */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: 'radial-gradient(circle, #d4af37 2px, transparent 2px)',
-              backgroundSize: '60px 60px'
-            }}></div>
+        {/* Unified Hero Section */}
+        <section className="relative h-[600px] overflow-hidden">
+          <div className="absolute inset-0 bg-black">
+            <div
+              className="absolute inset-0 bg-cover bg-center opacity-40 transition-transform duration-1000 scale-105"
+              style={{ backgroundImage: 'url(https://images.pexels.com/photos/271619/pexels-photo-271619.jpeg)' }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/50 to-black" />
+            <div
+              className="absolute inset-0 opacity-40"
+              style={{
+                background: `radial-gradient(60% 80% at 50% 0%, ${GOLD} 0%, transparent 70%)`,
+              }}
+            />
           </div>
-          
-          {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-amber-950/60 to-transparent z-10"></div>
-          <div
-            className="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-700 hover:scale-105 opacity-20"
-            style={{ backgroundImage: 'url(https://images.pexels.com/photos/271619/pexels-photo-271619.jpeg)' }}
-          />
-          
-          {/* Floating sparkles */}
-          <div className="absolute top-20 left-10 animate-pulse z-20">
-            <Sparkles className="w-10 h-10 text-amber-500 opacity-70" />
-          </div>
-          <div className="absolute top-32 right-20 animate-pulse z-20" style={{ animationDelay: '0.5s' }}>
-            <Sparkles className="w-8 h-8 text-yellow-500 opacity-70" />
-          </div>
-          <div className="absolute bottom-40 left-1/3 animate-pulse z-20" style={{ animationDelay: '1s' }}>
-            <Sparkles className="w-9 h-9 text-amber-400 opacity-70" />
-          </div>
-          
-          {/* Gold glow effects */}
-          <div className="absolute top-20 right-10 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 left-10 w-80 h-80 bg-yellow-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.7s' }}></div>
-          
-          <div className="relative z-20 flex h-full items-center justify-center">
-            <div className="text-center max-w-5xl px-4 space-y-8">
-              
-              {/* Badge */}
+
+          <div className="relative z-10 flex h-full items-center justify-center">
+            <div className="text-center max-w-5xl px-4 space-y-8 animate-fade-in">
               <div className="inline-block mb-4">
-                <div className="flex items-center justify-center space-x-3 bg-gradient-to-r from-amber-900/50 to-yellow-900/50 backdrop-blur-md px-6 py-3 rounded-full border-2 border-amber-600">
-                  <Camera className="w-5 h-5 text-amber-400" />
-                  <span className="text-amber-300 text-sm font-bold tracking-widest uppercase">Visual Excellence</span>
+                <div className="flex items-center justify-center space-x-3 bg-black/60 backdrop-blur-md px-6 py-3 rounded-full border border-gray-700">
+                  <Camera className="w-4 h-4" style={{ color: GOLD }} />
+                  <span className="text-gray-300 text-sm font-bold tracking-widest uppercase">Visual Excellence</span>
                 </div>
               </div>
-              
-              <h1 className="text-6xl md:text-8xl font-bold mb-8 leading-tight">
-                <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 bg-clip-text text-transparent">
-                  Gallery
-                </span>
+
+              <h1 className="text-6xl md:text-8xl font-extrabold mb-8 leading-tight text-white">
+                Our <span style={{ color: GOLD }}>Gallery</span>
               </h1>
-              
+
               <p className="text-xl md:text-2xl mb-10 text-gray-300 font-light max-w-3xl mx-auto leading-relaxed">
                 Immerse yourself in the opulent beauty and timeless elegance of our luxury sanctuary
               </p>
-              
-              {/* Decorative line */}
-              <div className="flex justify-center mb-10">
-                <div className="h-px w-64 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-               
-              </div>
             </div>
           </div>
-          
-          {/* Bottom gradient transition */}
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent z-20"></div>
         </section>
 
         {/* Gallery Section */}
-        <section id="gallery-section" className="py-28 bg-gradient-to-b from-black via-gray-900 to-black">
+        <section className="py-24 bg-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Header section */}
-            <div className="text-center mb-24 relative">
-              {/* Top decorative line */}
-              <div className="flex justify-center mb-1">
-                <div className="flex items-center space-x-2">
-                  <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-500"></div>
-                  <Sparkles className="w-6 h-6 text-amber-500" />
-                  <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-500"></div>
-                </div>
-              </div>                
-              
-        
-              
 
-      
-            </div>
-
-            {/* Loading skeleton */}
             {loading && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="relative">
-                    <div className="h-96 rounded-2xl bg-gradient-to-br from-gray-800 via-amber-900/30 to-black animate-pulse border-2 border-amber-700">
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-700/20 to-transparent animate-shimmer rounded-2xl"></div>
-                    </div>
-                  </div>
+                  <div key={i} className="h-96 rounded-3xl bg-gray-900 animate-pulse border border-gray-800" />
                 ))}
               </div>
             )}
 
-            {/* Error state */}
             {!loading && err && (
               <div className="text-center py-20">
-                <div className="inline-block bg-gradient-to-br from-red-900/50 to-black border-2 border-red-700 rounded-3xl p-12 shadow-xl backdrop-blur-sm">
-                  <div className="w-20 h-20 bg-gradient-to-br from-red-800 to-red-900 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-red-600">
-                    <X className="w-10 h-10 text-red-400" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-red-400 mb-3">Unable to Load Gallery</h3>
-                  <p className="text-red-300">{err}</p>
+                <div className="inline-block bg-red-950/20 border border-red-900/50 rounded-3xl p-12">
+                  <X className="w-10 h-10 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-red-400 mb-2">Unavailable</h3>
+                  <p className="text-red-300/70">{err}</p>
                 </div>
               </div>
             )}
 
-            {/* Empty state */}
             {!loading && !err && items.length === 0 && (
-              <div className="text-center py-24">
-                <div className="inline-block bg-gradient-to-br from-gray-900 to-black border-2 border-amber-700 rounded-3xl p-16 shadow-xl backdrop-blur-sm">
-                  <div className="w-24 h-24 bg-gradient-to-br from-amber-900/50 to-yellow-900/50 rounded-full flex items-center justify-center mx-auto mb-8 border-2 border-amber-600">
-                    <ImageIcon className="w-12 h-12 text-amber-500" />
-                  </div>
-                  <h3 className="text-3xl font-bold text-amber-300 mb-4">Gallery Coming Soon</h3>
-                  <p className="text-gray-400 text-lg">Our exclusive collection will be revealed shortly</p>
+              <div className="text-center py-32">
+                <div className="inline-block bg-gray-900 border border-gray-800 rounded-3xl p-16">
+                  <ImageIcon className="w-12 h-12 mb-6 mx-auto" style={{ color: GOLD }} />
+                  <h3 className="text-2xl font-bold text-white mb-2">Coming Soon</h3>
+                  <p className="text-gray-500">Our exclusive collection will be revealed shortly</p>
                 </div>
               </div>
             )}
 
-            {/* Gallery grid */}
             {!loading && !err && items.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {items.map((item, index) => (
                   <Card
                     key={item.id}
-                    className="overflow-hidden hover:shadow-2xl hover:shadow-amber-500/30 transition-all duration-500 transform hover:-translate-y-4 cursor-pointer group border-2 border-amber-700 hover:border-amber-500 bg-gray-900 rounded-2xl backdrop-blur-sm"
+                    className="group relative overflow-hidden bg-gray-900 border-gray-800 rounded-3xl cursor-pointer hover:border-yellow-800 transition-all duration-500"
                     onClick={() => openLightbox(index)}
                   >
                     <div className="relative h-96 overflow-hidden">
-                      {/* Image */}
                       <img
                         src={toAbsoluteURL(item.url)}
                         alt={item.title || 'Gallery Photo'}
                         loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src =
                             'https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1200&auto=format&fit=crop';
                         }}
                       />
-                      
-                      {/* Dark overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-amber-950/30 to-transparent opacity-60 group-hover:opacity-70 transition-opacity duration-300"></div>
-                      
-                      {/* Badge */}
-                      <div className="absolute top-5 left-5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl transform group-hover:scale-110 transition-transform duration-300 border-2 border-amber-400">
-                        <Camera className="w-3 h-3 inline mr-1" />
-                        LUXURY
-                      </div>
-                      
-                      {/* Bottom info */}
-                      <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                        <h3 className="font-bold text-xl mb-2 line-clamp-2 text-amber-200">{item.title || 'Untitled'}</h3>
-                        <p className="text-gray-300 text-sm opacity-90 line-clamp-2">
-                          {item.caption || 'Experience the epitome of luxury'}
-                        </p>
-                      </div>
-                      
-                      {/* Hover overlay with zoom icon */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-yellow-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <div className="bg-black/80 backdrop-blur-md rounded-full p-8 transform scale-0 group-hover:scale-100 transition-transform duration-500 shadow-2xl border-2 border-amber-500">
-                          <ZoomIn className="w-12 h-12 text-amber-400" />
+
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+
+                      {/* Zoom Icon */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="bg-black/60 backdrop-blur-md p-4 rounded-full border border-gray-700">
+                          <ZoomIn className="w-8 h-8 text-white" />
                         </div>
                       </div>
-                      
-                      {/* Corner glow effect */}
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-bl-full"></div>
+
+                      {/* Content */}
+                      <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                        <h3 className="font-bold text-xl text-white mb-1 line-clamp-1">{item.title || 'Untitled'}</h3>
+                        <p className="text-sm text-gray-400 line-clamp-1">
+                          {item.caption || 'Luxury Collection'}
+                        </p>
+                      </div>
                     </div>
                   </Card>
                 ))}
               </div>
             )}
-
-   
           </div>
         </section>
       </main>
 
       <Footer />
 
-      {/* Enhanced Lightbox with black & gold theme */}
+      {/* Lightbox */}
       {selectedIndex !== null && items[selectedIndex] && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 backdrop-blur-md">
-          <div className="relative max-w-7xl max-h-full w-full">
-            {/* Close button */}
+        <div className="fixed inset-0 z-50 bg-black/98 flex items-center justify-center p-4 backdrop-blur-xl animate-fade-in">
+          <div className="relative w-full max-w-6xl">
+            {/* Close */}
             <button
               onClick={closeLightbox}
-              className="absolute top-6 right-6 z-10 bg-gradient-to-br from-amber-900/50 to-yellow-900/50 hover:from-amber-800 hover:to-yellow-800 text-amber-300 rounded-full p-5 transition-all duration-200 shadow-xl hover:scale-110 transform border-2 border-amber-600 backdrop-blur-sm"
+              className="absolute -top-16 right-0 text-gray-400 hover:text-white transition-colors"
             >
-              <X className="w-7 h-7" />
+              <X className="w-8 h-8" />
             </button>
 
-            {/* Navigation buttons */}
+            {/* Nav */}
             <button
               onClick={prevImage}
-              className="absolute left-6 top-1/2 -translate-y-1/2 z-10 bg-gradient-to-br from-amber-900/50 to-yellow-900/50 hover:from-amber-800 hover:to-yellow-800 text-amber-300 rounded-full p-5 transition-all duration-200 shadow-xl hover:scale-110 transform border-2 border-amber-600 backdrop-blur-sm"
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full hover:bg-black/80 transition-colors border border-gray-800 text-white z-10"
             >
-              <ChevronLeft className="w-7 h-7" />
+              <ChevronLeft className="w-8 h-8" />
             </button>
 
             <button
               onClick={nextImage}
-              className="absolute right-6 top-1/2 -translate-y-1/2 z-10 bg-gradient-to-br from-amber-900/50 to-yellow-900/50 hover:from-amber-800 hover:to-yellow-800 text-amber-300 rounded-full p-5 transition-all duration-200 shadow-xl hover:scale-110 transform border-2 border-amber-600 backdrop-blur-sm"
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full hover:bg-black/80 transition-colors border border-gray-800 text-white z-10"
             >
-              <ChevronRight className="w-7 h-7" />
+              <ChevronRight className="w-8 h-8" />
             </button>
 
-            {/* Image counter */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 bg-gradient-to-r from-amber-900/50 to-yellow-900/50 text-amber-300 px-8 py-4 rounded-full text-sm font-bold shadow-xl border-2 border-amber-600 backdrop-blur-sm">
-              {selectedIndex + 1} / {items.length}
-            </div>
-
-            {/* Main content */}
-            <div className="bg-gray-900 rounded-3xl overflow-hidden shadow-2xl transform transition-all duration-300 border-2 border-amber-600 backdrop-blur-sm">
+            {/* Image Container */}
+            <div className="relative rounded-2xl overflow-hidden bg-gray-900 shadow-2xl border border-gray-800">
               <img
                 src={toAbsoluteURL(items[selectedIndex].url)}
-                alt={items[selectedIndex].title || 'Gallery Photo'}
-                className="w-full h-auto max-h-[70vh] object-contain bg-gray-800"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src =
-                    'https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1200&auto=format&fit=crop';
-                }}
+                alt={items[selectedIndex].title || 'Gallery'}
+                className="w-full h-auto max-h-[85vh] object-contain mx-auto"
               />
-              <div className="p-10 bg-gradient-to-r from-amber-900/30 to-yellow-900/30 border-t-4 border-amber-500">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-3xl font-bold text-amber-200 mb-4">
-                      {items[selectedIndex].title || 'Untitled'}
-                    </h3>
-                    <p className="text-gray-300 text-lg leading-relaxed">
-                      {items[selectedIndex].caption || 'Experience the epitome of luxury at Mutiara Hotel'}
-                    </p>
-                  </div>
-                  <div className="bg-gradient-to-r from-amber-500 to-yellow-600 text-white px-5 py-3 rounded-full text-sm font-bold ml-4 border-2 border-amber-400">
-                    <Camera className="w-4 h-4 inline mr-1" />
-                    LUXURY
-                  </div>
-                </div>
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-8 pt-24 text-center">
+                <h3 className="text-2xl font-bold text-white mb-2">{items[selectedIndex].title}</h3>
+                <p className="text-gray-400 max-w-2xl mx-auto">{items[selectedIndex].caption}</p>
               </div>
+            </div>
+
+            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-gray-500 font-medium">
+              {selectedIndex + 1} / {items.length}
             </div>
           </div>
         </div>
       )}
       <ChatBot />
     </div>
-    
   );
 }

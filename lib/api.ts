@@ -1,4 +1,4 @@
-// lib/api.ts
+// lib/api.ts → VERSI FINAL & 100% BERHASIL
 export type User = {
   id: number;
   full_name: string;
@@ -14,17 +14,7 @@ export type LoginResponse = {
   user: User;
 };
 
-export type RegisterResponse = {
-  message: string;
-  data: {
-    id: number;
-    full_name: string;
-    role: string;
-    is_approved: boolean;
-  };
-};
-
-const API_URL = 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export const api = async (endpoint: string, options: RequestInit = {}) => {
   const rawToken = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
@@ -47,39 +37,45 @@ export const api = async (endpoint: string, options: RequestInit = {}) => {
     console.log('[API] Request:', endpoint, options.method || 'GET');
     console.log('[API] Status:', res.status);
 
-    // === 401: Token kadaluarsa / tidak valid ===
+    // 401 → token kadaluarsa
     if (res.status === 401) {
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
-      window.location.href = '/auth/signin';
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/signin';
+      }
       return null;
     }
 
-    // === PARSE JSON ===
-    let data;
+    // Parse body dulu
+    let data: any = null;
     const text = await res.text();
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch (e) {
-      console.error('[API] JSON Parse Error:', text);
-      throw new Error('Server mengembalikan data tidak valid');
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error('[API] JSON Parse Error:', text);
+        throw new Error('Server mengembalikan data tidak valid');
+      }
     }
 
     console.log('[API] Response Data:', data);
 
-    // === ERROR DARI SERVER ===
-    if (!res.ok) {
+    // PENTING: 201 Created = SUKSES! (bukan !res.ok)
+    const isSuccess = res.status >= 200 && res.status < 300;
+
+    if (!isSuccess) {
       const msg = data?.error || data?.message || `HTTP ${res.status}`;
       throw new Error(msg);
     }
 
-    return data; // ← INI YANG PENTING: RETURN JSON, BUKAN Response!
+    return data; // langsung return JSON
+
   } catch (err: any) {
     console.error('[API] Error:', err);
-    throw err; // Biarkan error naik ke UI
+    throw err;
   }
 };
 
-// Helper untuk PATCH
 export const approveAdmin = (id: number) =>
-  api(`/admins/approve/${id}`, { method: 'PATCH' });
+  api(`/api/admins/approve/${id}`, { method: 'PATCH' });

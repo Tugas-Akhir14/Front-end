@@ -87,6 +87,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
         { icon: 'list', label: 'Type', href: '/admin/hotel/type',  },
         { icon: 'newspaper', label: 'News', href: '/admin/hotel/news',  },
         { icon: 'booking', label: 'Booking', href: '/admin/hotel/booking',  },
+        { icon: 'booking', label: 'Availability', href: '/admin/hotel/availability',  },
         { icon: 'gallery', label: 'Gallery', href: '/admin/hotel/gallery' },  
         { icon: 'review', label: 'Review', href: '/admin/hotel/review' },
       ],
@@ -141,7 +142,7 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
           </div>
         )}
       </div>
-      {effectiveExpanded && <I name="chevron-down" className="h-4 w-4 opacity-60 dark:opacity-70 text-amber-600" />}
+      {/* {effectiveExpanded && <I name="chevron-down" className="h-4 w-4 opacity-60 dark:opacity-70 text-amber-600" />} */}
     </Link>
   );
 

@@ -1,195 +1,163 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, ChevronLeft } from "lucide-react";
+import { ChevronLeft, Maximize, Users, Bed, Wifi, Wind, Check, Coffee, Tv, Music, Bath, Shirt } from "lucide-react";
 import Link from "next/link";
+import ChatBot from '@/components/Chatbot/ChatBot';
+
+const GOLD = '#d4af37';
 
 export default function DeluxeRoomDetail() {
-  const gallery = [
-    "/deluxe.jpg",
-    "/deluxe.jpg",
-    "/deluxe.jpg",
-    "/deluxe.jpg",
+  const features = [
+    { icon: Maximize, label: "52 m²" },
+    { icon: Users, label: "2 Adults" },
+    { icon: Bed, label: "King / Twin" },
+    { icon: Bath, label: "Rain Shower" },
   ];
 
   const amenities = [
-    "King atau Twin bed dengan linen katun Mesir 800-thread count",
-    "45–52 m² ruang elegan dengan aksen emas brushed",
-    "Smart TV 65” dengan streaming internasional",
-    "Marshall Bluetooth speaker",
-    "Minibar gratis (soft drinks & local beer)",
-    "Nespresso machine + seleksi teh premium",
-    "Rain shower dengan marmer Italia",
-    "Aromatherapy bathroom amenities (lokal premium)",
-    "Walk-in wardrobe & electronic safe",
-    "Smart lighting & curtain control",
-    "High-speed Wi-Fi 500 Mbps",
-    "Daily turndown service",
+    { icon: Wifi, label: "High-speed Wi-Fi 500 Mbps" },
+    { icon: Tv, label: "65” Smart TV" },
+    { icon: Music, label: "Marshall Bluetooth Speaker" },
+    { icon: Coffee, label: "Nespresso Machine" },
+    { icon: Shirt, label: "Walk-in Wardrobe" },
+    { icon: Check, label: "Electronic Safe" },
+    { icon: Check, label: "Daily Turndown Service" },
+    { icon: Check, label: "Smart Lighting" },
   ];
 
   return (
-    <>
-      {/* Hero Full-Screen */}
-      <section className="relative h-screen min-h-[700px] overflow-hidden bg-black">
+    <div className="bg-black min-h-screen">
+      {/* Hero Section */}
+      <section className="relative h-[85vh] overflow-hidden">
         <div className="absolute inset-0">
           <img
             src="/deluxe.jpg"
-            alt="Deluxe Room - Golden Hour"
-            className="w-full h-full object-cover"
+            alt="Deluxe Room"
+            className="w-full h-full object-cover transition-transform duration-1000 md:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
-        </div>
-
-        {/* Thumbnail Gallery */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 z-20">
-          {gallery.map((img, i) => (
-            <div
-              key={i}
-              className="w-24 h-16 rounded-xl overflow-hidden border-2 border-amber-700/60 hover:border-amber-500 
-                         transition-all duration-300 cursor-pointer group"
-            >
-              <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-            </div>
-          ))}
+          <div className="absolute inset-0 bg-black/40" />
+           {/* Gold Radial Gradient */}
+           <div
+              className="absolute inset-0 opacity-50"
+              style={{
+                background: `radial-gradient(circle at center, ${GOLD} 0%, transparent 70%)`,
+                mixBlendMode: 'overlay'
+              }}
+            />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
         </div>
 
         {/* Back Button */}
         <Link
-          href="/"
-          className="absolute top-10 left-10 z-30 flex items-center gap-3 text-white/80 hover:text-amber-400 transition-all group"
+          href="/user/rooms"
+          className="absolute top-8 left-8 z-30 flex items-center gap-3 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/60 transition-all group"
         >
-          <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition" />
-          <span className="text-sm tracking-widest uppercase font-medium">All Rooms</span>
+          <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <span className="text-sm font-medium tracking-wide">Back to Rooms</span>
         </Link>
 
-        {/* Hero Text */}
-        <div className="absolute inset-0 flex items-end pb-32 px-10 lg:px-20">
-          <div className="max-w-7xl mx-auto w-full">
-            <div className="flex items-center gap-6 mb-6">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-9 h-9 text-amber-400 fill-amber-400 drop-shadow-glow" />
-                ))}
-              </div>
-              <span className="text-amber-300 text-sm tracking-widest uppercase">Signature Collection</span>
-            </div>
-
-            <h1 className="text-6xl md:text-8xl font-bold text-white mb-4">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500">
-                Deluxe Room
-              </span>
+        {/* Hero Content */}
+        <div className="absolute inset-0 flex items-center justify-center z-20">
+          <div className="text-center px-6 animate-fade-in-up">
+            <h1 className="text-6xl md:text-8xl font-bold text-white mb-6">
+              Deluxe <span style={{ color: GOLD }}>Room</span>
             </h1>
-            <p className="text-2xl text-gray-300 font-light max-w-3xl">
-              Ruang 45–52 m² yang memadukan kemewahan modern dengan kenyamanan terbaik — 
-              pilihan sempurna untuk pelancong yang menghargai detail.
+            <p className="text-xl text-gray-200 font-light max-w-2xl mx-auto tracking-wide">
+              Refined comfort with brushed gold accents and a warm, inviting atmosphere
             </p>
           </div>
         </div>
       </section>
 
-      {/* Detail Section */}
-      <section className="py-24 bg-black relative overflow-hidden">
-        {/* Background Orbs */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-32 -left-32 w-80 h-80 bg-amber-600/20 rounded-full blur-3xl animate-drift-slow"></div>
-          <div className="absolute bottom-32 -right-32 w-80 h-80 bg-yellow-600/20 rounded-full blur-3xl animate-drift-slow" style={{animationDelay: '4s'}}></div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-3 gap-16">
-            {/* Left: Description + Amenities */}
-            <div className="lg:col-span-2 space-y-16">
-              <div>
-                <h2 className="text-5xl font-bold mb-8">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
-                    Refined Comfort, Elevated
-                  </span>
-                </h2>
-                <p className="text-xl text-gray-300 leading-relaxed font-light">
-                  Deluxe Room kami dirancang dengan palet warna hangat, aksen emas brushed, dan material premium 
-                  yang memberikan rasa tenang sekaligus mewah — cocok untuk perjalanan bisnis maupun liburan romantis.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="text-3xl font-semibold text-amber-400 mb-10">Room Highlights</h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                  {amenities.map((item, i) => (
-                    <div key={i} className="flex items-start gap-4 group">
-                      <div className="mt-1.5 w-2.5 h-2.5 bg-amber-500 rounded-full shadow-lg shadow-amber-500/40 
-                        group-hover:scale-150 transition-transform duration-300"></div>
-                      <span className="text-gray-300 text-lg font-light group-hover:text-amber-200 transition-colors">
-                        {item}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Golden Divider */}
-              <div className="flex items-center gap-8 my-16 opacity-60">
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
-                <div className="w-4 h-4 rotate-45 border-2 border-amber-500 shadow-lg"></div>
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
-              </div>
+      {/* Details Section */}
+      <section className="py-20 px-6 max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-3 gap-16">
+          
+          {/* Main Info */}
+          <div className="lg:col-span-2 space-y-12">
+            
+            {/* Quick Specs Bar */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 rounded-2xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+               {features.map((f, i) => (
+                  <div key={i} className="flex flex-col items-center justify-center gap-2 text-center">
+                     <f.icon className="w-6 h-6" style={{ color: GOLD }} />
+                     <span className="text-gray-300 font-medium">{f.label}</span>
+                  </div>
+               ))}
             </div>
 
-            {/* Right: Sticky Booking Card */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-10 bg-gradient-to-br from-gray-950/90 via-black/95 to-amber-950/30 
-                backdrop-blur-2xl rounded-3xl border border-amber-800/50 overflow-hidden shadow-2xl">
-                <div className="p-10">
-                  <div className="text-center mb-10">
-                    <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">
-                      IDR 630.000
-                    </div>
-                    <p className="text-gray-400 mt-2 text-sm">per malam ++ · termasuk sarapan untuk 2 orang</p>
-                  </div>
+            {/* Description */}
+            <div>
+               <h2 className="text-3xl font-bold text-white mb-6">Room Overview</h2>
+               <p className="text-gray-400 leading-relaxed text-lg font-light">
+                  Designed for the discerning traveler, our Deluxe Room offers a generous 52 m² of elegant space. 
+                  Featuring Egyptian cotton linens and premium local amenities, this room provides a sanctuary of 
+                  calm. Whether for business or leisure, enjoy smart room controls and dedicated workspaces.
+               </p>
+            </div>
 
-                  <div className="space-y-5 mb-10 bg-black/40 rounded-2xl p-6 border border-amber-900/50">
-                    <div className="flex justify-between text-gray-300">
-                      <span className="font-light">Luas</span>
-                      <span className="text-amber-400 font-semibold">45-52 m²</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="font-light">Kapasitas</span>
-                      <span className="text-amber-400 font-semibold">2 Dewasa</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="font-light">Pilihan Bed</span>
-                      <span className="text-amber-400 font-semibold">King / Twin</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Link href="/user/rooms" className="w-full">
-                    <Button className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 
-                      text-white font-bold text-lg py-8 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-amber-500/50 
-                      border border-amber-400 transition-all mb-5 duration-400">
-                      Reserve This Room
-                    </Button>
-                    </Link>
-
-                  <Link href="/user/rooms" className="w-full"> 
-                    <Button variant="outline" className="w-full border-2 border-amber-600 text-amber-400 
-                      hover:bg-amber-950/50 hover:text-amber-300 py-8 rounded-2xl font-medium text-lg transition-all">
-                      Check Dates & Rates
-                    </Button>
-                    </Link>
-                  </div>
-
-                  <div className="mt-10 pt-8 border-t border-amber-900/40 text-center text-xs text-gray-500">
-                    <p className="mb-1">Pembatalan gratis hingga 24 jam sebelum kedatangan</p>
-                    <p>Best available rate • No hidden charges</p>
-                  </div>
-                </div>
-              </Card>
+            {/* Amenities Grid */}
+            <div>
+               <h2 className="text-3xl font-bold text-white mb-8">Amenities</h2>
+               <div className="grid md:grid-cols-2 gap-y-4 gap-x-8">
+                  {amenities.map((item, i) => (
+                     <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors bg-gray-900/30">
+                        <item.icon className="w-5 h-5" style={{ color: GOLD }} />
+                        <span className="text-gray-300">{item.label}</span>
+                     </div>
+                  ))}
+               </div>
             </div>
           </div>
+
+          {/* Sticky Booking Card */}
+          <div className="lg:col-span-1">
+             <div className="sticky top-8">
+                <Card className="bg-gray-900 border-gray-800 p-8 rounded-3xl shadow-2xl shadow-black/50 overflow-hidden relative">
+                   {/* Glow effect */}
+                   <div className="absolute -top-20 -right-20 w-40 h-40 bg-yellow-600/20 blur-3xl rounded-full pointer-events-none" />
+                   
+                   <div className="relative z-10 text-center space-y-8">
+                      <div>
+                         <p className="text-gray-400 text-sm uppercase tracking-wider mb-2">Starting from</p>
+                         <h3 className="text-5xl font-bold text-white mb-2">
+                           IDR 630k
+                           <span className="text-lg text-gray-500 font-normal ml-1">/ night</span>
+                         </h3>
+                         <p className="text-teal-400 text-sm font-medium">Includes Breakfast for 2</p>
+                      </div>
+
+                      <div className="space-y-4">
+                         <Button 
+                           asChild
+                           className="w-full h-14 text-lg font-bold text-black rounded-xl hover:scale-[1.02] transition-transform shadow-lg"
+                           style={{ backgroundColor: GOLD }}
+                         >
+                            <Link href="/user/rooms">Book Now</Link>
+                         </Button>
+                         <Button 
+                           asChild
+                           variant="outline"
+                           className="w-full h-14 text-lg font-medium border-gray-700 text-gray-300 hover:bg-gray-800 rounded-xl"
+                         >
+                            <Link href="/user/contact">Contact Us</Link>
+                         </Button>
+                      </div>
+
+                      <div className="pt-6 border-t border-gray-800 text-xs text-center text-gray-500 space-y-1">
+                         <p>Free Cancellation 24h before check-in</p>
+                         <p>Best Rate Guarantee</p>
+                      </div>
+                   </div>
+                </Card>
+             </div>
+          </div>
+
         </div>
       </section>
-
-      {/* Bottom Glow */}
-      <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-2xl shadow-amber-400/50"></div>
-    </>
+      <ChatBot />
+    </div>
   );
 }

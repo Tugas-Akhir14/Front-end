@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -12,9 +12,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Star, Send, LogIn, Loader2, Edit2, Trash2, Check, MessageSquare,
-  MapPin, Phone, Clock, Facebook, Instagram, Twitter, Youtube, Linkedin
+  MapPin, Phone, Clock, Facebook, Instagram, Twitter, Youtube
 } from 'lucide-react';
 import ChatBot from '@/components/Chatbot/ChatBot';
+
+// Warna emas mewah sesuai News Page
+const GOLD = '#d4af37';
 
 interface Admin {
   id: number;
@@ -106,7 +109,7 @@ function ReviewSection() {
     if (isLoggedIn && userRole === 'guest') loadMyReviews();
   }, [isLoggedIn, userRole]);
 
-  // === CRUD OPERATIONS (tetap sama) ===
+  // === CRUD OPERATIONS ===
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = sessionStorage.getItem('token');
@@ -189,20 +192,22 @@ function ReviewSection() {
     onChange?: (v: number) => void;
     readonly?: boolean;
   }) => (
-    <div className="flex gap-2 justify-center md:justify-start">
+    <div className="flex gap-1 justify-start">
       {[1, 2, 3, 4, 5].map((i) => (
         <button
           key={i}
           type="button"
           disabled={readonly}
           onClick={() => !readonly && onChange?.(i)}
-          className={`transition-all duration-200 ${readonly ? 'cursor-default' : 'hover:scale-125 cursor-pointer active:scale-110'}`}
+          className={`transition-all duration-200 ${readonly ? 'cursor-default' : 'hover:scale-110 cursor-pointer'}`}
         >
           <Star
-            className={`w-10 h-10 drop-shadow-md ${i <= value
-              ? 'text-amber-400 fill-amber-400'
-              : 'text-gray-600'
+            className={`w-6 h-6 ${i <= value
+              ? 'fill-current'
+              : 'text-gray-700'
               }`}
+            style={{ color: i <= value ? GOLD : undefined }}
+            strokeWidth={1.5}
           />
         </button>
       ))}
@@ -214,134 +219,127 @@ function ReviewSection() {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
 
-  if (loadingAuth) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (loadingAuth) return <Skeleton className="h-64 w-full rounded-2xl bg-gray-900" />;
 
   return (
-    <>
+    <div className="space-y-12">
       {!isLoggedIn ? (
-        <Card className="shadow-2xl border-amber-600/40 bg-gradient-to-br from-black/90 to-black/60 backdrop-blur-xl text-center py-20 rounded-3xl">
-          <CardHeader>
-            <MessageSquare className="w-24 h-24 mx-auto text-amber-500 mb-6 animate-pulse" />
-            <CardTitle className="text-5xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-              Login untuk Mengelola Ulasan Anda
-            </CardTitle>
-            <p className="text-gray-300 text-lg mt-4 max-w-xl mx-auto">
-              Lihat, tambah, edit, atau hapus ulasan Anda kapan saja
-            </p>
-          </CardHeader>
-          <CardContent>
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold text-lg px-10 py-7 shadow-xl"
-              onClick={() => (window.location.href = '/auth/signin')}
-            >
-              <LogIn className="mr-3 h-6 w-6" /> Masuk Sekarang
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="bg-gray-900 border border-gray-800 p-12 rounded-2xl text-center shadow-lg hover:border-yellow-800/50 transition-colors">
+          <MessageSquare className="w-16 h-16 mx-auto mb-6 opacity-80" style={{ color: GOLD }} strokeWidth={1} />
+          <h3 className="text-3xl font-bold text-white mb-3">
+            Bagikan Pengalaman Anda
+          </h3>
+          <p className="text-gray-400 mb-8 max-w-lg mx-auto text-lg">
+            Masuk untuk menulis ulasan dan mengelola riwayat ulasan Anda.
+          </p>
+          <Button
+            size="lg"
+            className="text-black font-bold px-10 py-6 rounded-full transition-all duration-300 hover:opacity-90 shadow-lg shadow-amber-900/20"
+            style={{ backgroundColor: GOLD }}
+            onClick={() => (window.location.href = '/auth/signin')}
+          >
+            <LogIn className="mr-2 h-5 w-5" /> Masuk Sekarang
+          </Button>
+        </div>
       ) : userRole !== 'guest' ? (
-        <Alert className="border-2 border-amber-600/60 bg-black/80 backdrop-blur-lg rounded-2xl shadow-2xl">
-          <AlertDescription className="text-center text-2xl font-medium text-amber-400 py-8">
-            Hanya akun <span className="font-bold text-amber-300">tamu</span> yang dapat mengelola ulasan.
+        <Alert className="bg-gray-900 border-yellow-900/50 text-yellow-500">
+          <AlertDescription className="text-center font-medium text-lg">
+            Hanya akun tamu yang dapat mengelola ulasan.
           </AlertDescription>
         </Alert>
       ) : (
         <>
           {/* Form Ulasan Baru */}
-          <Card className="shadow-2xl border-amber-600/40 bg-gradient-to-br from-black/90 to-black/70 backdrop-blur-xl rounded-3xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-amber-900/30 to-amber-800/20 border-b border-amber-700/50">
-              <CardTitle className="text-4xl font-bold flex items-center gap-4 text-amber-400">
-                <Star className="w-12 h-12 text-amber-400 fill-amber-400 drop-shadow-lg" />
-                Tinggalkan Ulasan Baru
-              </CardTitle>
-              <p className="text-xl text-gray-300 mt-3">Halo, <span className="font-semibold text-amber-300">{userName}</span>!</p>
-            </CardHeader>
-            <CardContent className="pt-10 pb-12">
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="text-center p-10 bg-gradient-to-br from-amber-950/40 to-amber-900/30 rounded-2xl border border-amber-700/60 shadow-inner">
-                  <Label className="block text-2xl font-bold text-amber-400 mb-6">
-                    Berikan Rating Anda <span className="text-red-500">*</span>
-                  </Label>
-                  <RatingStars value={rating} onChange={setRating} />
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-xl text-amber-300">Komentar Anda <span className="text-red-500">*</span></Label>
-                  <Textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    rows={6}
-                    placeholder="Ceritakan pengalaman menginap Anda secara detail..."
-                    className="bg-black/50 border-amber-800/70 text-gray-100 placeholder-gray-500 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/30 rounded-xl text-lg"
-                    disabled={submitting}
-                  />
-                  <p className="text-sm text-right text-gray-400">
-                    {comment.length} / minimal {MIN_COMMENT} karakter
+          <Card className="bg-gray-900 border-gray-800 shadow-xl overflow-hidden">
+            <CardContent className="p-8 md:p-12">
+              <div className="grid md:grid-cols-5 gap-12">
+                <div className="md:col-span-2 space-y-4">
+                  <h3 className="text-3xl font-bold text-white">Tulis Ulasan</h3>
+                  <p className="text-gray-400 text-lg leading-relaxed">
+                    Bagaimana pengalaman menginap Anda? Pendapat Anda sangat berarti bagi kami.
                   </p>
+                  <div className="p-6 bg-black/40 rounded-xl border border-gray-800 mt-6">
+                    <p className="text-sm text-gray-500 uppercase tracking-widest mb-3 font-semibold">Rating Anda</p>
+                    <RatingStars value={rating} onChange={setRating} />
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="text-xl text-amber-300">Nama Tampilan (opsional)</Label>
-                  <Input
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Nama yang akan ditampilkan"
-                    className="bg-black/50 border-amber-800/70 text-gray-100 placeholder-gray-500 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/30 rounded-xl text-lg"
-                  />
+                <div className="md:col-span-3 space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label className="text-gray-300 font-medium">Komentar</Label>
+                      <Textarea
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        rows={5}
+                        placeholder="Ceritakan pengalaman Anda..."
+                        className="bg-black border-gray-700 text-gray-200 focus:ring-1 focus:ring-yellow-600 rounded-xl text-lg p-4"
+                        disabled={submitting}
+                      />
+                      <p className="text-sm text-right text-gray-500">
+                        {comment.length} / {MIN_COMMENT} karakter
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-gray-300 font-medium">Nama Tampilan (Opsional)</Label>
+                      <Input
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        placeholder={userName}
+                        className="bg-black border-gray-700 text-gray-200 focus:ring-1 focus:ring-yellow-600 rounded-xl h-12"
+                      />
+                    </div>
+
+                    {message && (
+                      <div className={`p-4 rounded-xl text-base flex items-center gap-3 font-medium ${message.type === 'success'
+                        ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-900'
+                        : 'bg-red-950/50 text-red-400 border border-red-900'
+                        }`}>
+                        {message.type === 'success' ? <Check className="w-5 h-5" /> : <Loader2 className="w-5 h-5" />}
+                        {message.text}
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full text-black font-bold text-lg py-6 rounded-xl transition-all hover:opacity-90 shadow-lg"
+                      style={{ backgroundColor: GOLD }}
+                      disabled={submitting || rating === 0 || comment.trim().length < MIN_COMMENT}
+                    >
+                      {submitting ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <Send className="mr-2 h-5 w-5" />
+                      )}
+                      Kirim Ulasan
+                    </Button>
+                  </form>
                 </div>
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold text-xl py-8 rounded-xl shadow-2xl transform hover:scale-[1.02] transition-all duration-300"
-                  disabled={submitting || rating === 0 || comment.trim().length < MIN_COMMENT}
-                >
-                  {submitting ? (
-                    <Loader2 className="mr-3 h-7 w-7 animate-spin" />
-                  ) : (
-                    <Send className="mr-3 h-7 w-7" />
-                  )}
-                  Kirim Ulasan
-                </Button>
-
-                {message && (
-                  <Alert className={`rounded-xl border-2 ${message.type === 'success'
-                    ? 'bg-emerald-950/70 border-emerald-600 text-emerald-300'
-                    : 'bg-red-950/70 border-red-600 text-red-300'
-                    }`}>
-                    <AlertDescription className="text-lg font-medium">
-                      {message.text}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </form>
+              </div>
             </CardContent>
           </Card>
 
           {/* Daftar Ulasan Saya */}
-          <div className="mt-20">
-            <h2 className="text-5xl font-bold text-center mb-16 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 bg-clip-text text-transparent">
-              Ulasan Saya
-            </h2>
+          <div className="mt-16">
+            <h3 className="text-3xl font-bold text-white mb-8 border-l-4 pl-6" style={{ borderColor: GOLD }}>
+              Riwayat Ulasan
+            </h3>
 
             {loadingReviews ? (
-              <div className="space-y-8">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-56 w-full rounded-3xl bg-gray-900/70" />
+              <div className="space-y-6">
+                {[1, 2].map((i) => (
+                  <Skeleton key={i} className="h-40 w-full rounded-2xl bg-gray-900" />
                 ))}
               </div>
             ) : myReviews.length === 0 ? (
-              <Card className="text-center py-24 bg-gradient-to-br from-black/80 to-black/60 backdrop-blur-xl border-amber-700/40 rounded-3xl shadow-2xl">
-                <MessageSquare className="w-28 h-28 mx-auto text-gray-600 mb-6 opacity-60" />
-                <p className="text-3xl font-bold text-gray-300">Belum ada ulasan</p>
-                <p className="text-xl text-gray-500 mt-4">Kirim ulasan pertama Anda di atas!</p>
-              </Card>
+              <div className="text-center py-16 text-gray-500 bg-gray-900/50 rounded-2xl border border-dashed border-gray-800">
+                <p className="text-xl">Belum ada ulasan yang dikirim.</p>
+              </div>
             ) : (
-              <div className="space-y-10">
+              <div className="space-y-6">
                 {myReviews.map((review) => {
                   const displayName = review.guest_name || review.admin?.full_name || 'Tamu';
                   const initial = displayName[0].toUpperCase();
@@ -349,39 +347,68 @@ function ReviewSection() {
                   return (
                     <Card
                       key={review.id}
-                      className="shadow-2xl bg-gradient-to-br from-black/80 to-black/60 backdrop-blur-xl border-amber-700/50 hover:border-amber-500 transition-all duration-500 rounded-3xl overflow-hidden group"
+                      className="group bg-gray-900 border-gray-800 hover:border-yellow-800/50 transition-all duration-300 rounded-2xl overflow-hidden"
                     >
-                      <CardContent className="pt-10 pb-12 px-10">
-                        <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
-                          <div className="flex items-center gap-6">
-                            <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center text-black font-bold text-3xl shadow-2xl ring-4 ring-amber-600/30">
+                      <CardContent className="p-8">
+                        <div className="flex flex-col md:flex-row gap-8">
+                          {/* Avatar */}
+                          <div className="flex-shrink-0">
+                            <div
+                              className="w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl text-black shadow-lg"
+                              style={{ backgroundColor: GOLD }}
+                            >
                               {initial}
-                            </div>
-                            <div>
-                              <p className="text-2xl font-bold text-amber-400">{displayName}</p>
-                              <p className="text-gray-400 mt-1">
-                                {formatDate(review.created_at)}
-                                {review.updated_at && review.updated_at !== review.created_at && (
-                                  <span className="text-amber-400 ml-2 text-sm">(diedit)</span>
-                                )}
-                              </p>
                             </div>
                           </div>
 
-                          <div className="flex gap-3">
+                          {/* Start Content */}
+                          <div className="flex-grow space-y-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="text-xl font-bold text-white">{displayName}</h4>
+                                <p className="text-gray-500 text-sm mt-1">{formatDate(review.created_at)}</p>
+                              </div>
+                              <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-gray-800">
+                                {editingId === review.id ? (
+                                  <RatingStars value={editRating} onChange={setEditRating} />
+                                ) : (
+                                  <RatingStars value={review.rating} readonly />
+                                )}
+                                <span className="text-lg font-bold ml-2 text-white">
+                                  {editingId === review.id ? editRating : review.rating}.0
+                                </span>
+                              </div>
+                            </div>
+
+                            {editingId === review.id ? (
+                              <Textarea
+                                value={editComment}
+                                onChange={(e) => setEditComment(e.target.value)}
+                                rows={3}
+                                className="bg-black border-gray-700 text-gray-200 rounded-xl"
+                              />
+                            ) : (
+                              <p className="text-gray-300 text-lg leading-relaxed">
+                                {review.comment}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex md:flex-col gap-3 justify-end md:justify-start border-t md:border-t-0 md:border-l border-gray-800 pt-4 md:pt-0 md:pl-6">
                             {editingId === review.id ? (
                               <>
                                 <Button
-                                  size="lg"
+                                  size="sm"
                                   onClick={() => saveEdit(review.id)}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
+                                  className="bg-green-600 hover:bg-green-700 text-white w-full"
                                 >
-                                  <Check className="w-6 h-6" />
+                                  <Check className="w-4 h-4 mr-2" /> Simpan
                                 </Button>
                                 <Button
-                                  size="lg"
+                                  size="sm"
                                   variant="outline"
-                                  className="border-amber-600 text-amber-400 hover:bg-amber-950/50"
+                                  className="border-gray-600 text-gray-400 hover:bg-gray-800 w-full"
                                   onClick={() => setEditingId(null)}
                                 >
                                   Batal
@@ -390,49 +417,25 @@ function ReviewSection() {
                             ) : (
                               <>
                                 <Button
-                                  size="lg"
+                                  size="sm"
                                   variant="ghost"
-                                  className="text-amber-400 hover:bg-amber-950/50"
+                                  className="text-gray-400 hover:text-white hover:bg-gray-800 w-full justify-start"
                                   onClick={() => startEdit(review)}
                                 >
-                                  <Edit2 className="w-6 h-6" />
+                                  <Edit2 className="w-4 h-4 mr-2" /> Edit
                                 </Button>
                                 <Button
-                                  size="lg"
+                                  size="sm"
                                   variant="ghost"
-                                  className="text-red-400 hover:bg-red-950/50"
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-950/30 w-full justify-start"
                                   onClick={() => handleDelete(review.id)}
                                 >
-                                  <Trash2 className="w-6 h-6" />
+                                  <Trash2 className="w-4 h-4 mr-2" /> Hapus
                                 </Button>
                               </>
                             )}
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-4 mb-6">
-                          {editingId === review.id ? (
-                            <RatingStars value={editRating} onChange={setEditRating} />
-                          ) : (
-                            <RatingStars value={review.rating} readonly />
-                          )}
-                          <span className="text-3xl font-bold text-amber-400">
-                            {editingId === review.id ? editRating : review.rating}.0
-                          </span>
-                        </div>
-
-                        {editingId === review.id ? (
-                          <Textarea
-                            value={editComment}
-                            onChange={(e) => setEditComment(e.target.value)}
-                            rows={5}
-                            className="bg-black/50 border-amber-700/70 text-gray-100 rounded-xl text-lg"
-                          />
-                        ) : (
-                          <p className="text-gray-200 text-lg leading-relaxed whitespace-pre-wrap bg-black/30 p-6 rounded-2xl border border-amber-800/40">
-                            {review.comment}
-                          </p>
-                        )}
                       </CardContent>
                     </Card>
                   );
@@ -442,7 +445,7 @@ function ReviewSection() {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
 
@@ -450,110 +453,130 @@ export default function ContactPage() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-black pt-32 pb-32">
-        {/* Hero */}
-        <section className="text-center py-24 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-900/20 via-amber-600/10 to-amber-900/20"></div>
-          <div className="relative z-10 max-w-5xl mx-auto px-6">
-            <h1 className="text-6xl md:text-8xl font-extrabold mb-8 leading-tight">
-              <span className="bg-gradient-to-r from-amber-300 via-amber-500 to-amber-700 bg-clip-text text-transparent">
-                Hubungi Kami
-              </span>
+      <main className="min-h-screen bg-black text-gray-100 pt-16 pb-32">
+        {/* Hero Section - Matching News Page Style */}
+        <section className="relative h-96 overflow-hidden">
+          <div
+            className="absolute inset-0 w-full h-full bg-cover bg-center opacity-40"
+            style={{
+              backgroundImage: 'url(https://images.unsplash.com/photo-1596386461350-326ccbc75941?q=80&w=2070&auto=format&fit=crop)'
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-black/80 to-black" />
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              background: `radial-gradient(60% 80% at 50% 0%, ${GOLD} 0%, transparent 70%)`,
+            }}
+          />
+          <div className="relative z-10 flex flex-col h-full items-center justify-center text-center px-4 pt-10">
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
+              Hubungi <span style={{ color: GOLD }}>Kami</span>
             </h1>
-            <p className="text-2xl md:text-3xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
-              Kami siap memberikan pengalaman menginap terbaik dengan layanan kelas dunia
+            <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+              Layanan tamu 24 jam untuk kenyamanan masa menginap Anda
             </p>
+            <div className="mt-8 h-1 w-32 mx-auto rounded-full" style={{ backgroundColor: GOLD }} />
           </div>
         </section>
 
-        {/* Info Cards */}
-        <div className="max-w-7xl mx-auto px-6 mb-24">
-          <div className="grid md:grid-cols-3 gap-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24 -mt-10 relative z-20">
+
+          {/* Info Grid - Dark Cards like News Page */}
+          <section className="grid md:grid-cols-3 gap-8">
             {[
-              { title: "Alamat", icon: MapPin, content: " Jl. Tarutung No. 120\n22312 Balige\nIndonesia " },
-              { title: "Kontak", icon: Phone, content: "☎  +62 632 322111\n✉ info@hotelmutiarabalige.com" },
-              { title: "Jam Operasional", icon: Clock, content: "Resepsionis: 24 Jam" },
+              {
+                label: "Alamat",
+                value: "Jl. Tarutung No. 120\n22312 Balige, Indonesia",
+                icon: MapPin
+              },
+              {
+                label: "Kontak",
+                value: "+62 632 322111\ninfo@hotelmutiarabalige.com",
+                icon: Phone
+              },
+              {
+                label: "Jam Operasional",
+                value: "Resepsionis 24 Jam\nCheck-in 14:00 | Check-out 12:00",
+                icon: Clock
+              },
             ].map((item, i) => (
               <Card
                 key={i}
-                className="bg-gradient-to-br from-black/90 to-gray-950 border-2 border-amber-700/50 hover:border-amber-500 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-600/30 group rounded-3xl overflow-hidden"
+                className="bg-gray-900 border-gray-800 hover:border-yellow-800/50 hover:shadow-2xl hover:shadow-yellow-900/10 transition-all duration-500 rounded-2xl overflow-hidden group"
               >
-                <CardContent className="pt-12 pb-16 text-center">
-                  <div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-500 shadow-2xl">
-                    <item.icon className="w-12 h-12 text-black" />
+                <CardContent className="p-10 text-center flex flex-col items-center">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-transform duration-500 group-hover:scale-110"
+                    style={{ backgroundColor: `${GOLD}20`, color: GOLD }}
+                  >
+                    <item.icon className="w-8 h-8" />
                   </div>
-                  <h3 className="text-3xl font-bold text-amber-400 mb-6">{item.title}</h3>
-                  <p className="text-gray-300 text-lg leading-relaxed whitespace-pre-line">{item.content}</p>
+                  <h3 className="text-xl font-bold text-white mb-4">{item.label}</h3>
+                  <p className="text-gray-400 whitespace-pre-line leading-relaxed text-lg">{item.value}</p>
                 </CardContent>
               </Card>
             ))}
-          </div>
-        </div>
+          </section>
 
-        {/* Social Media */}
-        <div className="max-w-5xl mx-auto px-6 mb-24">
-          <Card className="bg-gradient-to-br from-black/90 to-gray-950 border-2 border-amber-700/50 shadow-2xl rounded-3xl overflow-hidden">
-            <CardContent className="py-20 text-center">
-              <h3 className="text-4xl md:text-5xl font-bold text-amber-400 mb-12">Ikuti Kami di Media Sosial</h3>
-              <div className="flex justify-center gap-12 flex-wrap">
-                {[
-                  { icon: Facebook, label: "Facebook", url: "https://www.facebook.com/mutiarabaligehotel/" },
-                  { icon: Instagram, label: "Instagram", url: "https://www.instagram.com/mutiara.balige.hotel?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" },
-                  { icon: Twitter, label: "Twitter", url: "#" },
-                  { icon: Youtube, label: "YouTube", url: "#" },
+          {/* Map & Social Split */}
+          <section className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            <div className="space-y-10">
+              <div>
+                <h2 className="text-4xl font-extrabold text-white mb-6">Lokasi <span style={{ color: GOLD }}>Strategis</span></h2>
+                <p className="text-gray-300 text-lg leading-relaxed mb-8">
+                  Hotel Mutiara Balige terletak strategis di jantung kota, menawarkan akses mudah ke Danau Toba, Museum T.B. Silalahi Center, dan pusat perbelanjaan lokal. Hanya 30 menit dari Bandara Silangit.
+                </p>
 
-                ].map((social, i) => (
-                  <a
-                    key={i}
-                    href={social.url}
-                    className="group"
-                    aria-label={social.label}
-                  >
-                    <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center hover:scale-125 transition-all duration-300 shadow-2xl group-hover:shadow-amber-500/60">
-                      <social.icon className="w-10 h-10 text-black" />
-                    </div>
-                  </a>
-                ))}
+                <div className="flex gap-6">
+                  {[
+                    { icon: Facebook, href: "https://www.facebook.com/mutiarabaligehotel/" },
+                    { icon: Instagram, href: "https://www.instagram.com/mutiara.balige.hotel?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" },
+                    { icon: Twitter, href: "#" },
+                    { icon: Youtube, href: "#" }
+                  ].map((social, i) => (
+                    <a
+                      key={i}
+                      href={social.href}
+                      className="w-14 h-14 rounded-full border border-gray-700 flex items-center justify-center text-gray-400 hover:text-black transition-all duration-300 shadow-lg"
+                      style={{ ':hover': { backgroundColor: GOLD, borderColor: GOLD } } as any}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = GOLD;
+                        e.currentTarget.style.color = 'black';
+                        e.currentTarget.style.borderColor = GOLD;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#9ca3af';
+                        e.currentTarget.style.borderColor = '#374151';
+                      }}
+                    >
+                      <social.icon className="w-6 h-6" />
+                    </a>
+                  ))}
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
 
-        {/* Google Maps */}
-        <div className="max-w-7xl mx-auto px-6 mb-24">
-          <Card className="bg-gradient-to-br from-black/90 to-gray-950 border-2 border-amber-700/50 shadow-2xl rounded-3xl overflow-hidden">
-            <CardHeader className="text-center py-12 bg-gradient-to-b from-amber-900/20 to-transparent">
-              <CardTitle className="text-5xl font-bold text-amber-400">Lokasi Kami</CardTitle>
-              <p className="text-xl text-gray-300 mt-4">Berada Dekat Dengan Pusat Kota Balige</p>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="relative overflow-hidden rounded-b-3xl">
-                <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3981.9764556938315!2d98.66581287475977!3d3.5951948964116457!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30313106c3a68b55%3A0xc4867c6b88a3db0!2sJl.%20Sisingamangaraja%2C%20Medan%2C%20Sumatera%20Utara!5e0!3m2!1sen!2sid!4v1234567890"
-                  width="100%"
-                  height="500"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  className="grayscale hover:grayscale-0 transition-all duration-700"
-                ></iframe>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <div className="h-96 rounded-3xl overflow-hidden border border-gray-800 shadow-2xl relative">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3981.9764556938315!2d98.66581287475977!3d3.5951948964116457!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30313106c3a68b55%3A0xc4867c6b88a3db0!2sJl.%20Sisingamangaraja%2C%20Medan%2C%20Sumatera%20Utara!5e0!3m2!1sen!2sid!4v1234567890"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="grayscale hover:grayscale-0 transition-all duration-700"
+              ></iframe>
+            </div>
+          </section>
 
-        {/* Review Section */}
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-20">
-            <h2 className="text-6xl md:text-7xl font-extrabold mb-6">
-              <span className="bg-gradient-to-r from-amber-300 via-amber-500 to-amber-700 bg-clip-text text-transparent">
-                Review
-              </span>
-            </h2>
-            <p className="text-2xl text-gray-400">Berikan Ulasan Anda</p>
-          </div>
-          <ReviewSection />
+          {/* Review Section */}
+          <section className="pt-10">
+            <ReviewSection />
+          </section>
+
         </div>
       </main>
       <Footer />

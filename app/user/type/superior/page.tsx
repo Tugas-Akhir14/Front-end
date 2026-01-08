@@ -1,203 +1,164 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, Maximize, Users, Bed, Mountain, Wifi, Wind, Check, Coffee, Tv } from "lucide-react";
 import Link from "next/link";
+import ChatBot from '@/components/Chatbot/ChatBot';
+
+const GOLD = '#d4af37';
 
 export default function SuperiorSuiteDetail() {
-  const images = [
-    "/superior.jpg",
-    "/superior.jpg",
-    "/superior.jpg",
-    "/superior.jpg",
+  const features = [
+    { icon: Maximize, label: "80 m²" },
+    { icon: Users, label: "2 Adults" },
+    { icon: Bed, label: "King Bed" },
+    { icon: Mountain, label: "City & Ocean" },
   ];
 
   const amenities = [
-    "King-size bed dengan linen Frette 1000-thread count",
-    "80 m² ruang pribadi + balkon panoramic",
-    "Smart TV 75” dengan Netflix & Apple TV",
-    "Bang & Olufsen Beosound sound system",
-    "Minibar premium gratis (termasuk champagne)",
-    "Nespresso machine + TWG Tea selection",
-    "Marble bathroom dengan rain shower & bathtub",
-    "Byredo London bathroom amenities",
-    "Walk-in wardrobe dengan safety box",
-    "Smart home control (lampu, curtain, AC)",
-    "High-speed Wi-Fi 1 Gbps",
-    "24-hour dedicated butler service",
+    { icon: Wifi, label: "High-speed Wi-Fi 1 Gbps" },
+    { icon: Wind, label: "Smart AC & Climate Control" },
+    { icon: Tv, label: "75” Smart TV with Netflix" },
+    { icon: Coffee, label: "Nespresso & TWG Tea" },
+    { icon: Check, label: "Walk-in Wardrobe" },
+    { icon: Check, label: "Marble Bathroom" },
+    { icon: Check, label: "24-hour Butler Service" },
+    { icon: Check, label: "Daily Housekeeping" },
   ];
 
   return (
-    <>
-      {/* Hero Gallery Section */}
-      <section className="relative h-screen min-h-[700px] overflow-hidden bg-black">
-        {/* Main Image Background */}
+    <div className="bg-black min-h-screen">
+      {/* Hero Section */}
+      <section className="relative h-[85vh] overflow-hidden">
         <div className="absolute inset-0">
           <img
             src="/superior.jpg"
-            alt="Superior Suite - Panoramic View"
-            className="w-full h-full object-cover"
+            alt="Superior Suite"
+            className="w-full h-full object-cover transition-transform duration-1000 md:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-        </div>
-
-        {/* Floating Thumbnail Gallery */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 z-20">
-          {images.map((img, i) => (
-            <button
-              key={i}
-              className="group relative w-24 h-16 rounded-xl overflow-hidden border-2 border-amber-600/50 hover:border-amber-400 transition-all duration-300"
-            >
-              <img src={img} alt="" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
-            </button>
-          ))}
+          <div className="absolute inset-0 bg-black/40" />
+          {/* Gold Radial Gradient */}
+          <div
+            className="absolute inset-0 opacity-50"
+            style={{
+              background: `radial-gradient(circle at center, ${GOLD} 0%, transparent 70%)`,
+              mixBlendMode: 'overlay'
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
         </div>
 
         {/* Back Button */}
         <Link
-          href="/"
-          className="absolute top-10 left-10 z-30 flex items-center gap-3 text-white/80 hover:text-amber-400 transition-colors group"
+          href="/user/rooms"
+          className="absolute top-8 left-8 z-30 flex items-center gap-3 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/60 transition-all group"
         >
-          <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm tracking-wider uppercase font-medium">Back to Rooms</span>
+          <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <span className="text-sm font-medium tracking-wide">Back to Rooms</span>
         </Link>
 
-        {/* Header Overlay */}
-        <div className="absolute inset-0 flex items-end pb-32 px-10 lg:px-20">
-          <div className="max-w-7xl mx-auto w-full">
-            <div className="flex items-center gap-6 mb-6">
-              <div className="flex -space-x-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-10 h-10 text-amber-400 fill-amber-400 drop-shadow-glow" />
-                ))}
-              </div>
-              <span className="text-amber-300 text-sm tracking-widest uppercase">Signature Collection</span>
-            </div>
-
-            <h1 className="text-6xl md:text-8xl font-bold text-white mb-4">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500">
-                Superior Suite
-              </span>
+        {/* Hero Content */}
+        <div className="absolute inset-0 flex items-center justify-center z-20">
+          <div className="text-center px-6 animate-fade-in-up">
+            <h1 className="text-6xl md:text-8xl font-bold text-white mb-6">
+              Superior <span style={{ color: GOLD }}>Suite</span>
             </h1>
-            <p className="text-2xl text-gray-300 font-light max-w-3xl">
-              Ruang luas 80 m² dengan sentuhan emas dan marmer Italia — dirancang untuk mereka yang menginginkan 
-              kemewahan tanpa kompromi.
+            <p className="text-xl text-gray-200 font-light max-w-2xl mx-auto tracking-wide">
+              An expansive 80 m² sanctuary designed for uncompromising luxury and comfort
             </p>
           </div>
         </div>
       </section>
 
-      {/* Detail Content */}
-      <section className="py-24 bg-black relative overflow-hidden">
-        {/* Animated Background Orbs */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-20 -left-40 w-96 h-96 bg-amber-600/20 rounded-full blur-3xl animate-drift-slow"></div>
-          <div className="absolute bottom-20 -right-40 w-96 h-96 bg-yellow-500/20 rounded-full blur-3xl animate-drift-slow delay-1000"></div>
-        </div>
+      {/* Details Section */}
+      <section className="py-20 px-6 max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-3 gap-16">
 
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-3 gap-16">
-            {/* Left Column - Description & Amenities */}
-            <div className="lg:col-span-2 space-y-16">
-              {/* Description */}
-              <div>
-                <h2 className="text-5xl font-bold mb-8">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
-                    A Sanctuary of Modern Luxury
-                  </span>
-                </h2>
-                <p className="text-xl text-gray-300 leading-relaxed font-light">
-                  Superior Suite kami menawarkan perpaduan sempurna antara desain kontemporer dan kenyamanan absolut. 
-                  Setiap detail — mulai dari lantai marmer Carrara hingga aksen emas 24 karat — diciptakan untuk 
-                  memberikan pengalaman menginap yang tak terlupakan.
-                </p>
-              </div>
+          {/* Main Info */}
+          <div className="lg:col-span-2 space-y-12">
 
-              {/* Amenities Grid */}
-              <div>
-                <h3 className="text-3xl font-semibold text-amber-400 mb-10">Exclusive Amenities</h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                  {amenities.map((item, i) => (
-                    <div key={i} className="flex items-start gap-4 group">
-                      <div className="mt-1.5 w-3 h-3 bg-amber-500 rounded-full shadow-lg shadow-amber-500/50 
-                        group-hover:scale-150 transition-transform duration-300"></div>
-                      <span className="text-gray-300 text-lg font-light group-hover:text-amber-200 transition-colors">
-                        {item}
-                      </span>
-                    </div>
-                  ))}
+            {/* Quick Specs Bar */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 rounded-2xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+              {features.map((f, i) => (
+                <div key={i} className="flex flex-col items-center justify-center gap-2 text-center">
+                  <f.icon className="w-6 h-6" style={{ color: GOLD }} />
+                  <span className="text-gray-300 font-medium">{f.label}</span>
                 </div>
-              </div>
-
-              {/* Decorative Divider */}
-              <div className="flex items-center gap-8 my-16 opacity-50">
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
-                <div className="w-5 h-5 rotate-45 border-2 border-amber-500"></div>
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
-              </div>
+              ))}
             </div>
 
-            {/* Right Column - Booking Card (Sticky) */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-10 bg-gradient-to-br from-gray-950/90 via-black/95 to-amber-950/40 
-                backdrop-blur-2xl border border-amber-800/50 rounded-3xl overflow-hidden shadow-2xl shadow-black/60">
-                <div className="p-10">
-                  {/* Price */}
-                  <div className="text-center mb-10">
-                    <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">
-                      IDR 320.000
-                    </div>
-                    <p className="text-gray-400 mt-2">per malam + · termasuk sarapan untuk 2 orang</p>
+            {/* Description */}
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-6">Room Overview</h2>
+              <p className="text-gray-400 leading-relaxed text-lg font-light">
+                Our Superior Suite offers a perfect blend of modern design and Italian marble elegance.
+                Every detail, from the Frette linens to the Bang & Olufsen sound system, has been curated
+                to provide an unforgettable stay. Enjoy panoramic views and expansive personal space suited for
+                relaxation or productivity.
+              </p>
+            </div>
+
+            {/* Amenities Grid */}
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-8">Amenities</h2>
+              <div className="grid md:grid-cols-2 gap-y-4 gap-x-8">
+                {amenities.map((item, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors bg-gray-900/30">
+                    <item.icon className="w-5 h-5" style={{ color: GOLD }} />
+                    <span className="text-gray-300">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Sticky Booking Card */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-8">
+              <Card className="bg-gray-900 border-gray-800 p-8 rounded-3xl shadow-2xl shadow-black/50 overflow-hidden relative">
+                {/* Glow effect */}
+                <div className="absolute -top-20 -right-20 w-40 h-40 bg-yellow-600/20 blur-3xl rounded-full pointer-events-none" />
+
+                <div className="relative z-10 text-center space-y-8">
+                  <div>
+                    <p className="text-gray-400 text-sm uppercase tracking-wider mb-2">Starting from</p>
+                    <h3 className="text-5xl font-bold text-white mb-2">
+                      IDR 320k
+                      <span className="text-lg text-gray-500 font-normal ml-1">/ night</span>
+                    </h3>
+                    <p className="text-teal-400 text-sm font-medium">Includes Breakfast for 2</p>
                   </div>
 
-                  {/* Features Highlight */}
-                  <div className="space-y-4 mb-10 bg-black/40 rounded-2xl p-6 border border-amber-900/50">
-                    <div className="flex items-center justify-between text-gray-300">
-                      <span className="font-light">Luas Kamar</span>
-                      <span className="text-amber-400 font-semibold">80 m²</span>
-                    </div>
-                    <div className="flex items-center justify-between text-gray-300">
-                      <span className="font-light">Kapasitas</span>
-                      <span className="text-amber-400 font-semibold">2 Dewasa</span>
-                    </div>
-                    <div className="flex items-center justify-between text-gray-300">
-                      <span className="font-light">View</span>
-                      <span className="text-amber-400 font-semibold">City / Ocean</span>
-                    </div>
-                  </div>
-
-                  {/* CTA Buttons */}
                   <div className="space-y-4">
-                    <Link href="/user/rooms" className="w-full">
-                    <Button className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 
-                      text-white font-bold text-lg py-8 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-amber-500/50 
-                      border border-amber-400 transition-all mb-5 duration-400">
-                      Reserve Now
+                    <Button
+                      asChild
+                      className="w-full h-14 text-lg font-bold text-black rounded-xl hover:scale-[1.02] transition-transform shadow-lg"
+                      style={{ backgroundColor: GOLD }}
+                    >
+                      <Link href="/user/rooms">Book Now</Link>
                     </Button>
-                    </Link>
-
-                    <Link href="/user/rooms" className="w-full">
-                    <Button variant="outline" className="w-full border-2 border-amber-600 text-amber-400 
-                      hover:bg-amber-950/50 hover:text-amber-300 py-8 rounded-2xl font-medium text-lg transition-all duration-400">
-                      Check Availability
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full h-14 text-lg font-medium border-gray-700 text-gray-300 hover:bg-gray-800 rounded-xl"
+                    >
+                      <Link href="/user/contact">Contact Us</Link>
                     </Button>
-                    </Link>
                   </div>
 
-                  {/* Trust Elements */}
-                  <div className="mt-10 pt-10 border-t border-amber-900/50 text-center text-sm text-gray-500">
-                    <p className="mb-2">Gratis pembatalan hingga 48 jam sebelum check-in</p>
-                    <p>No hidden fees • Best rate guaranteed</p>
+                  <div className="pt-6 border-t border-gray-800 text-xs text-center text-gray-500 space-y-1">
+                    <p>Free Cancellation 48h before check-in</p>
+                    <p>No hidden booking fees</p>
                   </div>
                 </div>
               </Card>
             </div>
           </div>
+
         </div>
       </section>
-
-      {/* Final Glow Lines */}
-      <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-2xl shadow-amber-400/50"></div>
-    </>
+      <ChatBot />
+    </div>
   );
 }

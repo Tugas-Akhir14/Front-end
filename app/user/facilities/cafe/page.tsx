@@ -312,6 +312,7 @@ export default async function CafePage() {
           </div>
         </div>
       </div>
+      
 
       {/* Operating Hours */}
       <div className="bg-white py-8 px-6 border-t border-amber-100">
@@ -338,3 +339,4 @@ export default async function CafePage() {
     </div>
   );
 }
+
