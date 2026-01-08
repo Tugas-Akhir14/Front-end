@@ -23,7 +23,6 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className={inter.className}>
-        {/* HANYA SATU KALI, DAN children DI DALAMNYA! */}
         <NotificationProvider>
           {children}
         </NotificationProvider>
