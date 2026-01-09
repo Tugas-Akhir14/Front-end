@@ -1,37 +1,50 @@
 "use client";
 
-import { useEffectCallback, useEffect, useState } from "react";
-import { Pencil, Trash2, AlertCircle, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Pencil, Trash2, AlertCircle, Plus, Percent, Calendar } from "lucide-react";
 import Swal from "sweetalert2";
 import { toast, Toaster } from "sonner";
 
 interface RoomType {
   id: number;
   type: string;
-  Price: number;
+  base_price: number;
+  discount_percentage: number;
+  discount_start?: string | null;
+  discount_end?: string | null;
+  discount_description?: string;
   description: string;
   created_at: string;
   updated_at: string;
+  current_price: number;
 }
 
 export default function RoomTypePage() {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<{ Price?: number; description?: string }>({});
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [priceError, setPriceError] = useState<string | null>(null);
 
   // Modal Create
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
     type: "",
-    Price: "",
+    base_price: "",
+    discount_percentage: "",
+    discount_start: "",
+    discount_end: "",
+    discount_description: "",
     description: "",
   });
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Modal Edit
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<RoomType>>({});
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Deleting state
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const API_URL = "http://localhost:8080/api";
   const TOKEN_KEY = "token";
@@ -41,7 +54,7 @@ export default function RoomTypePage() {
   useEffect(() => {
     const storedToken = sessionStorage.getItem(TOKEN_KEY);
     if (storedToken) {
-      setToken(storedToken.replace(/^"+|"+$/g, "")); // bersihin tanda petik kalau ada
+      setToken(storedToken.replace(/^"+|"+$/g, ""));
     } else {
       setError("Anda belum login. Silakan login terlebih dahulu.");
       setLoading(false);
@@ -115,6 +128,24 @@ export default function RoomTypePage() {
     return num;
   };
 
+  const validateDiscountPercentage = (value: string): number | null => {
+    const num = Number(value);
+    if (isNaN(num) || num < 0 || num > 100) return null;
+    return num;
+  };
+
+  const validateDiscountDates = (
+    percentage: number,
+    start: string,
+    end: string
+  ): boolean => {
+    if (percentage > 0) {
+      if (!start || !end) return false;
+      if (new Date(start) >= new Date(end)) return false;
+    }
+    return true;
+  };
+
   // === CREATE ===
   const handleCreate = async () => {
     setCreateError(null);
@@ -124,9 +155,16 @@ export default function RoomTypePage() {
       return;
     }
 
-    const price = validatePrice(createForm.Price);
-    if (price === null) {
-      setCreateError("Harga harus angka positif");
+    const basePrice = validatePrice(createForm.base_price);
+    if (basePrice === null) {
+      setCreateError("Harga dasar harus angka positif");
+      return;
+    }
+
+    const discountPercentage = validateDiscountPercentage(createForm.discount_percentage) ?? 0;
+
+    if (!validateDiscountDates(discountPercentage, createForm.discount_start, createForm.discount_end)) {
+      setCreateError("Tanggal diskon tidak valid: start harus sebelum end dan wajib jika diskon >0%");
       return;
     }
 
@@ -138,6 +176,16 @@ export default function RoomTypePage() {
     const toastId = toast.loading("Menambahkan tipe kamar...");
 
     try {
+      const payload = {
+        type: createForm.type.toLowerCase(),
+        base_price: basePrice,
+        discount_percentage: discountPercentage,
+        discount_start: discountPercentage > 0 ? createForm.discount_start + "T00:00:00Z" : undefined,
+        discount_end: discountPercentage > 0 ? createForm.discount_end + "T23:59:59Z" : undefined,
+        discount_description: createForm.discount_description.trim() || undefined,
+        description: createForm.description.trim(),
+      };
+
       const res = await fetch(`${API_URL}/room-types`, {
         method: "POST",
         credentials: "include",
@@ -145,11 +193,7 @@ export default function RoomTypePage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token!}`,
         },
-        body: JSON.stringify({
-          type: createForm.type.toLowerCase(),
-          price: price,
-          description: createForm.description.trim(),
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -160,36 +204,76 @@ export default function RoomTypePage() {
       toast.success("Tipe kamar berhasil ditambahkan!", { id: toastId });
       await fetchRoomTypes();
       setIsCreateModalOpen(false);
-      setCreateForm({ type: "", Price: "", description: "" });
+      setCreateForm({
+        type: "",
+        base_price: "",
+        discount_percentage: "",
+        discount_start: "",
+        discount_end: "",
+        discount_description: "",
+        description: "",
+      });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal menambah", { id: toastId });
     }
   };
 
-  // === UPDATE ===
-  const handleUpdate = async (id: number) => {
-    if (!token) return;
+  // === EDIT ===
+  const openEditModal = (rt: RoomType) => {
+    setEditForm({
+      id: rt.id,
+      base_price: rt.base_price,
+      discount_percentage: rt.discount_percentage,
+      discount_start: rt.discount_start ? rt.discount_start.split("T")[0] : "",
+      discount_end: rt.discount_end ? rt.discount_end.split("T")[0] : "",
+      discount_description: rt.discount_description,
+      description: rt.description,
+    });
+    setIsEditModalOpen(true);
+    setEditError(null);
+  };
 
-    if (editForm.Price !== undefined) {
-      const validPrice = validatePrice(String(editForm.Price));
-      if (validPrice === null) {
-        setPriceError("Harga harus angka positif");
-        return;
-      }
-      editForm.Price = validPrice;
+  const handleUpdate = async () => {
+    setEditError(null);
+
+    const basePrice = validatePrice(String(editForm.base_price));
+    if (basePrice === null) {
+      setEditError("Harga dasar harus angka positif");
+      return;
+    }
+
+    const discountPercentage = validateDiscountPercentage(String(editForm.discount_percentage)) ?? 0;
+
+    if (!validateDiscountDates(discountPercentage, String(editForm.discount_start), String(editForm.discount_end))) {
+      setEditError("Tanggal diskon tidak valid: start harus sebelum end dan wajib jika diskon >0%");
+      return;
+    }
+
+    if (!editForm.description?.trim()) {
+      setEditError("Deskripsi wajib diisi");
+      return;
     }
 
     const toastId = toast.loading("Menyimpan perubahan...");
 
     try {
-      const res = await fetch(`${API_URL}/room-types/${id}`, {
+      const payload = {
+        base_price: basePrice,
+        discount_percentage: discountPercentage > 0 ? discountPercentage : undefined,
+        discount_start: discountPercentage > 0 ? String(editForm.discount_start) + "T00:00:00Z" : null,
+        discount_end: discountPercentage > 0 ? String(editForm.discount_end) + "T23:59:59Z" : null,
+        discount_description: editForm.discount_description?.trim() || undefined,
+        description: editForm.description.trim(),
+      };
+
+      const res = await fetch(`${API_URL}/room-types/${editForm.id}`, {
         method: "PUT",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token!}`,
         },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -203,16 +287,15 @@ export default function RoomTypePage() {
       }
 
       toast.success("Tipe kamar berhasil diperbarui!", { id: toastId });
-      setPriceError(null);
       await fetchRoomTypes();
-      setEditingId(null);
+      setIsEditModalOpen(false);
       setEditForm({});
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update gagal", { id: toastId });
     }
   };
 
-  // === DELETE DENGAN SWEETALERT2 CANTIK + WARNA SOLID ===
+  // === DELETE ===
   const handleDelete = async (id: number, typeName: string) => {
     const result = await Swal.fire({
       title: `Hapus tipe "${typeName}"?`,
@@ -261,13 +344,17 @@ export default function RoomTypePage() {
     }
   };
 
-  const formatPrice = (price: number | undefined): string => {
-    if (price === undefined || isNaN(price) || price < 0) return "Rp0";
+  const formatPrice = (price: number): string => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  const formatDate = (date: string | null | undefined): string => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
   };
 
   if (loading) {
@@ -298,7 +385,6 @@ export default function RoomTypePage() {
 
   return (
     <>
-      {/* SWEETALERT2 & SONNER */}
       <Toaster position="top-right" richColors closeButton />
       <style jsx global>{`
         .swal-actions {
@@ -331,7 +417,7 @@ export default function RoomTypePage() {
         }
       `}</style>
 
-      <div className="container mx-auto p-6 max-w-5xl">
+      <div className="container mx-auto p-6 max-w-7xl">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-gray-800">Manajemen Tipe Kamar</h1>
@@ -351,13 +437,6 @@ export default function RoomTypePage() {
             </div>
           )}
 
-          {priceError && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
-              {priceError}
-            </div>
-          )}
-
           {roomTypes.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               Belum ada tipe kamar. Tekan tombol "Tambah Tipe" untuk memulai.
@@ -369,7 +448,11 @@ export default function RoomTypePage() {
                   <tr className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b">
                     <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">ID</th>
                     <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Tipe</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Harga</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Harga Dasar</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Harga Saat Ini</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Diskon (%)</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Periode Diskon</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Deskripsi Diskon</th>
                     <th className="px-4 py-3 text-left text-xs font-bold uppercase text-amber-800">Deskripsi</th>
                     <th className="px-4 py-3 text-right text-xs font-bold uppercase text-amber-800">Aksi</th>
                   </tr>
@@ -379,82 +462,41 @@ export default function RoomTypePage() {
                     <tr key={rt.id} className="hover:bg-amber-50 transition">
                       <td className="px-4 py-4 text-sm text-gray-900">{rt.id}</td>
                       <td className="px-4 py-4 text-sm font-bold text-amber-700 capitalize">{rt.type}</td>
-                      <td className="px-4 py-4 text-sm">
-                        {editingId === rt.id ? (
-                          <input
-                            type="number"
-                            min="0"
-                            step="1000"
-                            value={editForm.Price ?? rt.Price}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setEditForm({ ...editForm, Price: val === "" ? undefined : Number(val) });
-                              setPriceError(null);
-                            }}
-                            className={`w-32 px-3 py-1.5 border rounded-lg focus:outline-none focus:ring-2 ${
-                              priceError ? "border-red-500 ring-red-500" : "focus:ring-amber-500"
-                            }`}
-                          />
-                        ) : (
-                          <span className="font-bold text-emerald-700">{formatPrice(rt.Price)}</span>
-                        )}
+                      <td className="px-4 py-4 text-sm font-bold text-emerald-700">{formatPrice(rt.base_price)}</td>
+                      <td className="px-4 py-4 text-sm font-bold text-blue-700">
+                        {formatPrice(rt.current_price)}
+                        {rt.current_price !== rt.base_price && <Percent className="w-4 h-4 inline ml-1 text-green-500" />}
                       </td>
-                      <td className="px-4 py-4 text-sm text-gray-700 max-w-xs">
-                        {editingId === rt.id ? (
-                          <textarea
-                            value={editForm.description ?? rt.description}
-                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            rows={2}
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
-                          />
-                        ) : (
-                          <span className="block truncate" title={rt.description}>{rt.description}</span>
-                        )}
+                      <td className="px-4 py-4 text-sm text-gray-700">{rt.discount_percentage}%</td>
+                      <td className="px-4 py-4 text-sm text-gray-700">
+                        {rt.discount_start ? `${formatDate(rt.discount_start)} - ${formatDate(rt.discount_end)}` : "-"}
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        {editingId === rt.id ? (
-                          <div className="flex justify-end gap-3">
-                            <button onClick={() => handleUpdate(rt.id)} className="text-green-600 hover:text-green-800 font-semibold">
-                              Simpan
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingId(null);
-                                setEditForm({});
-                                setPriceError(null);
-                              }}
-                              className="text-gray-600 hover:text-gray-800"
-                            >
-                              Batal
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex justify-end gap-4">
-                            <button
-                              onClick={() => {
-                                setEditingId(rt.id);
-                                setEditForm({ Price: rt.Price, description: rt.description });
-                                setPriceError(null);
-                              }}
-                              className="text-amber-600 hover:text-amber-800"
-                              title="Edit"
-                            >
-                              <Pencil className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(rt.id, rt.type.charAt(0).toUpperCase() + rt.type.slice(1))}
-                              disabled={deletingId === rt.id}
-                              className="text-red-600 hover:text-red-800 disabled:opacity-50"
-                              title="Hapus"
-                            >
-                              {deletingId === rt.id ? (
-                                <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <Trash2 className="w-5 h-5" />
-                              )}
-                            </button>
-                          </div>
-                        )}
+                      <td className="px-4 py-4 text-sm text-gray-700 max-w-xs truncate" title={rt.discount_description}>
+                        {rt.discount_description || "-"}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-700 max-w-xs truncate" title={rt.description}>
+                        {rt.description}
+                      </td>
+                      <td className="px-4 py-4 text-right flex justify-end gap-4">
+                        <button
+                          onClick={() => openEditModal(rt)}
+                          className="text-amber-600 hover:text-amber-800"
+                          title="Edit"
+                        >
+                          <Pencil className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(rt.id, rt.type.charAt(0).toUpperCase() + rt.type.slice(1))}
+                          disabled={deletingId === rt.id}
+                          className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                          title="Hapus"
+                        >
+                          {deletingId === rt.id ? (
+                            <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <Trash2 className="w-5 h-5" />
+                          )}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -465,7 +507,7 @@ export default function RoomTypePage() {
         </div>
       </div>
 
-      {/* MODAL CREATE – TETAP SAMA */}
+      {/* MODAL CREATE */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-amber-200">
@@ -495,20 +537,66 @@ export default function RoomTypePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Harga per Malam</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Harga Dasar per Malam</label>
                 <input
                   type="number"
                   min="0"
                   step="1000"
-                  value={createForm.Price}
-                  onChange={(e) => setCreateForm({ ...createForm, Price: e.target.value })}
+                  value={createForm.base_price}
+                  onChange={(e) => setCreateForm({ ...createForm, base_price: e.target.value })}
                   className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
                   placeholder="1.500.000"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Diskon (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={createForm.discount_percentage}
+                  onChange={(e) => setCreateForm({ ...createForm, discount_percentage: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Mulai Diskon</label>
+                  <input
+                    type="date"
+                    value={createForm.discount_start}
+                    onChange={(e) => setCreateForm({ ...createForm, discount_start: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Akhir Diskon</label>
+                  <input
+                    type="date"
+                    value={createForm.discount_end}
+                    onChange={(e) => setCreateForm({ ...createForm, discount_end: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi Diskon</label>
+                <input
+                  type="text"
+                  value={createForm.discount_description}
+                  onChange={(e) => setCreateForm({ ...createForm, discount_description: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="Alasan diskon, misal: Promo Lebaran"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi Kamar</label>
                 <textarea
                   value={createForm.description}
                   onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
@@ -523,7 +611,15 @@ export default function RoomTypePage() {
               <button
                 onClick={() => {
                   setIsCreateModalOpen(false);
-                  setCreateForm({ type: "", Price: "", description: "" });
+                  setCreateForm({
+                    type: "",
+                    base_price: "",
+                    discount_percentage: "",
+                    discount_start: "",
+                    discount_end: "",
+                    discount_description: "",
+                    description: "",
+                  });
                   setCreateError(null);
                 }}
                 className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition"
@@ -535,6 +631,112 @@ export default function RoomTypePage() {
                 className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold rounded-xl shadow-md hover:from-amber-600 hover:to-yellow-700 transition"
               >
                 Simpan Tipe
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIT */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-amber-200">
+            <h2 className="text-2xl font-bold text-gray-800 mb-5">Edit Tipe Kamar</h2>
+
+            {editError && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                {editError}
+              </div>
+            )}
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Harga Dasar per Malam</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={editForm.base_price ?? ""}
+                  onChange={(e) => setEditForm({ ...editForm, base_price: Number(e.target.value) })}
+                  className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="1.500.000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Diskon (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={editForm.discount_percentage ?? ""}
+                  onChange={(e) => setEditForm({ ...editForm, discount_percentage: Number(e.target.value) })}
+                  className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Mulai Diskon</label>
+                  <input
+                    type="date"
+                    value={editForm.discount_start ?? ""}
+                    onChange={(e) => setEditForm({ ...editForm, discount_start: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Akhir Diskon</label>
+                  <input
+                    type="date"
+                    value={editForm.discount_end ?? ""}
+                    onChange={(e) => setEditForm({ ...editForm, discount_end: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi Diskon</label>
+                <input
+                  type="text"
+                  value={editForm.discount_description ?? ""}
+                  onChange={(e) => setEditForm({ ...editForm, discount_description: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="Alasan diskon, misal: Promo Lebaran"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi Kamar</label>
+                <textarea
+                  value={editForm.description ?? ""}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  rows={4}
+                  className="w-full px-4 py-2.5 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                  placeholder="Fasilitas, keunggulan, dll..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-7">
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditForm({});
+                  setEditError(null);
+                }}
+                className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleUpdate}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold rounded-xl shadow-md hover:from-amber-600 hover:to-yellow-700 transition"
+              >
+                Simpan Perubahan
               </button>
             </div>
           </div>
