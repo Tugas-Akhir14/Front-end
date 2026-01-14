@@ -107,12 +107,13 @@ function Sidebar({ isCollapsed, isPeeking, setIsPeeking, isMobileOpen, closeMobi
         { icon: 'book', label: 'Product', href: '/admin/book/product',  },
         { icon: 'category', label: 'Category', href: '/admin/book/category' },
       ],
-    }] : []),
+    }] : []), 
     ...(can(['admin_cafe']) ? [{
       title: 'MANAGE CAFE',
       items: [
         { icon: 'dashboard', label: 'Dashboard', href: '/admin/cafe/dashboard' },
         { icon: 'cafe', label: 'Menu', href: '/admin/cafe/product', },
+        { icon: 'cafe', label: 'Order', href: '/admin/cafe/order', },
         { icon: 'category', label: 'Category', href: '/admin/cafe/category',  },
       ],
     }] : []),

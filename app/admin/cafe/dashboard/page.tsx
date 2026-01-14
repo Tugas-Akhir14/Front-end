@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Package, Tag, Coffee, AlertTriangle, Download, RefreshCw, Moon, Sun, Filter, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, Tag, Coffee, AlertTriangle, Download, RefreshCw, Moon, Sun, Filter, Search, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 
@@ -27,6 +27,12 @@ interface Product {
   category: Category;
 }
 
+interface Order {
+  id: number;
+  total_price: number;
+  status: string;
+}
+
 interface Stats {
   totalProducts: number;
   totalCategories: number;
@@ -35,18 +41,20 @@ interface Stats {
   withImage: number;
   lowStock: number;
   outOfStock: number;
+  totalRevenue: number; // Baru: total pendapatan dari paid orders
 }
 
 const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
 
 export default function DashboardCafePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]); // Baru: simpan semua orders untuk hitung revenue
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Filters
+  // Filters (tetap sama)
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<'all' | 'in' | 'low' | 'empty'>('all');
@@ -65,12 +73,14 @@ export default function DashboardCafePage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [prodRes, catRes] = await Promise.all([
+      const [prodRes, catRes, orderRes] = await Promise.all([
         api.get('/api/cafe-products'),
         api.get('/api/cafe-categories'),
+        api.get('/api/orders'), // Baru: ambil semua orders
       ]);
       setProducts(prodRes.data || []);
       setCategories(catRes.data || []);
+      setOrders(orderRes.data || []);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Gagal memuat data');
     } finally {
@@ -85,7 +95,14 @@ export default function DashboardCafePage() {
     return () => clearInterval(interval);
   }, [autoRefresh, fetchData]);
 
-  // === FILTERED PRODUCTS ===
+  // === HITUNG TOTAL PENDAPATAN DARI PAID ORDERS ===
+  const totalRevenue = useMemo(() => {
+    return orders
+      .filter(o => o.status === 'paid')
+      .reduce((sum, o) => sum + o.total_price, 0);
+  }, [orders]);
+
+  // === FILTERED PRODUCTS (tetap sama) ===
   const filteredProducts = useMemo(() => {
     let filtered = products;
 
@@ -117,7 +134,7 @@ export default function DashboardCafePage() {
     return filtered;
   }, [products, search, selectedCategory, stockFilter, priceRange, dateRange, customStart, customEnd]);
 
-  // === STATS ===
+  // === STATS (tambahkan totalRevenue) ===
   const stats: Stats = useMemo(() => {
     const withImage = filteredProducts.filter(p => p.gambar && p.gambar.trim() !== '').length;
     return {
@@ -130,10 +147,11 @@ export default function DashboardCafePage() {
       withImage,
       lowStock: filteredProducts.filter(p => p.stok > 0 && p.stok <= 10).length,
       outOfStock: filteredProducts.filter(p => p.stok === 0).length,
+      totalRevenue, // Baru
     };
-  }, [filteredProducts, categories]);
+  }, [filteredProducts, categories, totalRevenue]);
 
-  // === CHART DATA ===
+  // === CHART DATA (tetap sama) ===
   const productsByCategory = useMemo(() => {
     const map = new Map<string, number>();
     filteredProducts.forEach(p => {
@@ -171,7 +189,7 @@ export default function DashboardCafePage() {
     return [...filteredProducts].sort((a, b) => a.harga - b.harga).slice(0, 5);
   }, [filteredProducts]);
 
-  // === SORTED & PAGINATED ===
+  // === SORTED & PAGINATED (tetap sama) ===
   const sortedProducts = useMemo(() => {
     return [...filteredProducts].sort((a, b) => {
       const aVal = a[sortBy], bVal = b[sortBy];
@@ -187,7 +205,7 @@ export default function DashboardCafePage() {
   const paginated = sortedProducts.slice((page - 1) * limit, page * limit);
   const totalPages = Math.ceil(sortedProducts.length / limit);
 
-  // === EXPORT CSV ===
+  // === EXPORT CSV (tetap sama) ===
   const exportCSV = () => {
     const headers = ['ID', 'Nama', 'Kategori', 'Harga', 'Stok', 'Gambar', 'Dibuat'];
     const rows = sortedProducts.map(p => [
@@ -236,13 +254,14 @@ export default function DashboardCafePage() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stats - Tambah Total Pendapatan */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[
             { label: 'Total Produk', value: stats.totalProducts, icon: Package, color: 'blue' },
             { label: 'Kategori', value: stats.totalCategories, icon: Tag, color: 'green' },
             { label: 'Total Stok', value: stats.totalStock.toLocaleString(), icon: Package, color: 'purple' },
             { label: 'Rata-rata Harga', value: `Rp ${stats.avgPrice.toLocaleString()}`, icon: Coffee, color: 'amber' },
+            { label: 'Pendapatan (Paid)', value: `Rp ${stats.totalRevenue.toLocaleString('id-ID')}`, icon: DollarSign, color: 'emerald' }, // BARU
           ].map((s, i) => (
             <div key={i} className={`p-5 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <div className="flex items-center justify-between">
@@ -258,7 +277,7 @@ export default function DashboardCafePage() {
           ))}
         </div>
 
-        {/* Filters */}
+        {/* Filters (tetap sama) */}
         <div className={`p-4 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="relative">
@@ -283,7 +302,7 @@ export default function DashboardCafePage() {
           </div>
         </div>
 
-        {/* Charts */}
+        {/* Charts (tetap sama) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <h3 className="text-lg font-semibold mb-4">Distribusi Kategori</h3>
@@ -311,7 +330,7 @@ export default function DashboardCafePage() {
           </div>
         </div>
 
-        {/* Heatmap & Top */}
+        {/* Heatmap & Top (tetap sama) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className={`lg:col-span-2 p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <h3 className="text-lg font-semibold mb-4">Heatmap Stok per Kategori</h3>
@@ -338,7 +357,7 @@ export default function DashboardCafePage() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table (tetap sama) */}
         <div className={`rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden`}>
           <div className="p-4 border-b">
             <h3 className="text-lg font-semibold">Daftar Produk</h3>
@@ -380,7 +399,7 @@ export default function DashboardCafePage() {
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-lg bg-gray-200 disabled:opacity-50">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-lg bg-gray-200 disabled:opacity-50">
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-lg bg-gray-200 disabled:opacity-50">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -391,14 +410,14 @@ export default function DashboardCafePage() {
   );
 }
 
-// === LOADING SKELETON ===
+// Loading Skeleton (tetap sama)
 function LoadingSkeleton({ darkMode }: { darkMode: boolean }) {
   return (
     <div className={`p-6 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="animate-pulse space-y-6">
         <div className="h-10 bg-gray-300 rounded w-64"></div>
-        <div className="grid grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
             <div key={i} className="h-32 bg-gray-300 rounded-xl"></div>
           ))}
         </div>
