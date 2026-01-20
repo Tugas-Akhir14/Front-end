@@ -1,14 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear, eachDayOfInterval, subMonths, subWeeks, subYears, eachWeekOfInterval, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Users, Hotel, DollarSign, Calendar, Star, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrendingUp, TrendingDown, Users, Hotel, DollarSign, Calendar, Star, RefreshCw, BarChart2, LineChart as LineChartIcon, PieChart as PieChartIcon, BedDouble } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080';
+
+// Helper function for Rupiah formatting
+const formatRupiah = (value: number): string => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
 
 interface Stats {
   totalBookings: number;
@@ -23,11 +35,13 @@ interface Stats {
   totalReviews: number;
 }
 
-interface MonthlyData {
-  month: string;
+interface PeriodData {
+  period: string;
   revenue: number;
   bookings: number;
 }
+
+type ReportMode = 'weekly' | 'monthly' | 'yearly';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({
@@ -42,7 +56,8 @@ export default function AdminDashboard() {
     availableRooms: 0,
     totalReviews: 0,
   });
-  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [periodData, setPeriodData] = useState<PeriodData[]>([]);
+  const [mode, setMode] = useState<ReportMode>('monthly');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -68,9 +83,22 @@ export default function AdminDashboard() {
 
       const bookings = (await bookingRes.json()).data?.data || [];
       const rooms = (await roomRes.json()).data || [];
-      const reviews = (await reviewRes.json()).data || [];
+      // Jadi seperti ini:
+const reviewData = await reviewRes.json();
+let reviews: any[] = [];
 
-      // === Hitung statistik ===
+if (Array.isArray(reviewData)) {
+  reviews = reviewData;
+} else if (reviewData?.data && Array.isArray(reviewData.data)) {
+  reviews = reviewData.data;
+} else if (reviewData?.reviews && Array.isArray(reviewData.reviews)) {
+  reviews = reviewData.reviews;
+} else {
+  console.warn('Format reviews tidak dikenali:', reviewData);
+  reviews = [];
+}
+
+      // === Hitung statistik umum ===
       const confirmed = bookings.filter((b: any) => b.status === 'confirmed' || b.status === 'checked_in');
       const totalRevenue = confirmed.reduce((sum: number, b: any) => sum + b.total_price, 0);
 
@@ -80,25 +108,6 @@ export default function AdminDashboard() {
       const avgRating = reviews.length > 0
         ? (reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length).toFixed(1)
         : 0;
-
-      // === Data bulanan (6 bulan terakhir) ===
-      const monthly: MonthlyData[] = [];
-      for (let i = 5; i >= 0; i--) {
-        const date = subMonths(new Date(), i);
-        const monthStart = startOfMonth(date);
-        const monthEnd = endOfMonth(date);
-        const monthBookings = bookings.filter((b: any) => {
-          const checkIn = new Date(b.check_in);
-          return checkIn >= monthStart && checkIn <= monthEnd && (b.status === 'confirmed' || b.status === 'checked_in');
-        });
-        monthly.push({
-          month: format(date, 'MMM yyyy'),
-          revenue: monthBookings.reduce((s: number, b: any) => s + b.total_price, 0),
-          bookings: monthBookings.length,
-        });
-      }
-
-      setMonthlyData(monthly);
 
       setStats({
         totalBookings: bookings.length,
@@ -112,8 +121,63 @@ export default function AdminDashboard() {
         availableRooms,
         totalReviews: reviews.length,
       });
+
+      // === Hitung data periode dinamis ===
+      const data: PeriodData[] = [];
+      let periods = 6; // Default 6 periode terakhir
+
+      if (mode === 'weekly') {
+        periods = 12; // 3 bulan terakhir (12 minggu)
+        for (let i = periods - 1; i >= 0; i--) {
+          const weekStart = startOfWeek(subWeeks(new Date(), i));
+          const weekEnd = endOfWeek(weekStart);
+          const weekBookings = bookings.filter((b: any) => {
+            const checkIn = new Date(b.check_in);
+            return checkIn >= weekStart && checkIn <= weekEnd && (b.status === 'confirmed' || b.status === 'checked_in');
+          });
+          data.push({
+            period: format(weekStart, 'dd MMM'),
+            revenue: weekBookings.reduce((s: number, b: any) => s + b.total_price, 0),
+            bookings: weekBookings.length,
+          });
+        }
+      } else if (mode === 'monthly') {
+        periods = 6; // 6 bulan terakhir
+        for (let i = periods - 1; i >= 0; i--) {
+          const date = subMonths(new Date(), i);
+          const monthStart = startOfMonth(date);
+          const monthEnd = endOfMonth(date);
+          const monthBookings = bookings.filter((b: any) => {
+            const checkIn = new Date(b.check_in);
+            return checkIn >= monthStart && checkIn <= monthEnd && (b.status === 'confirmed' || b.status === 'checked_in');
+          });
+          data.push({
+            period: format(date, 'MMM yyyy'),
+            revenue: monthBookings.reduce((s: number, b: any) => s + b.total_price, 0),
+            bookings: monthBookings.length,
+          });
+        }
+      } else if (mode === 'yearly') {
+        periods = 3; // 3 tahun terakhir
+        for (let i = periods - 1; i >= 0; i--) {
+          const date = subYears(new Date(), i);
+          const yearStart = startOfYear(date);
+          const yearEnd = endOfYear(date);
+          const yearBookings = bookings.filter((b: any) => {
+            const checkIn = new Date(b.check_in);
+            return checkIn >= yearStart && checkIn <= yearEnd && (b.status === 'confirmed' || b.status === 'checked_in');
+          });
+          data.push({
+            period: format(date, 'yyyy'),
+            revenue: yearBookings.reduce((s: number, b: any) => s + b.total_price, 0),
+            bookings: yearBookings.length,
+          });
+        }
+      }
+
+      setPeriodData(data.reverse()); // Urut dari lama ke baru
     } catch (err) {
-      console.error(err);
+      console.error('Dashboard fetch error:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -122,9 +186,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 30000); 
+    const interval = setInterval(fetchDashboardData, 300000); // Refresh setiap 5 menit
     return () => clearInterval(interval);
-  }, []);
+  }, [mode]);
 
   const pieData = [
     { name: 'Tersedia', value: stats.availableRooms, color: '#10b981' },
@@ -155,11 +219,31 @@ export default function AdminDashboard() {
               </h1>
               <p className="text-gray-600 mt-1">Ringkasan performa hotel secara real-time</p>
             </div>          
+            <div className="flex items-center gap-4">
+              <Select value={mode} onValueChange={(value: ReportMode) => setMode(value)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Pilih Periode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Mingguan</SelectItem>
+                  <SelectItem value="monthly">Bulanan</SelectItem>
+                  <SelectItem value="yearly">Tahunan</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={fetchDashboardData}
+                disabled={refreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
 
           {/* Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="border-yellow-200 shadow-lg">
+            <Card className="border-yellow-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <DollarSign className="w-5 h-5 text-emerald-600" />
@@ -177,7 +261,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-yellow-200 shadow-lg">
+            <Card className="border-yellow-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-amber-600" />
@@ -193,7 +277,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-yellow-200 shadow-lg">
+            <Card className="border-yellow-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Hotel className="w-5 h-5 text-blue-600" />
@@ -208,7 +292,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-yellow-200 shadow-lg">
+            <Card className="border-yellow-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Star className="w-5 h-5 text-yellow-500" />
@@ -224,88 +308,120 @@ export default function AdminDashboard() {
             </Card>
           </div>
 
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Pendapatan Bulanan */}
-            <Card className="shadow-xl border-yellow-200">
-              <CardHeader>
-                <CardTitle>Pendapatan 6 Bulan Terakhir</CardTitle>
-                <CardDescription>Grafik pendapatan dari booking terkonfirmasi</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(v) => `Rp${(v / 1e6).toFixed(0)}jt`} />
-                    <Tooltip formatter={(v: number) => v.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })} />
-                    <Bar dataKey="revenue" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+          {/* Charts Section */}
+          <Tabs defaultValue="revenue" className="space-y-8">
+            <TabsList className="bg-gray-100 p-1 rounded-lg">
+              <TabsTrigger value="revenue" className="flex gap-2">
+                <BarChart2 className="w-4 h-4" />
+                Pendapatan
+              </TabsTrigger>
+              <TabsTrigger value="bookings" className="flex gap-2">
+                <LineChartIcon className="w-4 h-4" />
+                Booking
+              </TabsTrigger>
+              <TabsTrigger value="occupancy" className="flex gap-2">
+                <PieChartIcon className="w-4 h-4" />
+                Okupansi
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Status Kamar */}
-            <Card className="shadow-xl border-yellow-200">
-              <CardHeader>
-                <CardTitle>Distribusi Status Kamar</CardTitle>
-                <CardDescription>{stats.totalRooms} total kamar</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, i) => (
-                        <Cell key={`cell-${i}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex justify-center gap-6 mt-4">
-                  {pieData.map((d) => (
-                    <div key={d.name} className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ backgroundColor: d.color }} />
-                      <span className="text-sm font-medium">{d.name}: {d.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            <TabsContent value="revenue">
+              <Card className="shadow-xl border-yellow-200">
+                <CardHeader>
+                  <CardTitle>Pendapatan {mode.charAt(0).toUpperCase() + mode.slice(1)}</CardTitle>
+                  <CardDescription>Grafik pendapatan dari booking terkonfirmasi</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={periodData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="period" angle={-45} textAnchor="end" height={60} />
+                      <YAxis tickFormatter={(v) => `Rp${(v / 1e6).toFixed(0)}jt`} />
+                      <Tooltip formatter={(v: number) => formatRupiah(v)} />
+                      <Legend />
+                      <Bar dataKey="revenue" fill="#f59e0b" radius={[8, 8, 0, 0]} name="Pendapatan" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="bookings">
+              <Card className="shadow-xl border-yellow-200">
+                <CardHeader>
+                  <CardTitle>Jumlah Booking {mode.charAt(0).toUpperCase() + mode.slice(1)}</CardTitle>
+                  <CardDescription>Trend jumlah booking per periode</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={periodData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="period" angle={-45} textAnchor="end" height={60} />
+                      <YAxis />
+                      <Tooltip formatter={(v: number) => `${v} booking`} />
+                      <Legend />
+                      <Line type="monotone" dataKey="bookings" stroke="#3b82f6" strokeWidth={3} dot={{ r: 5 }} name="Jumlah Booking" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="occupancy">
+              <Card className="shadow-xl border-yellow-200">
+                <CardHeader>
+                  <CardTitle>Distribusi Status Kamar</CardTitle>
+                  <CardDescription>{stats.totalRooms} total kamar saat ini</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={80}
+                        outerRadius={140}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                      >
+                        {pieData.map((entry, i) => (
+                          <Cell key={`cell-${i}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => `${v} kamar`} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button asChild className="h-24 flex flex-col gap-2 bg-gradient-to-br from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-semibold shadow-lg">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
+            <Button asChild className="h-32 flex flex-col gap-3 items-center justify-center bg-gradient-to-br from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-semibold shadow-lg rounded-xl transition-transform hover:scale-105">
               <a href="/admin/hotel/booking">
-                <Calendar className="w-8 h-8" />
+                <Calendar className="w-10 h-10" />
                 Kelola Booking
               </a>
             </Button>
-            <Button asChild className="h-24 flex flex-col gap-2 bg-gradient-to-br from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold shadow-lg">
+            <Button asChild className="h-32 flex flex-col gap-3 items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold shadow-lg rounded-xl transition-transform hover:scale-105">
               <a href="/admin/hotel/room">
-                <Hotel className="w-8 h-8" />
+                <Hotel className="w-10 h-10" />
                 Manajemen Kamar
               </a>
             </Button>
-            <Button asChild className="h-24 flex flex-col gap-2 bg-gradient-to-br from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold shadow-lg">
+            <Button asChild className="h-32 flex flex-col gap-3 items-center justify-center bg-gradient-to-br from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold shadow-lg rounded-xl transition-transform hover:scale-105">
               <a href="/admin/hotel/review">
-                <Star className="w-8 h-8" />
+                <Star className="w-10 h-10" />
                 Lihat Ulasan
               </a>
             </Button>
-            <Button asChild className="h-24 flex flex-col gap-2 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold shadow-lg">
+            <Button asChild className="h-32 flex flex-col gap-3 items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold shadow-lg rounded-xl transition-transform hover:scale-105">
               <a href="/admin/hotel/type">
-                <Users className="w-8 h-8" />
+                <BedDouble className="w-10 h-10" />
                 Tipe Kamar
               </a>
             </Button>

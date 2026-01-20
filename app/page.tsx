@@ -360,18 +360,18 @@ export default function Home() {
                           <DialogHeader>
                             <DialogTitle className="text-2xl text-white">Konfirmasi Pemesanan</DialogTitle>
                             <DialogDescription className="text-gray-400">
-                              Lanjutkan pemesanan untuk suite ini.
+                               Informasi ini membantu kami menyesuaikan strategi distribusi dan reservasi properti Anda.
                             </DialogDescription>
                           </DialogHeader>
                           <div className="py-6">
                             <RadioGroup value={otaAnswer} onValueChange={setOtaAnswer} required>
                               <div className="flex items-center space-x-3 mb-4">
                                 <RadioGroupItem value="ya" id="ya" className="border-gray-500 text-yellow-500" />
-                                <Label htmlFor="ya" className="text-lg cursor-pointer text-gray-300">Ya, via OTA</Label>
+                                <Label htmlFor="ya" className="text-lg cursor-pointer text-gray-300"> Properti aktif di platform seperti Traveloka, Booking.com, Agoda, dll.</Label>
                               </div>
                               <div className="flex items-center space-x-3">
                                 <RadioGroupItem value="tidak" id="tidak" className="border-gray-500 text-yellow-500" />
-                                <Label htmlFor="tidak" className="text-lg cursor-pointer text-gray-300">Tidak, belum via OTA</Label>
+                                <Label htmlFor="tidak" className="text-lg cursor-pointer text-gray-300">Tidak,  Belum terdaftar di OTA</Label>
                               </div>
                             </RadioGroup>
                           </div>

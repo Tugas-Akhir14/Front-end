@@ -20,7 +20,7 @@ export default function SignUp() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'guest' | 'admin_hotel' | 'admin_souvenir' | 'admin_buku' | 'admin_cafe'>('guest');
+  const [role, setRole] = useState<'guest'>('guest');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -210,10 +210,6 @@ export default function SignUp() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="guest">Guest (Booking Kamar)</SelectItem>
-                        <SelectItem value="admin_hotel">Admin Hotel</SelectItem>
-                        <SelectItem value="admin_souvenir">Admin Souvenir</SelectItem>
-                        <SelectItem value="admin_buku">Admin Buku</SelectItem>
-                        <SelectItem value="admin_cafe">Admin Cafe</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -304,6 +300,7 @@ export default function SignUp() {
                 </div>
               </div>
             </div>
+
           )}
 
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
@@ -311,6 +308,7 @@ export default function SignUp() {
 
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500 flex items-center justify-center gap-2">
+            
             <Sparkles className="w-3 h-3 text-amber-500" />
             © {new Date().getFullYear()} Hotel Mutiara - Premium Experience
             <Sparkles className="w-3 h-3 text-amber-500" />
