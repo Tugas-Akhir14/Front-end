@@ -95,6 +95,7 @@ export default function RoomBookingPage() {
 
   const [loading, setLoading] = useState(false);
   const [availability, setAvailability] = useState<AvailabilityItem | null>(null);
+  const [availabilities, setAvailabilities] = useState<AvailabilityItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
 
@@ -122,94 +123,53 @@ export default function RoomBookingPage() {
     return roomImages[form.type.toLowerCase() as keyof typeof roomImages] || roomImages.default;
   };
 
-  const handleCheckAvailability = async () => {
-    setLoading(true);
-    setError(null);
-    setAvailability(null);
+const handleCheckAvailability = async () => {
+  setLoading(true);
+  setError(null);
+  setAvailabilities([]);
 
-    if (!form.check_in || !form.check_out) {
-      setError('Pilih tanggal check-in dan check-out terlebih dahulu');
-      setLoading(false);
+  if (!form.check_in || !form.check_out) {
+    setError('Pilih tanggal check-in dan check-out terlebih dahulu');
+    setLoading(false);
+    return;
+  }
+
+  if (new Date(form.check_out) <= new Date(form.check_in)) {
+    setError('Tanggal check-out harus setelah check-in');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      check_in: form.check_in,
+      check_out: form.check_out,
+    });
+
+    const res = await fetch(
+      `http://localhost:8080/public/availability?${params.toString()}`
+    );
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    const available = (data.data || []).filter(
+      (r: AvailabilityItem) => r.available_rooms >= form.total_rooms
+    );
+
+    if (available.length === 0) {
+      setError('Tidak ada kamar tersedia untuk tanggal tersebut');
       return;
     }
 
-    const checkInDate = new Date(form.check_in);
-    const checkOutDate = new Date(form.check_out);
+    setAvailabilities(available);
+  } catch (err: any) {
+    setError(err.message || 'Gagal memeriksa ketersediaan');
+  } finally {
+    setLoading(false);
+  }
+};
 
-    if (checkOutDate <= checkInDate) {
-      setError('Tanggal check-out harus setelah check-in');
-      setLoading(false);
-      return;
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (checkInDate < today) {
-      setError('Check-in tidak boleh di masa lalu');
-      setLoading(false);
-      return;
-    }
-
-    if (!form.type) {
-      setError('Pilih tipe kamar terlebih dahulu');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const params = new URLSearchParams({
-        check_in: form.check_in,
-        check_out: form.check_out,
-        type: form.type.toLowerCase(),
-      });
-
-      const res = await fetch(`http://localhost:8080/public/availability?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Gagal memeriksa ketersediaan');
-      }
-
-      const results = data.data || [];
-      const selected = results.find(
-        (item: AvailabilityItem) => item.room_type.toLowerCase() === form.type.toLowerCase()
-      );
-
-      if (!selected) {
-        setError(`Tipe kamar ${form.type} tidak ditemukan`);
-        setLoading(false);
-        return;
-      }
-
-      if (selected.available_rooms < form.total_rooms) {
-        setError(
-          selected.available_rooms === 0
-            ? `Maaf, semua kamar ${form.type} sudah terbooking`
-            : `Hanya tersedia ${selected.available_rooms} kamar ${form.type}`
-        );
-        setLoading(false);
-        return;
-      }
-
-      setAvailability(selected);
-      setStep(2);
-      toast({
-        title: "Ketersediaan Tersedia!",
-        description: `Tersedia ${selected.available_rooms} kamar ${form.type}`,
-      });
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan saat memeriksa ketersediaan');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleBookNow = async () => {
     setLoading(true);
@@ -390,104 +350,81 @@ export default function RoomBookingPage() {
             </div>
           )}
 
-          {/* STEP 1: Pilih Tanggal & Tipe Kamar */}
-          {step === 1 && (
-            <Card className="bg-gray-900/90 border-gray-800 backdrop-blur-lg p-8 md:p-12 rounded-3xl shadow-2xl">
-              <div className="flex items-center gap-5 mb-12 pb-8 border-b border-gray-800">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-black border border-gray-700">
-                  <Calendar className="w-7 h-7" style={{ color: GOLD }} />
-                </div>
-                <h2 className="text-4xl font-bold text-white">Pilih Tanggal & Kamar</h2>
-              </div>
+          {/* STEP 1: Cek Ketersediaan Kamar */}
+{step === 1 && (
+  <Card className="bg-gray-900/90 border-gray-800 p-8 md:p-12 rounded-3xl">
+    
+    <h2 className="text-3xl font-bold text-white mb-10">
+      Cek Ketersediaan Kamar
+    </h2>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-                {/* Check In */}
-                <div>
-                  <label className="flex items-center gap-3 font-bold text-gray-300 mb-4 text-lg">
-                    <Calendar size={20} style={{ color: GOLD }} />
-                    Check-in
-                  </label>
-                  <input
-                    type="date"
-                    min={new Date().toISOString().split('T')[0]}
-                    value={form.check_in}
-                    onChange={(e) => setForm({ ...form, check_in: e.target.value })}
-                    className="w-full p-5 bg-black border border-gray-700 rounded-2xl text-white focus:border-yellow-600 focus:ring-2 focus:ring-yellow-600/30 transition"
-                  />
-                </div>
+    {/* Input */}
+    <div className="grid md:grid-cols-3 gap-6 mb-8">
+      <input
+        type="date"
+        value={form.check_in}
+        onChange={(e) => setForm({ ...form, check_in: e.target.value })}
+        className="p-4 bg-black border border-gray-700 rounded-xl text-white"
+      />
 
-                {/* Check Out */}
-                <div>
-                  <label className="flex items-center gap-3 font-bold text-gray-300 mb-4 text-lg">
-                    <Calendar size={20} style={{ color: GOLD }} />
-                    Check-out
-                  </label>
-                  <input
-                    type="date"
-                    min={form.check_in || new Date().toISOString().split('T')[0]}
-                    value={form.check_out}
-                    onChange={(e) => setForm({ ...form, check_out: e.target.value })}
-                    className="w-full p-5 bg-black border border-gray-700 rounded-2xl text-white focus:border-yellow-600 focus:ring-2 focus:ring-yellow-600/30 transition"
-                  />
-                </div>
+      <input
+        type="date"
+        value={form.check_out}
+        onChange={(e) => setForm({ ...form, check_out: e.target.value })}
+        className="p-4 bg-black border border-gray-700 rounded-xl text-white"
+      />
 
-                {/* Tipe Kamar */}
-                <div className="md:col-span-2 lg:col-span-1">
-                  <label className="flex items-center gap-3 font-bold text-gray-300 mb-4 text-lg">
-                    <BedDouble size={20} style={{ color: GOLD }} />
-                    Tipe Kamar
-                  </label>
-                  <select
-                    value={form.type}
-                    onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="w-full p-5 bg-black border border-gray-700 rounded-2xl text-white focus:border-yellow-600 focus:ring-2 focus:ring-yellow-600/30 transition"
-                  >
-                    <option value="">Pilih Tipe Kamar</option>
-                    {Object.keys(roomTypesInfo).map((key) => (
-                      <option key={key} value={key}>
-                        {roomTypesInfo[key as keyof typeof roomTypesInfo].name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+      <input
+        type="number"
+        min={1}
+        value={form.total_rooms}
+        onChange={(e) =>
+          setForm({ ...form, total_rooms: Math.max(1, Number(e.target.value)) })
+        }
+        className="p-4 bg-black border border-gray-700 rounded-xl text-white text-center"
+      />
+    </div>
 
-                {/* Jumlah Kamar */}
-                <div>
-                  <label className="flex items-center gap-3 font-bold text-gray-300 mb-4 text-lg">
-                    <BedDouble size={20} style={{ color: GOLD }} />
-                    Jumlah Kamar
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={form.total_rooms}
-                    onChange={(e) => setForm({ ...form, total_rooms: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-full p-5 bg-black border border-gray-700 rounded-2xl text-white text-center text-2xl font-bold focus:border-yellow-600 focus:ring-2 focus:ring-yellow-600/30 transition"
-                  />
-                </div>
-              </div>
+    <Button
+      onClick={handleCheckAvailability}
+      disabled={loading}
+      className="w-full h-14 mb-10"
+      style={{ backgroundColor: GOLD, color: '#000' }}
+    >
+      {loading ? 'Memeriksa...' : 'Cek Ketersediaan'}
+    </Button>
 
-              <Button
-                onClick={handleCheckAvailability}
-                disabled={loading}
-                className="w-full h-16 text-xl font-bold rounded-2xl transition-all"
-                style={{ backgroundColor: GOLD, color: '#000' }}
-              >
-                {loading ? (
-                  <span className="flex items-center gap-3">
-                    <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
-                    </svg>
-                    Memeriksa Ketersediaan...
-                  </span>
-                ) : (
-                  'Lanjutkan ke Detail Tamu'
-                )}
-              </Button>
-            </Card>
-          )}
+    {/* HASIL */}
+    {availabilities.length > 0 && (
+      <div className="grid md:grid-cols-3 gap-6">
+        {availabilities.map((room) => (
+          <div
+            key={room.room_type}
+            onClick={() => {
+              setForm({ ...form, type: room.room_type });
+              setAvailability(room);
+              setStep(2);
+            }}
+            className="cursor-pointer p-6 border border-gray-700 rounded-2xl hover:border-yellow-500 transition"
+          >
+            <h3 className="text-xl font-bold text-white capitalize">
+              {roomTypesInfo[room.room_type as keyof typeof roomTypesInfo]?.name}
+            </h3>
+
+            <p className="text-gray-400 mt-2">
+              Tersedia: {room.available_rooms} kamar
+            </p>
+
+            <p className="text-yellow-400 font-bold mt-4">
+              {formatRupiah(room.current_price)} / malam
+            </p>
+          </div>
+        ))}
+      </div>
+    )}
+  </Card>
+)}
+
 
           {/* STEP 2: Detail Tamu & Konfirmasi */}
           {step === 2 && availability && (
@@ -519,7 +456,7 @@ export default function RoomBookingPage() {
                   </p>
                   {totalExtraGuests > 0 && (
                     <p className="text-sm text-yellow-400 mt-2 text-center">
-                      Extra {totalExtraGuests} tamu: +{formatRupiah(extraCharge)} ({formatRupiah(EXTRA_GUEST_PRICE)}/orang/malam)
+                      Extra {totalExtraGuests} bed : +{formatRupiah(extraCharge)} ({formatRupiah(EXTRA_GUEST_PRICE)}/orang/malam)
                     </p>
                   )}
                 </div>
@@ -618,7 +555,7 @@ export default function RoomBookingPage() {
                   </div>
 
                   <div className="flex justify-between text-lg">
-                    <span>Extra Tamu</span>
+                    <span>Extra Bed</span>
                     <span className="font-medium">
                       {formatRupiah(extraCharge)}
                     </span>
