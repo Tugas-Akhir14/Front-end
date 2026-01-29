@@ -76,7 +76,7 @@ export default function HotelAvailabilityPage() {
         params.append('type', type);
       }
 
-      const res = await fetch(`http://localhost:8080/public/availability?${params.toString()}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/availability?${params.toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

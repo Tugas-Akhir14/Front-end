@@ -60,22 +60,17 @@ export const api = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     console.log('[API] Response Data:', data);
-
-    // PENTING: 201 Created = SUKSES! (bukan !res.ok)
     const isSuccess = res.status >= 200 && res.status < 300;
 
     if (!isSuccess) {
       const msg = data?.error || data?.message || `HTTP ${res.status}`;
       throw new Error(msg);
     }
-
-    return data; // langsung return JSON
-
+    return data;
   } catch (err: any) {
     console.error('[API] Error:', err);
     throw err;
   }
 };
-
 export const approveAdmin = (id: number) =>
   api(`/api/admins/approve/${id}`, { method: 'PATCH' });
