@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         source: '/public/:path*',
-        destination: 'http://localhost:8080/public/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/public/:path*`,
       },
     ];
   },
