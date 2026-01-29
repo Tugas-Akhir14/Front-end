@@ -213,7 +213,8 @@ const handleCheckAvailability = async () => {
 
       const res = await api.post('/public/bookings', payload);
 
-      const whatsappUrl = res.whatsapp_url || res.data?.whatsapp_url;
+      const whatsappUrl = res.data?.whatsapp_url;
+
       if (!whatsappUrl) {
         throw new Error('Link WhatsApp tidak ditemukan dari server');
       }

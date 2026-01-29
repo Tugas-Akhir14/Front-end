@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {  useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import axios from "axios";
 import { toast, Toaster } from 'sonner';
-import Swal from 'sweetalert2'; // ← TAMBAHAN INI
+import Swal from 'sweetalert2';
 
 // ===================== AXIOS INSTANCE =====================
 const api = axios.create({ baseURL: "http://localhost:8080" });
@@ -17,6 +17,8 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+
 
 // ===================== TYPES =====================
 export type RoomType = {
@@ -84,6 +86,7 @@ function SkeletonRow() {
 }
 
 export default function RoomPage() {
+  const [imageErrorIds, setImageErrorIds] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
   const [roomType, setRoomType] = useState("");
   const [roomStatus, setRoomStatus] = useState("");
@@ -412,21 +415,19 @@ const handleDelete = async (room: Room) => {
                 rooms.map((r) => (
                   <tr key={r.id} className="hover:bg-yellow-50 transition-colors">
                     <td className="px-4 py-3 align-top">
-                      {r.image ? (
-                        <img
-                          src={r.image}
-                          alt={`Kamar ${r.number}`}
-                          className="h-16 w-16 rounded-xl object-cover border-2 border-amber-200 shadow-sm"
-                          onError={(e) => {
-                            const img = e.currentTarget;
-                            img.style.display = "none";
-                            const fallback = FallbackThumb();
-                            img.parentElement?.appendChild(React.createElement(fallback.type, fallback.props));
-                          }}
-                        />
-                      ) : (
-                        <FallbackThumb />
-                      )}
+                     {r.image && !imageErrorIds.has(r.id) ? (
+                      <img
+                        src={r.image}
+                        alt={`Kamar ${r.number}`}
+                        className="h-16 w-16 rounded-xl object-cover border-2 border-amber-200 shadow-sm"
+                        onError={() => {
+                          setImageErrorIds(prev => new Set(prev).add(r.id));
+                        }}
+                      />
+                    ) : (
+                      <FallbackThumb />
+                    )}
+
                     </td>
                     <td className="px-4 py-3 align-top font-bold text-amber-700">{r.number}</td>
                     <td className="px-4 py-3 align-top">

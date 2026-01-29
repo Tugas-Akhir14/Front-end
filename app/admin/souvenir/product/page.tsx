@@ -420,7 +420,7 @@ export default function ProductSouvenirPage() {
                                 {imageUrls.slice(0, 3).map((url, i) => (
                                   <img
                                     key={i}
-                                    src={url}
+                                    src={url ?? undefined}
                                     alt={`${product.nama} ${i + 1}`}
                                     className="h-12 w-12 object-cover rounded-md border shadow-sm"
                                     onError={(e) => e.currentTarget.style.display = 'none'}
@@ -499,7 +499,20 @@ export default function ProductSouvenirPage() {
               </Select>
               <FileInput
                 label="Gambar Produk (max 5MB, JPG/PNG/WEBP)"
-                onChange={(files) => setForm({ ...form, gambar: files })}
+               onChange={(value) => {
+  let files: File[] = [];
+
+  if (value instanceof Event) {
+    const input = value.target as HTMLInputElement;
+    files = Array.from(input.files || []);
+  } else {
+    files = value as File[];
+  }
+
+  setForm({ ...form, gambar: files });
+}}
+
+
                 multiple
                 accept="image/jpeg,image/png,image/webp"
               />
@@ -535,7 +548,12 @@ export default function ProductSouvenirPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Gambar Saat Ini</label>
                   <div className="flex gap-2 flex-wrap">
                     {existingImages.map((url, i) => (
-                      <img key={i} src={getImageUrl(url)} alt={`Gambar ${i + 1}`} className="h-20 w-20 object-cover rounded-md border" />
+                      <img
+                        key={i}
+                        src={getImageUrl(url) ?? undefined}
+                        alt={`Gambar ${i + 1}`}
+                      />
+
                     ))}
                   </div>
                 </div>
@@ -543,7 +561,19 @@ export default function ProductSouvenirPage() {
 
               <FileInput
                 label="Tambah Gambar Baru (opsional)"
-                onChange={(files) => setForm({ ...form, gambar: files })}
+                onChange={(value) => {
+                  let files: File[] = [];
+
+                  if (value instanceof Event) {
+                    const input = value.target as HTMLInputElement;
+                    files = Array.from(input.files || []);
+                  } else {
+                    files = value as File[];
+                  }
+
+                  setForm({ ...form, gambar: files });
+                }}
+
                 multiple
                 accept="image/jpeg,image/png,image/webp"
               />

@@ -120,10 +120,11 @@ export default function DashboardBookPage() {
       const outOfStockCount = productsList.filter(p => p.stok === 0).length;
 
       setChartStockStatus([
-        { name: 'Tersedia', jumlah: inStock },
-        { name: 'Stok Rendah', jumlah: lowStock },
-        { name: 'Habis', jumlah: outOfStockCount },
-      ]);
+  { name: 'Tersedia', jumlah: inStock, nilai: inStock },
+  { name: 'Stok Rendah', jumlah: lowStock, nilai: lowStock },
+  { name: 'Habis', jumlah: outOfStockCount, nilai: outOfStockCount },
+]);
+
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal memuat data dashboard');

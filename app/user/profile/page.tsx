@@ -415,7 +415,7 @@
                               </DialogTrigger>
                               <DialogContent className="bg-gray-900 border-2 border-amber-700">
                                 <DialogHeader><DialogTitle className="text-2xl">Ganti Password</DialogTitle></DialogHeader>
-                                <div className2="space-y-5 py-4">
+                                <div className="space-y-5 py-4">
                                   {['old_password', 'new_password', 'confirm_password'].map((field) => (
                                     <div key={field}>
                                       <Label>{field === 'old_password' ? 'Password Lama' : field === 'new_password' ? 'Password Baru' : 'Konfirmasi Password'}</Label>

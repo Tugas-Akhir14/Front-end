@@ -124,8 +124,14 @@ export default function AdminBookingPage() {
       setBookings(mapped);
       
       // Ekstrak daftar tipe kamar dan sumber yang unik
-      const uniqueRoomTypes = [...new Set(mapped.map(b => b.room_type))].filter(Boolean);
-      const uniqueSources = [...new Set(mapped.map(b => b.source))].filter(Boolean);
+      const uniqueRoomTypes = Array.from(
+  new Set(mapped.map(b => b.room_type))
+).filter(Boolean);
+
+const uniqueSources = Array.from(
+  new Set(mapped.map(b => b.source))
+).filter(Boolean);
+
       
       setAvailableRoomTypes(uniqueRoomTypes);
       setAvailableSources(uniqueSources);

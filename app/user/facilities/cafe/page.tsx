@@ -70,9 +70,12 @@ export default function CafePage() {
         setProducts(productList);
 
         // Auto categories
-        const uniqueCats = Array.from(
-          new Map(productList.map((p: CafeProduct) => [p.category.id, p.category])).values()
-        );
+        const uniqueCats: { id: number; nama: string }[] = Array.from(
+  new Map<number, { id: number; nama: string }>(
+    productList.map((p: CafeProduct) => [p.category.id, p.category])
+  ).values()
+);
+
         setCategories(uniqueCats);
       } catch (err) {
         toast.error('Gagal memuat menu cafe');

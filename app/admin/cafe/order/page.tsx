@@ -6,6 +6,8 @@ import { Toaster, toast } from 'sonner';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
 import axios from 'axios';
+import Image from "next/image";
+
 
 // === AXIOS INSTANCE DENGAN TOKEN ===
 const api = axios.create({
