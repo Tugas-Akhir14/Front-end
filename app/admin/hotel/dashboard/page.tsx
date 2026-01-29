@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, TrendingDown, Users, Hotel, DollarSign, Calendar, Star, RefreshCw, BarChart2, LineChart as LineChartIcon, PieChart as PieChartIcon, BedDouble } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080';
+const API_BASE = process.env.NEXT_PUBLIC_BASE_URL;
 
 // Helper function for Rupiah formatting
 const formatRupiah = (value: number): string => {

@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Mail, Phone, Lock, Eye, EyeOff, Sparkles, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 
-const API_URL = 'http://localhost:8080';
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export default function SignUp() {
   const [step, setStep] = useState<'register' | 'otp'>('register');

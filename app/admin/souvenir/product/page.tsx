@@ -73,7 +73,7 @@ export default function ProductSouvenirPage() {
     setError(null);
     try {
       const res = await fetch(
-        `http://localhost:8080/api/products?page=${page}&limit=${limit}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/products?page=${page}&limit=${limit}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -91,7 +91,7 @@ export default function ProductSouvenirPage() {
   const fetchCategories = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch('http://localhost:8080/api/categories', {
+              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Gagal memuat kategori');
@@ -111,7 +111,7 @@ export default function ProductSouvenirPage() {
   const getImageUrl = (path: string) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `http://localhost:8080${path.startsWith('/') ? '' : '/'}${path}`;
+    return `${process.env.NEXT_PUBLIC_API_URL}${path.startsWith('/') ? '' : '/'}${path}`;
   };
 
   // === HANDLE CREATE ===
@@ -153,7 +153,7 @@ export default function ProductSouvenirPage() {
     form.gambar.forEach(file => formData.append('gambar', file));
 
     try {
-      const res = await fetch('http://localhost:8080/api/products', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -209,7 +209,7 @@ export default function ProductSouvenirPage() {
     form.gambar.forEach(file => formData.append('gambar', file));
 
     try {
-      const res = await fetch(`http://localhost:8080/api/products/${selectedProduct.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${selectedProduct.id}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -256,7 +256,7 @@ export default function ProductSouvenirPage() {
     const toastId = toast.loading('Menghapus produk...');
 
     try {
-      const res = await fetch(`http://localhost:8080/api/products/${selectedProduct.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${selectedProduct.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -326,7 +326,7 @@ export default function ProductSouvenirPage() {
     const toastId = toast.loading('Menghapus produk...');
 
     try {
-      const res = await fetch(`http://localhost:8080/api/products/${product.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${product.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

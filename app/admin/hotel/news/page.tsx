@@ -69,7 +69,7 @@ function EditModal({ item, onClose, onSuccess }: { item: News; onClose: () => vo
     try {
       setLoading(true);
       const token = sessionStorage.getItem("token");
-      const res = await fetch(`http://localhost:8080/api/news/${item.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/news/${item.id}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -213,7 +213,7 @@ export default function AdminNewsPage() {
       if (q.trim()) params.set("q", q.trim());
       if (status) params.set("status", status);
 
-      const res = await fetch(`http://localhost:8080/api/news?${params}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/news?${params}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -262,7 +262,7 @@ export default function AdminNewsPage() {
 
     try {
       const token = sessionStorage.getItem("token");
-      const res = await fetch(`http://localhost:8080/api/news/${item.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/news/${item.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

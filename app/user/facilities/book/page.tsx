@@ -24,7 +24,7 @@ export default function BookStorePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
   useEffect(() => {
     async function fetchBooks() {

@@ -14,7 +14,7 @@ export type LoginResponse = {
   user: User;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const api = async (endpoint: string, options: RequestInit = {}) => {
   const rawToken = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;

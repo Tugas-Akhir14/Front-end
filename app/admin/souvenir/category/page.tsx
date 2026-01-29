@@ -47,7 +47,7 @@ export default function CategorySouvenirPage() {
     }
 
     try {
-      const res = await fetch('http://localhost:8080/api/categories', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -116,7 +116,7 @@ export default function CategorySouvenirPage() {
     setSubmitLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8080/api/categories', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -170,7 +170,7 @@ export default function CategorySouvenirPage() {
     setSubmitLoading(true);
 
     try {
-      const res = await fetch(`http://localhost:8080/api/categories/${selectedCategory.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories/${selectedCategory.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ export default function CategorySouvenirPage() {
     const toastId = toast.loading('Menghapus kategori...');
 
     try {
-      const res = await fetch(`http://localhost:8080/api/categories/${cat.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories/${cat.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });

@@ -19,7 +19,7 @@ export default function VisiMisiPage() {
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
 
-  const apiBase = useMemo(() => "http://localhost:8080/api", []);
+  const apiBase = useMemo(() => process.env.NEXT_PUBLIC_API_URL + "/api", []);
 
   function getToken() {
     const raw = sessionStorage.getItem("token");

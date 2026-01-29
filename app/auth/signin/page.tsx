@@ -21,7 +21,7 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8080/admins/login', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admins/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),

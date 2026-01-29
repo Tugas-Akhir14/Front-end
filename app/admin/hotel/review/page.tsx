@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const HOTEL_REVIEWS_API = `${API_URL}/api/reviews`; // atau /api/hotel/reviews → sesuaikan
 
 interface Review {

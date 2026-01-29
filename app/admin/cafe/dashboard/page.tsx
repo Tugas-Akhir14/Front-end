@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import axios from 'axios';
 
 // === AXIOS WITH TOKEN ===
-const api = axios.create({ baseURL: 'http://localhost:8080' });
+const api = axios.create({ baseURL: `${process.env.NEXT_PUBLIC_API_BASE_URL}` });
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;

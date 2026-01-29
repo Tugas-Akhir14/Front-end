@@ -50,8 +50,8 @@ export default function ProductBookPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const token = typeof window !== 'undefined' ? sessionStorage.getItem('token')?.replace(/^"+|"+$/g, '') : null;
-  const API_BOOKS = 'http://localhost:8080/api/books';
-  const API_CATEGORIES = 'http://localhost:8080/api/book-categories';
+  const API_BOOKS = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/books`;
+  const API_CATEGORIES = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/book-categories`;
 
   // === FETCH PRODUCTS ===
   const fetchProducts = async () => {
@@ -109,7 +109,7 @@ export default function ProductBookPage() {
   const getFullImageUrl = (path: string): string | null => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `http://localhost:8080${path.startsWith('/') ? '' : '/'}${path}`;
+    return `${process.env.NEXT_PUBLIC_API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
   };
 
   // === RESET FORM ===

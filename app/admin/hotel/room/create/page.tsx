@@ -42,7 +42,7 @@ export default function RoomCreatePage() {
     async function fetchRoomTypes() {
       if (!token) return;
       try {
-        const res = await fetch("http://localhost:8080/api/room-types", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/room-types`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Gagal mengambil tipe kamar");
@@ -101,7 +101,7 @@ export default function RoomCreatePage() {
         form.append("image", image, image.name);
       }
 
-      const res = await fetch("http://localhost:8080/api/rooms", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

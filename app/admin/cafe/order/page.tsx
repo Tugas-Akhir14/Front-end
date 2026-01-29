@@ -11,7 +11,7 @@ import Image from "next/image";
 
 // === AXIOS INSTANCE DENGAN TOKEN ===
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080',
+  baseURL: process.env.NEXT_PUBLIC_BASE_URL,
 });
 
 api.interceptors.request.use((config) => {

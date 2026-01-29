@@ -15,7 +15,7 @@ export type Gallery = {
   updated_at: string;
 };
 
-const API_BASE = 'http://localhost:8080';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 function fileURL(path?: string | null) {
   if (!path) return '/placeholder.svg';

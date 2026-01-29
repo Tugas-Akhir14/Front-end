@@ -33,7 +33,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   setIsLoading(true);
 
   try {
-    const res = await fetch('http://localhost:8080/admins/register', {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admins/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

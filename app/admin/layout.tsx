@@ -442,7 +442,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         headers.set('Content-Type', 'application/json');
       }
 
-      const res = await fetch(`http://localhost:8080${url}`, { ...init, headers, cache: 'no-store' });
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+      const res = await fetch(`${baseUrl}${url}`, { ...init, headers, cache: 'no-store' });
       if (res.status === 401) {
         sessionStorage.clear();
         router.replace('/auth/signin');

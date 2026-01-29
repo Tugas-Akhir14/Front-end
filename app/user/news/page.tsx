@@ -29,7 +29,7 @@ type ListResponse = {
   page_size: number;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Warna emas mewah
 const GOLD = '#d4af37';

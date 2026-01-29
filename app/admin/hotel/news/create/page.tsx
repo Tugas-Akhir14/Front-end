@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const BACKEND_BASE = "http://localhost:8080";
+const BACKEND_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 type StatusType = "draft" | "published";
 

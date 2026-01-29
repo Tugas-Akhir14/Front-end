@@ -8,7 +8,7 @@ import axios from 'axios';
 
 // === AXIOS INSTANCE DENGAN TOKEN ===
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
 });
 
 api.interceptors.request.use((config) => {
@@ -144,7 +144,7 @@ export default function ProductCafePage() {
       category_id: product.category_id.toString(),
       gambar: null,
     });
-    setImagePreview(product.gambar ? `http://localhost:8080${product.gambar}` : '');
+    setImagePreview(product.gambar ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${product.gambar}` : '');
     setIsEditModalOpen(true);
   };
 
@@ -365,7 +365,7 @@ export default function ProductCafePage() {
                     <tr key={product.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <img
-                          src={`http://localhost:8080${product.gambar}`}
+                          src={`${process.env.NEXT_PUBLIC_BASE_URL}${product.gambar}`}
                           alt={product.nama}
                           className="w-16 h-16 object-cover rounded-lg"
                           onError={(e) => {

@@ -25,7 +25,7 @@ export default function CategoryBookPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   const token = typeof window !== 'undefined' ? sessionStorage.getItem('token')?.replace(/^"+|"+$/g, '') : null;
-  const API_URL = 'http://localhost:8080/api/book-categories';
+  const API_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/book-categories`;
 
   // === FETCH CATEGORIES ===
   const fetchCategories = async () => {

@@ -46,7 +46,7 @@ export default function RoomTypePage() {
   // Deleting state
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const API_URL = "http://localhost:8080/api";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL + "/api";
   const TOKEN_KEY = "token";
   const validTypes = ["superior", "deluxe", "executive"];
 

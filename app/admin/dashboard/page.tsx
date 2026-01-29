@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Hotel, Bed, Star, Calendar, DollarSign, Users, RefreshCw, Check, XCircle, Trash2, Sun, Moon, Crown, Sparkles, TrendingUp } from 'lucide-react';
 
 // === CONFIG ===
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 const API = `${API_BASE}/api`;
 
 // === TYPES (SESUAI BACKEND) ===

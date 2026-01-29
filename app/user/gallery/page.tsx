@@ -9,7 +9,7 @@ import Footer from '@/components/Layout/Footer';
 import ChatBot from '@/components/Chatbot/ChatBot';
 
 const GOLD = '#d4af37';
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 type APIGalleryItem = {
   id: number;

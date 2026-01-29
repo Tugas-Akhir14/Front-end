@@ -6,7 +6,8 @@ import axios from "axios";
 // =====================
 // AXIOS INSTANCE
 // =====================
-const api = axios.create({ baseURL: "http://localhost:8080" });
+const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL });
+
 api.interceptors.request.use((config) => {
   const raw = sessionStorage.getItem("token");
   if (raw) {

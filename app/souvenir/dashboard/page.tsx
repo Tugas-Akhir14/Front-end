@@ -76,10 +76,10 @@ export default function DashboardSouvenirPage() {
     setLoading(true);
     try {
       const [prodRes, catRes] = await Promise.all([
-        fetch('http://localhost:8080/api/products?limit=1000', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=1000`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch('http://localhost:8080/api/categories', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);

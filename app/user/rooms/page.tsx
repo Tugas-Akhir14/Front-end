@@ -14,7 +14,7 @@ import Image from 'next/image';
 const GOLD = '#d4af37';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080',
+  baseURL: process.env.NEXT_PUBLIC_BASE_URL,
 });
 
 api.interceptors.request.use((config) => {
@@ -147,7 +147,7 @@ const handleCheckAvailability = async () => {
     });
 
     const res = await fetch(
-      `http://localhost:8080/public/availability?${params.toString()}`
+      `${process.env.NEXT_PUBLIC_API_URL}/public/availability?${params.toString()}`
     );
 
     const data = await res.json();

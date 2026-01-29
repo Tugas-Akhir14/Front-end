@@ -5,7 +5,7 @@ import Header from '@/components/Layout/Header';
 import Footer from '@/components/Layout/Footer';
 import { Sparkles, AlertCircle, Calendar, CreditCard } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8080';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
 
 async function getRoom(id: string) {
   try {
