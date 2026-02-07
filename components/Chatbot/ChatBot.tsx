@@ -37,7 +37,7 @@ export default function ChatBotMutiara() {
       userText: type === 'user' ? userText : null, // simpan teks asli yang dipilih user
       timestamp: new Date()
     }]);
-  };
+  };     
 
   const sendMenu = (menuType: string) => {
     if (menuType === "main") {

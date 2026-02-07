@@ -1,11 +1,9 @@
+import { ReactNode } from "react";
+
 export default function SouvenirLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  return (
-    <div>
-      {children}
-    </div>
-  );
+  return <div>{children}</div>;
 }
